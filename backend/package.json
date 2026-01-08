@@ -1,0 +1,17 @@
+{
+  "name": "news-app-api",
+  "version": "1.0.0",
+  "description": "API for news-app-web",
+  "license": "ISC",
+  "author": "PhongNg",
+  "type": "commonjs",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon app.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "nodemon": "^3.1.11"
+  }
+}
