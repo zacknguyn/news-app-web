@@ -7,6 +7,7 @@ import {
 import LoginScreen from "./auth/LoginScreen";
 import "./App.css";
 import RegisterScreen from "./auth/RegisterScreen";
+import HomeScreen from "./screens/HomeScreen";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginScreen />} />
         <Route path="/register" element={<RegisterScreen />} />
+        <Route path="/home" element={<HomeScreen />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
         {/* Add more routes here as needed */}
       </Routes>

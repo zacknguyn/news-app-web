@@ -1,4 +1,52 @@
+import React, { useState } from 'react';
+import { authAPI, tokenStorage } from '../services/api';
+import type { LoginRequest } from '../services/api';
+import { useNavigate } from 'react-router-dom';
+
 const LoginScreen: React.FC = () => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState<LoginRequest>({
+    email: '',
+    password: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await authAPI.login(formData);
+
+      if (response.success) {
+        // Store the token
+
+        tokenStorage.setToken(response.data.token);
+        // You can redirect to dashboard or main app here
+        console.log('Login successful!', response.data.user);
+
+        // TODO: Navigate to dashboard/main app
+        // navigate('/dashboard');
+        navigate('/home')
+      }
+    } catch (err) {
+      setError('Login failed. Please check your credentials.');
+      console.error('Login error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-row w-full h-screen justify-center">
       <div className="w-1/2 h-full p-6 overflow-hidden max-md:hidden">
@@ -30,7 +78,13 @@ const LoginScreen: React.FC = () => {
           </div>
 
           <div>
-            <form className="p-10 flex flex-col gap-4 text-xs">
+            <form className="p-10 flex flex-col gap-4 text-xs" onSubmit={handleSubmit}>
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                  {error}
+                </div>
+              )}
+
               <div className="flex flex-col gap-3">
                 <label htmlFor="email" className="">
                   Email
@@ -38,8 +92,12 @@ const LoginScreen: React.FC = () => {
                 <input
                   type="email"
                   id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
                   className="w-full p-2 rounded-sm hover:bg-gray-300 transition-colors focus:bg-gray-300 focus:outline-none"
                   placeholder="Email"
+                  required
                 />
               </div>
               <div className="flex flex-col gap-3">
@@ -49,8 +107,12 @@ const LoginScreen: React.FC = () => {
                 <input
                   type="password"
                   id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
                   className="w-full p-2 rounded-sm hover:bg-gray-300 transition-colors focus:bg-gray-300 focus:outline-none "
                   placeholder="Password"
+                  required
                 />
               </div>
               <div className="text-center flex justify-between items-center text-xs mt-2 max-sm:gap-2 ">
@@ -67,9 +129,13 @@ const LoginScreen: React.FC = () => {
               </div>
               <button
                 type="submit"
-                className="mt-4 bg-black text-white p-2 rounded-lg hover:bg-gray-800 transition-colors"
+                disabled={loading}
+                className={`mt-4 p-2 rounded-lg transition-colors ${loading
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-black text-white hover:bg-gray-800'
+                  }`}
               >
-                Sign In
+                {loading ? 'Signing In...' : 'Sign In'}
               </button>
               <div className="flex items-center my-4">
                 <hr className="flex grow border-t border-gray-300" />

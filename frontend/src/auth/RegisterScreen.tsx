@@ -1,4 +1,65 @@
+import React, { useState } from 'react';
+import { authAPI, tokenStorage } from '../services/api';
+import type { RegisterRequest } from '../services/api';
+
 const RegisterScreen: React.FC = () => {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    // Validation
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    const registerData: RegisterRequest = {
+      email: formData.email,
+      password: formData.password,
+      name: `${formData.firstName} ${formData.lastName}`.trim()
+    };
+
+    try {
+      const response = await authAPI.register(registerData);
+
+      if (response.success) {
+        // Store the token
+        tokenStorage.setToken(response.data.token);
+
+        // You can redirect to dashboard or main app here
+        console.log('Registration successful!', response.data.user);
+
+        // TODO: Navigate to dashboard/main app
+        // navigate('/dashboard');
+      }
+    } catch (err) {
+      setError('Registration failed. Please try again.');
+      console.error('Registration error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-row w-full h-screen justify-center">
       <div className="w-1/2 h-full p-6 overflow-hidden max-md:hidden">
@@ -31,7 +92,13 @@ const RegisterScreen: React.FC = () => {
           </div>
 
           <div>
-            <form className="p-10 flex flex-col gap-4 text-xs">
+            <form className="p-10 flex flex-col gap-4 text-xs" onSubmit={handleSubmit}>
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                  {error}
+                </div>
+              )}
+
               <div className="flex flex-row gap-4 max-sm:flex-col max-sm:gap-3 max-sm:pb-4">
                 <div className="flex flex-col gap-3 flex-1">
                   <label htmlFor="firstName" className="">
@@ -41,8 +108,11 @@ const RegisterScreen: React.FC = () => {
                     type="text"
                     id="firstName"
                     name="firstName"
+                    value={formData.firstName}
+                    onChange={handleInputChange}
                     className="w-full p-2 rounded-sm hover:bg-gray-300 transition-colors focus:bg-gray-300 focus:outline-none"
                     placeholder="First Name"
+                    required
                   />
                 </div>
                 <div className="flex flex-col gap-3 flex-1">
@@ -53,8 +123,11 @@ const RegisterScreen: React.FC = () => {
                     type="text"
                     id="lastName"
                     name="lastName"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
                     className="w-full p-2 rounded-sm hover:bg-gray-300 transition-colors focus:bg-gray-300 focus:outline-none"
                     placeholder="Last Name"
+                    required
                   />
                 </div>
               </div>
@@ -66,8 +139,12 @@ const RegisterScreen: React.FC = () => {
                 <input
                   type="email"
                   id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
                   className="w-full p-2 rounded-sm hover:bg-gray-300 transition-colors focus:bg-gray-300 focus:outline-none"
                   placeholder="Email"
+                  required
                 />
               </div>
 
@@ -78,8 +155,12 @@ const RegisterScreen: React.FC = () => {
                 <input
                   type="password"
                   id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
                   className="w-full p-2 rounded-sm hover:bg-gray-300 transition-colors focus:bg-gray-300 focus:outline-none"
                   placeholder="Password"
+                  required
                 />
               </div>
 
@@ -90,16 +171,24 @@ const RegisterScreen: React.FC = () => {
                 <input
                   type="password"
                   id="confirmPassword"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
                   className="w-full p-2 rounded-sm hover:bg-gray-300 transition-colors focus:bg-gray-300 focus:outline-none"
                   placeholder="Confirm Password"
+                  required
                 />
               </div>
 
               <button
                 type="submit"
-                className="mt-4 bg-black text-white p-2 rounded-lg hover:bg-gray-800 transition-colors"
+                disabled={loading}
+                className={`mt-4 p-2 rounded-lg transition-colors ${loading
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-black text-white hover:bg-gray-800'
+                  }`}
               >
-                Sign Up
+                {loading ? 'Signing Up...' : 'Sign Up'}
               </button>
             </form>
           </div>
