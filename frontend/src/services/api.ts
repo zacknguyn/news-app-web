@@ -1,5 +1,5 @@
 // API Configuration and service functions
-const API_BASE_URL = 'https://newsapp-api-80wt.onrender.com/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // API Response types based on your backend structure
 export interface ApiResponse<T> {
@@ -39,7 +39,7 @@ async function apiRequest<T>(
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
   const config: RequestInit = {
     headers: {
       'Content-Type': 'application/json',
@@ -50,11 +50,11 @@ async function apiRequest<T>(
 
   try {
     const response = await fetch(url, config);
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('API request failed:', error);
