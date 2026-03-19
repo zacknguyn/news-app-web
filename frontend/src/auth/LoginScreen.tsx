@@ -1,16 +1,41 @@
-import React, { useState } from 'react';
-import { authAPI, tokenStorage } from '../services/api';
-import type { LoginRequest } from '../services/api';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const LoginScreen: React.FC = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState<LoginRequest>({
+  const location = useLocation();
+  const { login, loading, isAuthenticated } = useAuth();
+  
+  const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Get the redirect path from location state, default to '/home'
+  const from = location.state?.from?.pathname || '/home';
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      navigate('/home', { replace: true });
+    }
+  }, [isAuthenticated, loading, navigate]);
+
+  // Show loading while checking authentication status
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Don't render login form if user is authenticated (will redirect)
+  if (isAuthenticated) {
+    return null;
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -22,28 +47,20 @@ const LoginScreen: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
     try {
-      const response = await authAPI.login(formData);
+      const result = await login(formData.email, formData.password);
 
-      if (response.success) {
-        // Store the token
-
-        tokenStorage.setToken(response.data.token);
-        // You can redirect to dashboard or main app here
-        console.log('Login successful!', response.data.user);
-
-        // TODO: Navigate to dashboard/main app
-        // navigate('/dashboard');
-        navigate('/home')
+      if (result.success) {
+        // Redirect to the intended page or home
+        navigate(from, { replace: true });
+      } else {
+        setError(result.error || 'Login failed. Please try again.');
       }
     } catch (err) {
-      setError('Login failed. Please check your credentials.');
+      setError('Network error. Please try again.');
       console.error('Login error:', err);
-    } finally {
-      setLoading(false);
     }
   };
 

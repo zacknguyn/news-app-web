@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
-import { authAPI, tokenStorage } from '../services/api';
-import type { RegisterRequest } from '../services/api';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const RegisterScreen: React.FC = () => {
+  const navigate = useNavigate();
+  const { register, loading, isAuthenticated } = useAuth();
+  
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -10,8 +13,28 @@ const RegisterScreen: React.FC = () => {
     password: '',
     confirmPassword: ''
   });
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      navigate('/home', { replace: true });
+    }
+  }, [isAuthenticated, loading, navigate]);
+
+  // Show loading while checking authentication status
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Don't render register form if user is authenticated (will redirect)
+  if (isAuthenticated) {
+    return null;
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -23,40 +46,33 @@ const RegisterScreen: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
     // Validation
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
-      setLoading(false);
       return;
     }
 
-    const registerData: RegisterRequest = {
+    const registerData = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
       email: formData.email,
-      password: formData.password,
-      name: `${formData.firstName} ${formData.lastName}`.trim()
+      password: formData.password
     };
 
     try {
-      const response = await authAPI.register(registerData);
+      const result = await register(registerData);
 
-      if (response.success) {
-        // Store the token
-        tokenStorage.setToken(response.data.token);
-
-        // You can redirect to dashboard or main app here
-        console.log('Registration successful!', response.data.user);
-
-        // TODO: Navigate to dashboard/main app
-        // navigate('/dashboard');
+      if (result.success) {
+        // Redirect to home after successful registration
+        navigate('/home', { replace: true });
+      } else {
+        setError(result.error || 'Registration failed. Please try again.');
       }
     } catch (err) {
-      setError('Registration failed. Please try again.');
+      setError('Network error. Please try again.');
       console.error('Registration error:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
