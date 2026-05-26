@@ -1,225 +1,223 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useRef, useState } from 'react';
+import { Link, Navigate } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 
-const RegisterScreen: React.FC = () => {
-  const navigate = useNavigate();
-  const { register, loading, isAuthenticated } = useAuth();
-  
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
-  const [error, setError] = useState<string | null>(null);
+gsap.registerPlugin(useGSAP);
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (!loading && isAuthenticated) {
-      navigate('/home', { replace: true });
-    }
-  }, [isAuthenticated, loading, navigate]);
+export const RegisterScreen: React.FC = () => {
+  const rootRef = useRef<HTMLElement>(null);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [focus, setFocus] = useState('');
+  const [requestSubmitted, setRequestSubmitted] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { register, isAuthenticated, isLoading } = useAuth();
 
-  // Show loading while checking authentication status
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  // Don't render register form if user is authenticated (will redirect)
-  if (isAuthenticated) {
-    return null;
-  }
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+  useGSAP(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      gsap.set('.auth-reveal, .auth-card', { autoAlpha: 1, y: 0 });
       return;
     }
 
-    const registerData = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      password: formData.password
-    };
+    gsap.from('.auth-reveal', {
+      y: 18,
+      autoAlpha: 0,
+      duration: 0.65,
+      stagger: 0.08,
+      ease: 'power3.out',
+    });
 
+    gsap.from('.auth-card', {
+      y: 18,
+      autoAlpha: 0,
+      duration: 0.55,
+      stagger: 0.08,
+      ease: 'power3.out',
+      delay: 0.15,
+    });
+  }, { scope: rootRef });
+
+  if (!isLoading && isAuthenticated) {
+    return <Navigate to="/app" replace />;
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError('');
+    setIsSubmitting(true);
     try {
-      const result = await register(registerData);
-
-      if (result.success) {
-        // Redirect to home after successful registration
-        navigate('/home', { replace: true });
-      } else {
-        setError(result.error || 'Registration failed. Please try again.');
-      }
-    } catch (err) {
-      setError('Network error. Please try again.');
-      console.error('Registration error:', err);
+      await register({ name: name.trim(), email, password, reportingFocus: focus.trim() || undefined });
+      setRequestSubmitted(true);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Unable to register.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="flex flex-row w-full h-screen justify-center">
-      <div className="w-1/2 h-full p-6 overflow-hidden max-md:hidden">
-        <img
-          src="../../public/image1.jpg"
-          alt="Login Illustration"
-          className="w-full h-full rounded-xl object-cover"
-        />
-      </div>
-
-      <div className="w-1/2 flex flex-col h-screen gap-2 justify-between items-center p-5 max-sm:w-full">
-        <div className="registerHeader inter">
-          <div className="flex items-center gap-2">
-            <img
-              src="../../public/vite.svg"
-              alt="Logo"
-              className="w-8 h-8 object-contain"
-            />
-            <span className="text-lg font-medium">MyApp</span>
+    <main ref={rootRef} className="grid min-h-dvh bg-[var(--color-canvas-white)] text-[var(--color-obsidian-ink)] lg:grid-cols-[0.88fr_1.12fr]">
+      <section className="flex min-h-[42dvh] flex-col justify-between border-b border-[var(--color-app-border)] bg-[var(--color-platinum-mist)] p-6 text-[var(--color-obsidian-ink)] sm:p-10 lg:min-h-dvh lg:border-b-0 lg:border-r">
+        <Link to="/" className="auth-reveal inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-app-muted)] hover:text-[var(--color-app-ink)]">
+          <ArrowLeft className="h-4 w-4" />
+          Public site
+        </Link>
+        <div>
+          <p className="auth-reveal mb-5 text-xs font-semibold text-[var(--color-app-muted)]">
+            Credential request
+          </p>
+          <h1 className="auth-reveal max-w-xl font-serif text-5xl font-medium leading-none sm:text-6xl">
+            Request newsroom access.
+          </h1>
+          <p className="auth-reveal mt-6 max-w-md text-sm leading-6 text-[var(--color-app-muted)]">
+            Submit your details for an account. Backend approval will replace instant registration when that contract is ready.
+          </p>
+          <div className="mt-10 space-y-3">
+            {[
+              ['1', 'Share who you are.'],
+              ['2', 'Create an account password.'],
+              ['3', 'Wait for admin approval once backend support is added.'],
+            ].map(([step, copy]) => (
+              <div key={step} className="auth-card grid grid-cols-[36px_1fr] gap-3 rounded-[6px] border border-[var(--color-app-border)] bg-[var(--color-canvas-white)] p-4 shadow-[var(--shadow-hex-card-hover)]">
+                <span className="font-mono text-xs font-bold text-[var(--color-app-muted)]">{step}</span>
+                <span className="text-sm leading-6 text-[var(--color-app-ink)]">{copy}</span>
+              </div>
+            ))}
           </div>
         </div>
+      </section>
 
-        <div className="registerContent inter flex flex-col gap-6 max-sm:gap-8">
-          <div className="text-center flex flex-col gap-5">
-            <p className="playfair-display text-4xl">Sign Up Account</p>
-            <p className="text-sm">
-              Enter your name, email, and desired password to create your
-              account
+      <section className="flex items-center justify-center px-5 py-12 sm:px-10">
+        <div className="w-full max-w-xl">
+          <header className="auth-reveal mb-10">
+            <p className="mb-3 text-xs font-semibold text-[var(--color-app-muted)]">
+              Register
+            </p>
+            <h2 className="font-serif text-4xl font-medium text-[var(--color-app-ink)]">
+              Request access
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-[var(--color-app-muted)]">
+              Current backend creates the account immediately. The pending approval flow still needs backend support.
+            </p>
+        </header>
+
+        {requestSubmitted ? (
+          <div className="border-y border-[var(--color-app-border)] py-8">
+            <h3 className="font-serif text-3xl font-medium text-[var(--color-app-ink)]">Request submitted.</h3>
+            <p className="mt-3 text-sm leading-6 text-[var(--color-app-muted)]">
+              Your account is waiting for admin approval. You can log in after an admin approves your request.
+            </p>
+            <Link
+              to="/login"
+              className="mt-6 inline-flex min-h-11 items-center rounded-[4px] border border-[var(--color-app-action)] bg-[var(--color-app-action)] px-5 py-2 text-sm font-normal text-white transition-colors hover:bg-[var(--color-app-action-hover)]"
+            >
+              Back to login
+            </Link>
+          </div>
+        ) : (
+        <form className="grid grid-cols-1 sm:grid-cols-2 gap-6" onSubmit={handleSubmit}>
+          {formError && (
+            <div className="sm:col-span-2 border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              {formError}
+            </div>
+          )}
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-[var(--color-app-muted)]">
+              Full Name
+            </label>
+            <input 
+              type="text" 
+              placeholder="Elena Vance"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-[6px] border border-[var(--color-app-border)] bg-[var(--color-app-surface)] px-4 py-3 text-sm text-[var(--color-app-ink)] outline-none transition-colors placeholder:text-[var(--color-app-faint)] focus:border-[var(--color-app-action)] focus:shadow-[var(--shadow-hex-focus)] focus:ring-0"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-[var(--color-app-muted)]">
+              Password
+            </label>
+            <input
+              type="password"
+              placeholder="Minimum 6 characters"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-[6px] border border-[var(--color-app-border)] bg-[var(--color-app-surface)] px-4 py-3 text-sm text-[var(--color-app-ink)] outline-none transition-colors placeholder:text-[var(--color-app-faint)] focus:border-[var(--color-app-action)] focus:shadow-[var(--shadow-hex-focus)] focus:ring-0"
+            />
+          </div>
+
+          <div className="sm:col-span-2 space-y-2">
+            <label className="text-sm font-semibold text-[var(--color-app-muted)]">
+              Direct Contact (Email)
+            </label>
+            <input 
+              type="email" 
+              placeholder="e.vance@truth-portal.net"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-[6px] border border-[var(--color-app-border)] bg-[var(--color-app-surface)] px-4 py-3 text-sm text-[var(--color-app-ink)] outline-none transition-colors placeholder:text-[var(--color-app-faint)] focus:border-[var(--color-app-action)] focus:shadow-[var(--shadow-hex-focus)] focus:ring-0"
+            />
+          </div>
+
+          <div className="sm:col-span-2 space-y-2">
+            <label className="text-sm font-semibold text-[var(--color-app-muted)]">
+              Reporting focus
+            </label>
+            <textarea 
+              placeholder="Briefly describe what you want to read, publish, or verify."
+              required
+              value={focus}
+              onChange={(e) => setFocus(e.target.value)}
+              className="h-32 w-full resize-none rounded-[6px] border border-[var(--color-app-border)] bg-[var(--color-app-surface)] px-4 py-3 text-sm text-[var(--color-app-ink)] outline-none transition-colors placeholder:text-[var(--color-app-faint)] focus:border-[var(--color-app-action)] focus:shadow-[var(--shadow-hex-focus)] focus:ring-0"
+            />
+            <p className="text-sm leading-6 text-[var(--color-app-muted)]">
+              This field is kept for the approval workflow design. The current backend registration endpoint does not store it yet.
             </p>
           </div>
 
-          <div>
-            <form className="p-10 flex flex-col gap-4 text-xs" onSubmit={handleSubmit}>
-              {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                  {error}
-                </div>
+          <div className="sm:col-span-2">
+            <button 
+              type="submit"
+              disabled={isSubmitting}
+              className="flex w-full items-center justify-center gap-2 rounded-[4px] border border-[var(--color-app-action)] bg-[var(--color-app-action)] py-4 text-sm font-normal text-white transition-all hover:bg-[var(--color-app-action-hover)] disabled:border-[var(--color-lavender-field)] disabled:bg-[var(--color-lavender-field)] disabled:text-[var(--color-cement-gray)]"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  Request access
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </>
               )}
-
-              <div className="flex flex-row gap-4 max-sm:flex-col max-sm:gap-3 max-sm:pb-4">
-                <div className="flex flex-col gap-3 flex-1">
-                  <label htmlFor="firstName" className="">
-                    First Name
-                  </label>
-                  <input
-                    type="text"
-                    id="firstName"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    className="w-full p-2 rounded-sm hover:bg-gray-300 transition-colors focus:bg-gray-300 focus:outline-none"
-                    placeholder="First Name"
-                    required
-                  />
-                </div>
-                <div className="flex flex-col gap-3 flex-1">
-                  <label htmlFor="lastName" className="">
-                    Last Name
-                  </label>
-                  <input
-                    type="text"
-                    id="lastName"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    className="w-full p-2 rounded-sm hover:bg-gray-300 transition-colors focus:bg-gray-300 focus:outline-none"
-                    placeholder="Last Name"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <label htmlFor="email" className="">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="w-full p-2 rounded-sm hover:bg-gray-300 transition-colors focus:bg-gray-300 focus:outline-none"
-                  placeholder="Email"
-                  required
-                />
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <label htmlFor="password" className="">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className="w-full p-2 rounded-sm hover:bg-gray-300 transition-colors focus:bg-gray-300 focus:outline-none"
-                  placeholder="Password"
-                  required
-                />
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <label htmlFor="confirmPassword" className="">
-                  Confirm Password
-                </label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  className="w-full p-2 rounded-sm hover:bg-gray-300 transition-colors focus:bg-gray-300 focus:outline-none"
-                  placeholder="Confirm Password"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className={`mt-4 p-2 rounded-lg transition-colors ${loading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-black text-white hover:bg-gray-800'
-                  }`}
-              >
-                {loading ? 'Signing Up...' : 'Sign Up'}
-              </button>
-            </form>
+            </button>
           </div>
-        </div>
+        </form>
+        )}
 
-        <div className="registerFooter inter text-center">
-          <p className="text-sm">
-            Already have an account?{" "}
-            <a href="/login" className="text-bold hover:underline">
-              Sign In
-            </a>
+        <footer className="mt-10 border-t border-[var(--color-app-border-clean)] pt-8">
+          <p className="mb-4 text-sm text-[var(--color-app-muted)]">
+            Already have an active ID?
           </p>
+          <Link 
+            to="/login" 
+            className="text-sm font-semibold text-[var(--color-app-ink)] hover:underline"
+          >
+            Log in
+          </Link>
+        </footer>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 };
 

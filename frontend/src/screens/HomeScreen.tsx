@@ -1,22 +1,13 @@
-import React from "react";
-import { useAuth } from "../context/AuthContext";
+import React from 'react';
+import { PostFeed } from '../components/PostFeed';
+import { usePageMotion } from '../hooks/usePageMotion';
 
-const HomeScreen: React.FC = () => {
-  const { loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+export const HomeScreen: React.FC = () => {
+  const pageRef = usePageMotion<HTMLDivElement>();
 
   return (
-    <section className="min-h-auto border border-border m-2">
-      <h1 className="text-right">Hello World</h1>
-    </section>
+    <div ref={pageRef} className="min-h-full">
+      <PostFeed />
+    </div>
   );
 };
-
-export default HomeScreen;
