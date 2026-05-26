@@ -6,26 +6,23 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
-const LoadingSpinner: React.FC = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-  </div>
-);
-
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
-  if (loading) {
-    return <LoadingSpinner />;
+  if (isLoading) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-[var(--color-off-white)] p-20">
+        <div className="hex-card px-5 py-3 text-sm font-medium text-[var(--color-app-muted)] animate-pulse">
+          Verifying credentials...
+        </div>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
-    // Redirect to login with the current location so we can redirect back after login
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;
 };
-
-export default ProtectedRoute;

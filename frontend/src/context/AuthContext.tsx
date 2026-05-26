@@ -1,202 +1,95 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { tokenStorage, setGlobalLogout } from '../services/api';
-
-export interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role?: string;
-  avatar?: string;
-  favoriteTopics?: string[];
-}
+import type { User } from '../types';
+import { backendApi, clearAuthSession, getAuthToken, getStoredUser, setAuthSession } from '../lib/api';
+import { backendUserToUser } from '../lib/backendAdapters';
 
 interface AuthContextType {
-  isAuthenticated: boolean;
   user: User | null;
-  token: string | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (userData: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    password: string;
-  }) => Promise<{ success: boolean; error?: string }>;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (input: { name: string; email: string; password: string; reportingFocus?: string }) => Promise<void>;
   logout: () => void;
-  setUser: (user: User) => void;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUserState] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Initialize auth state on mount
   useEffect(() => {
-    // Set the global logout function reference
-    setGlobalLogout(() => {
-      clearAuthData();
-    });
-    
-    initializeAuth();
+    let isMounted = true;
+    const storedUser = getStoredUser<User>();
+
+    if (storedUser) {
+      setUser(storedUser);
+    }
+
+    const refreshCurrentUser = async () => {
+      const token = getAuthToken();
+      if (!token) {
+        if (isMounted) setIsLoading(false);
+        return;
+      }
+
+      try {
+        const currentUser = await backendApi.getCurrentUser();
+        const appUser = backendUserToUser(currentUser);
+        if (!isMounted) return;
+        setUser(appUser);
+        setAuthSession(token, appUser);
+      } catch {
+        if (!isMounted) return;
+        setUser(null);
+        clearAuthSession();
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    refreshCurrentUser();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const initializeAuth = async () => {
+  const login = async (email: string, password: string) => {
+    setIsLoading(true);
     try {
-      const storedToken = tokenStorage.getToken();
-      const storedUserData = localStorage.getItem('userData');
-
-      if (storedToken && storedUserData) {
-        const userData = JSON.parse(storedUserData);
-        
-        // Validate token (simple expiration check)
-        if (isTokenValid(storedToken)) {
-          setToken(storedToken);
-          setUserState(userData);
-          setIsAuthenticated(true);
-        } else {
-          // Token expired, clear storage
-          clearAuthData();
-        }
-      }
-    } catch (error) {
-      console.error('Error initializing auth:', error);
-      clearAuthData();
+      const session = await backendApi.login(email, password);
+      const appUser = backendUserToUser(session.user);
+      setUser(appUser);
+      setAuthSession(session.token, appUser);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const isTokenValid = (token: string): boolean => {
+  const register = async (input: { name: string; email: string; password: string; reportingFocus?: string }) => {
+    setIsLoading(true);
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const expiration = payload.exp * 1000; // Convert to milliseconds
-      return Date.now() < expiration;
-    } catch (error) {
-      return false;
-    }
-  };
-
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      setLoading(true);
-      
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        const { token: authToken, user: userData } = data.data;
-        
-        // Store auth data
-        tokenStorage.setToken(authToken);
-        localStorage.setItem('userData', JSON.stringify(userData));
-        
-        // Update state
-        setToken(authToken);
-        setUserState(userData);
-        setIsAuthenticated(true);
-        
-        return { success: true };
-      } else {
-        return { success: false, error: data.message || 'Login failed' };
-      }
-    } catch (error) {
-      return { success: false, error: 'Network error. Please try again.' };
+      await backendApi.register(input);
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const register = async (userData: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    password: string;
-  }): Promise<{ success: boolean; error?: string }> => {
-    try {
-      setLoading(true);
-      
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        const { token: authToken, user: newUser } = data.data;
-        
-        // Store auth data
-        tokenStorage.setToken(authToken);
-        localStorage.setItem('userData', JSON.stringify(newUser));
-        
-        // Update state
-        setToken(authToken);
-        setUserState(newUser);
-        setIsAuthenticated(true);
-        
-        return { success: true };
-      } else {
-        return { success: false, error: data.message || 'Registration failed' };
-      }
-    } catch (error) {
-      return { success: false, error: 'Network error. Please try again.' };
-    } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   const logout = () => {
-    clearAuthData();
+    setUser(null);
+    clearAuthSession();
   };
 
-  const clearAuthData = () => {
-    tokenStorage.removeToken();
-    localStorage.removeItem('userData');
-    setToken(null);
-    setUserState(null);
-    setIsAuthenticated(false);
-  };
-
-  const setUser = (newUser: User) => {
-    setUserState(newUser);
-    localStorage.setItem('userData', JSON.stringify(newUser));
-  };
-
-  const value: AuthContextType = {
-    isAuthenticated,
-    user,
-    token,
-    loading,
-    login,
-    register,
-    logout,
-    setUser,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, register, logout, isLoading }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
