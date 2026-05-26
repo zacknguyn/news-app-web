@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { backendApi } from '../lib/api';
 import { backendTopicToChannel } from '../lib/backendAdapters';
 import type { Channel } from '../types';
+import { BrandMark } from './BrandMark';
 
 const ICON_MAP: Record<string, any> = {
   Sword,
@@ -46,9 +47,7 @@ export const Sidebar: React.FC = () => {
           <div className="mb-1 text-xs font-semibold text-[var(--color-app-faint)] transition-colors group-hover:text-[var(--color-app-action)]">
             Independent
           </div>
-          <div className="text-lg font-serif font-bold leading-none text-[var(--color-app-ink)]">
-            NEWS <br /> PORTAL
-          </div>
+          <BrandMark stacked />
         </Link>
       </div>
 

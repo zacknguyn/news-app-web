@@ -3,6 +3,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { LogOut, PlusCircle, Search, Settings, ShieldCheck, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Tooltip } from './ui/Tooltip';
+import { BrandMark } from './BrandMark';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `inline-flex min-h-9 items-center rounded-[4px] px-3 text-sm font-normal transition-colors ${
@@ -19,9 +20,8 @@ export const AppTopBar: React.FC = () => {
   return (
     <header className="app-topbar sticky top-0 z-50 bg-transparent px-3 py-3 sm:px-5">
       <div className="hex-floating-nav mx-auto flex min-h-14 w-full max-w-[1180px] items-center gap-3 rounded-[14px] px-3 sm:px-4 lg:px-5">
-        <Link to="/app" className="mr-2 flex shrink-0 items-baseline gap-2">
-          <span className="text-lg font-semibold leading-none text-[var(--color-app-action)]">News Portal</span>
-          <span className="hidden text-xs font-semibold text-[var(--color-app-faint)] sm:inline">Independent</span>
+        <Link to="/app" className="mr-2 flex shrink-0 items-center">
+          <BrandMark size="sm" />
         </Link>
 
         <nav className="hidden min-w-0 flex-1 items-center gap-1 md:flex">

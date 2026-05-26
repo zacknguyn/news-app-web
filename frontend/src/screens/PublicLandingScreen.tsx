@@ -4,6 +4,7 @@ import { ArrowRight, FileText, Fingerprint, Radio, ShieldCheck } from 'lucide-re
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
+import { BrandMark } from '../components/BrandMark';
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -79,8 +80,8 @@ export const PublicLandingScreen: React.FC = () => {
     <main ref={rootRef} className="min-h-dvh bg-[var(--color-off-white)] text-[var(--color-app-ink)]">
       <nav className="fixed left-0 right-0 top-0 z-50 px-3 py-3 sm:px-6">
         <div className="hex-floating-nav mx-auto flex min-h-14 max-w-[1180px] items-center justify-between rounded-[14px] px-4 sm:px-5">
-        <Link to="/" className="text-lg font-semibold leading-none text-[var(--color-app-action)]">
-          Independent<br />News Portal
+        <Link to="/" className="flex items-center">
+          <BrandMark />
         </Link>
         <div className="flex items-center gap-4 text-sm font-medium">
           <Link to="/about" className="hidden text-[var(--color-app-muted)] hover:text-[var(--color-app-action)] sm:inline">About</Link>
@@ -99,7 +100,7 @@ export const PublicLandingScreen: React.FC = () => {
             Follow the report before it becomes a narrative.
           </h1>
           <p className="landing-reveal mt-8 max-w-2xl text-lg leading-8 text-[var(--color-app-muted)]">
-            Independent News Portal is a high-trust reporting network for readers, journalists, and insiders who want evidence kept close to the story.
+            Tourane News is a high-trust reporting network for readers, journalists, and insiders who want evidence kept close to the story.
           </p>
           <div className="landing-reveal mt-10 flex flex-wrap gap-3">
             <Link to="/register" className="hex-button-primary inline-flex h-11 items-center gap-2 px-5 text-sm font-medium">
