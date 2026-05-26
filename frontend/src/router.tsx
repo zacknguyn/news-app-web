@@ -21,7 +21,7 @@ const RegisterScreen = lazy(() => import('./auth/RegisterScreen'));
 const LoadingScreen = () => (
   <div className="flex h-full w-full items-center justify-center bg-white p-20">
     <div className="text-[10px] font-mono font-bold uppercase tracking-[0.3em] text-zinc-300 animate-pulse">
-      Syncing with Truth Network...
+      Syncing Tourane News...
     </div>
   </div>
 );

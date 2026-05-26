@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Tourane News">
+  <rect width="64" height="64" rx="14" fill="#31263B"/>
+  <path d="M16 18h32v7H35.8v22h-7.6V25H16z" fill="#F7F2EA"/>
+  <path d="M20 46V31h5.9l12.2 15H44V18h-7.2v15.1L24.6 18H20v28z" fill="#DCC7E8" opacity=".88"/>
+</svg>

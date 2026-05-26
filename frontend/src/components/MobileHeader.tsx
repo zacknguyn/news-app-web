@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, Search, Bell } from 'lucide-react';
+import { BrandMark } from './BrandMark';
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
@@ -18,9 +19,8 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick }) => {
         >
           <Menu className="w-6 h-6" />
         </button>
-        <Link to="/app" className="flex flex-col leading-none">
-          <span className="text-[11px] font-medium text-[var(--color-app-muted)]">Independent</span>
-          <span className="text-sm font-semibold text-[var(--color-app-action)]">News Portal</span>
+        <Link to="/app" className="flex items-center">
+          <BrandMark size="sm" />
         </Link>
       </div>
 
