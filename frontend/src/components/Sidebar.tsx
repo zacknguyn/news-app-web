@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { MOCK_CHANNELS } from '../lib/mockData';
-import { Sword, Cpu, Building, CloudRain, Hash, Info, PlusCircle, Settings, LogOut, LogIn, Highlighter, ShieldCheck } from 'lucide-react';
+import { Sword, Cpu, Building, CloudRain, Hash, Info, PlusCircle, Settings, LogOut, LogIn, Highlighter, ShieldCheck, Newspaper } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { backendApi } from '../lib/api';
 import { backendTopicToChannel } from '../lib/backendAdapters';
 import type { Channel } from '../types';
-import { BrandMark } from './BrandMark';
 
 const ICON_MAP: Record<string, any> = {
   Sword,
@@ -14,6 +13,9 @@ const ICON_MAP: Record<string, any> = {
   Building,
   CloudRain
 };
+
+const sortChannels = (channels: Channel[]) =>
+  [...channels].sort((a, b) => Number(Boolean(b.joined)) - Number(Boolean(a.joined)) || a.name.localeCompare(b.name));
 
 export const Sidebar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -28,7 +30,7 @@ export const Sidebar: React.FC = () => {
         const topics = await backendApi.getTopics();
         if (isMounted) setChannels(topics.map(backendTopicToChannel));
       } catch {
-        if (isMounted) setChannels(MOCK_CHANNELS);
+        if (isMounted) setChannels([]);
       }
     };
 
@@ -40,14 +42,18 @@ export const Sidebar: React.FC = () => {
   }, []);
 
   return (
-    <aside className="flex h-full flex-col overflow-hidden border-r border-[var(--color-app-border-clean)] bg-[var(--color-app-surface)] lg:w-60">
-      {/* Brand Header */}
-      <div className="px-5 pb-3 pt-5">
+    <aside className="flex h-full flex-col overflow-hidden border-r border-[var(--color-app-border-clean)] bg-[var(--color-app-surface)] lg:w-64">
+      <div className="border-b border-[var(--color-app-border-clean)] px-5 py-5">
         <Link to="/app" className="block group">
-          <div className="mb-1 text-xs font-semibold text-[var(--color-app-faint)] transition-colors group-hover:text-[var(--color-app-action)]">
-            Independent
+          <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--color-app-action)]">
+            News reader
           </div>
-          <BrandMark stacked />
+          <div className="mt-1 font-[var(--font-display)] text-2xl font-bold leading-none text-[var(--color-app-heading)] group-hover:text-[var(--color-app-action)]">
+            Front Page
+          </div>
+          <p className="mt-2 text-xs leading-5 text-[var(--color-app-muted)]">
+            Reporting first, discussion second.
+          </p>
         </Link>
       </div>
 
@@ -74,11 +80,45 @@ export const Sidebar: React.FC = () => {
 
         {/* Navigation Sections */}
         <section>
-          <h3 className="mb-2 px-2 text-xs font-semibold text-[var(--color-app-faint)]">
-            Channels
+          <h3 className="mb-2 px-2 text-xs font-bold uppercase tracking-widest text-[var(--color-app-faint)]">
+            Reader
           </h3>
           <nav className="space-y-1">
-            {channels.map(channel => {
+            <NavLink
+              to="/app"
+              end
+              className={({ isActive }) => `
+                flex items-center gap-3 px-3 py-2 text-sm font-semibold transition-all
+                ${isActive ? 'bg-[var(--color-app-surface-lift)] text-[var(--color-app-ink)] shadow-[var(--shadow-hex-focus)]' : 'text-[var(--color-app-muted)] hover:text-[var(--color-app-ink)] hover:bg-[var(--color-app-surface-lift)]'}
+              `}
+            >
+              <Newspaper className="w-4 h-4" />
+              Front Page
+            </NavLink>
+            <NavLink
+              to="/app/topics"
+              className={({ isActive }) => `
+                flex items-center gap-3 px-3 py-2 text-sm font-semibold transition-all
+                ${isActive ? 'bg-[var(--color-app-surface-lift)] text-[var(--color-app-ink)] shadow-[var(--shadow-hex-focus)]' : 'text-[var(--color-app-muted)] hover:text-[var(--color-app-ink)] hover:bg-[var(--color-app-surface-lift)]'}
+              `}
+            >
+              <Hash className="w-4 h-4" />
+              Topics
+            </NavLink>
+          </nav>
+        </section>
+
+        <section>
+          <div className="mb-2 flex items-center justify-between px-2">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-faint)]">
+              Topics
+            </h3>
+            <Link to="/app/c/new" className="text-[var(--color-app-faint)] transition-colors hover:text-[var(--color-app-action)]" aria-label="Create channel">
+              <PlusCircle className="h-4 w-4" />
+            </Link>
+          </div>
+          <nav className="space-y-1">
+            {sortChannels(channels).map(channel => {
               const Icon = ICON_MAP[channel.iconName] || Hash;
               return (
                 <NavLink
@@ -92,7 +132,8 @@ export const Sidebar: React.FC = () => {
                   `}
                 >
                   <Icon className="w-4 h-4 text-[var(--color-app-faint)] group-hover:text-[var(--color-app-ink)] transition-colors" />
-                  {channel.name}
+                  <span className="min-w-0 flex-1 truncate">{channel.name}</span>
+                  {channel.joined && <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-app-action)]" />}
                 </NavLink>
               );
             })}
@@ -100,8 +141,8 @@ export const Sidebar: React.FC = () => {
         </section>
 
         <section>
-          <h3 className="mb-2 px-2 text-xs font-semibold text-[var(--color-app-faint)]">
-            Resources
+          <h3 className="mb-2 px-2 text-xs font-bold uppercase tracking-widest text-[var(--color-app-faint)]">
+            Reading Tools
           </h3>
           <nav className="space-y-1">
             <NavLink

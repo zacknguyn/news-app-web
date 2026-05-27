@@ -76,91 +76,78 @@ export const Comment: React.FC<CommentProps> = ({
   };
 
   return (
-    <article className={depth > 0 ? 'comment-reply' : 'comment-top'}>
-      <div className="flex gap-2.5">
-        <div className="relative flex w-6 flex-shrink-0 flex-col items-center">
-          <Link to={`/app/u/${comment.author.username}`} className="z-20">
-            <img 
-              src={comment.author.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${comment.author.username}`}
-              alt=""
-              className={depth > 0 ? 'h-5 w-5 rounded-full bg-[var(--color-comment-surface)] ring-[3px] ring-[var(--color-comment-surface)]' : 'h-6 w-6 rounded-full bg-[var(--color-comment-surface)] ring-[3px] ring-[var(--color-comment-surface)]'}
-            />
-          </Link>
-        </div>
+    <article className={depth > 0 ? 'ml-6 border-l-2 border-[var(--color-app-border)] pl-6' : 'border-b border-[var(--color-app-border)] pb-8 last:border-0'}>
+      <div className="flex gap-4">
+        <Link to={`/app/u/${comment.author.username}`} className="shrink-0 pt-1">
+          <img 
+            src={comment.author.avatarUrl || `https://api.dicebear.com/8.x/initials/svg?seed=${comment.author.username}`}
+            alt=""
+            className="h-10 w-10 rounded-full border border-[var(--color-app-border)] grayscale"
+          />
+        </Link>
         
-        <div className="min-w-0 flex-1 pb-3">
-          <div className="mb-1 flex items-center gap-2 text-[11px]">
-            <Link to={`/app/u/${comment.author.username}`} className={`font-semibold hover:underline ${isOP ? 'text-[var(--color-comment-action)]' : 'text-[var(--color-comment-ink)]'}`}>
-              {comment.author.username}
+        <div className="min-w-0 flex-1">
+          <div className="mb-2 flex items-center gap-3 text-xs font-bold uppercase tracking-widest">
+            <Link to={`/app/u/${comment.author.username}`} className={`hover:underline ${isOP ? 'text-[var(--color-app-action)]' : 'text-[var(--color-app-heading)]'}`}>
+              @{comment.author.username}
             </Link>
             {isOP && (
-              <span className="bg-[var(--color-comment-surface-lift)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-comment-muted)]">OP</span>
+              <span className="bg-[var(--color-app-action)] px-1.5 py-0.5 text-[10px] text-white">OP</span>
             )}
-            {comment.author.isVerified && (
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-[var(--color-comment-action)]">
-                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-              </svg>
-            )}
-            <span className="text-[var(--color-comment-faint)]">·</span>
-            <span className="text-[var(--color-comment-faint)]">{timeAgo(comment.createdAt)}</span>
+            <span className="text-[var(--color-app-muted)]">|</span>
+            <span className="text-[var(--color-app-muted)]">{timeAgo(comment.createdAt)}</span>
           </div>
 
           {comment.quote && (
-            <div className="mb-2 rounded-[8px] border border-[var(--color-comment-border-clean)] bg-[var(--color-comment-surface-lift)] px-3 py-2">
-              <div className="mb-1 text-[11px] font-semibold text-[var(--color-comment-action)]">Quoted selection</div>
-              <blockquote className="line-clamp-4 text-[13px] leading-5 text-[var(--color-comment-muted)]">
-                {comment.quote}
-              </blockquote>
+            <div className="mb-4 border-l-2 border-[var(--color-app-action)] bg-[var(--color-app-surface-alt)] p-4 italic text-sm text-[var(--color-app-muted)]">
+              "{comment.quote}"
             </div>
           )}
 
           {comment.content && (
-            <p className="mb-2 text-[14px] leading-6 text-[var(--color-comment-ink)]">
+            <p className="editorial-label !text-base leading-relaxed text-[var(--color-app-text)] mb-4">
               {comment.content}
             </p>
           )}
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-6">
             <button
               type="button"
               onClick={handleLike}
               disabled={isLiking}
-              aria-label={`Like comment by ${comment.author.username}`}
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-[4px] border border-[var(--color-vote-border)] bg-[var(--color-vote-surface)] px-2.5 text-[11px] font-semibold text-[var(--color-comment-muted)] transition-colors hover:bg-[var(--color-vote-hover)] hover:text-[var(--color-comment-action)] disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-7"
+              className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)] hover:text-[var(--color-app-action)] transition-colors"
             >
-              <ThumbsUp className="h-3.5 w-3.5" />
-              <span>Like</span>
-              <span className="font-mono text-[var(--color-comment-ink)]">{displayLikes}</span>
+              <ThumbsUp className="h-4 w-4" />
+              <span>{displayLikes} Authority</span>
             </button>
             <button
               type="button"
               onClick={() => setIsReplying(true)}
-              className="min-h-11 px-2 text-[11px] font-semibold text-[var(--color-comment-muted)] transition-colors hover:text-[var(--color-comment-action)] sm:min-h-6 sm:px-0"
+              className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)] hover:text-[var(--color-app-action)] transition-colors"
             >
               Reply
             </button>
-            <button type="button" aria-label={`Share comment by ${comment.author.username}`} className="min-h-11 px-2 text-[11px] font-semibold text-[var(--color-comment-muted)] transition-colors hover:text-[var(--color-comment-action)] sm:min-h-6 sm:px-0">Share</button>
+            <button type="button" className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)] hover:text-[var(--color-app-action)] transition-colors">Share</button>
           </div>
 
           {isReplying && (
-            <div className="mt-2 border-l border-[var(--color-comment-border-clean)] pl-3">
+            <div className="mt-6 border border-[var(--color-app-border)] bg-[var(--color-app-surface-alt)] p-4">
               <textarea
                 id={`reply-${comment.id}`}
-                aria-label={`Reply to ${comment.author.username}`}
                 value={replyDraft}
                 onChange={(event) => setReplyDraft(event.target.value)}
-                placeholder={`Reply to ${comment.author.username}`}
-                className="min-h-[60px] w-full resize-y border border-[var(--color-comment-border)] bg-[var(--color-comment-surface)] px-3 py-2 text-sm text-[var(--color-comment-ink)] outline-none transition-colors placeholder:text-[var(--color-comment-faint)] focus:border-[var(--color-comment-action)] focus:ring-2 focus:ring-[var(--color-comment-focus)]"
+                placeholder={`Enter your response to @${comment.author.username}...`}
+                className="bulwark-input min-h-[100px] w-full !p-4"
                 autoFocus
               />
-              <div className="mt-1.5 flex justify-end gap-2">
+              <div className="mt-3 flex justify-end gap-4">
                 <button
                   type="button"
                   onClick={() => {
                     setReplyDraft('');
                     setIsReplying(false);
                   }}
-                  className="min-h-11 px-3 text-xs font-bold text-[var(--color-comment-muted)] transition-colors hover:text-[var(--color-comment-ink)] sm:min-h-8"
+                  className="bulwark-button-ghost uppercase tracking-widest"
                 >
                   Cancel
                 </button>
@@ -168,9 +155,9 @@ export const Comment: React.FC<CommentProps> = ({
                   type="button"
                   onClick={handleSubmitReply}
                   disabled={!trimmedReply}
-                  className="min-h-11 bg-[var(--color-comment-ink)] px-4 text-xs font-bold text-[var(--color-comment-surface)] transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:bg-[var(--color-comment-faint)] sm:min-h-8"
+                  className="bulwark-button-primary uppercase tracking-widest"
                 >
-                  Post reply
+                  Post Reply
                 </button>
               </div>
             </div>
@@ -180,14 +167,14 @@ export const Comment: React.FC<CommentProps> = ({
               <button
                 type="button"
                 onClick={() => setShowReplies(true)}
-                className="mt-3 inline-flex min-h-11 items-center border border-[var(--color-comment-border)] bg-[var(--color-comment-surface)] px-2.5 text-[11px] font-bold text-[var(--color-comment-muted)] transition-colors hover:border-[var(--color-comment-action)] hover:text-[var(--color-comment-action)] sm:min-h-7"
+                className="mt-6 text-xs font-bold uppercase tracking-widest text-[var(--color-app-action)] hover:underline"
               >
-                Show {replyCount} hidden {replyCount === 1 ? 'reply' : 'replies'}
+                Show {replyCount} Responses
               </button>
           )}
 
           {hasReplies && showReplies && (
-            <div className="comment-reply-group mt-3 space-y-4">
+            <div className="mt-8 space-y-8">
               {comment.replies.map((reply) => (
                 <Comment
                   key={reply.id}
@@ -202,9 +189,9 @@ export const Comment: React.FC<CommentProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowReplies(false)}
-                  className="text-xs font-bold text-[var(--color-comment-muted)] transition-colors hover:text-[var(--color-comment-action)]"
+                  className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)] hover:text-[var(--color-app-action)] transition-colors"
                 >
-                  Hide replies
+                  Collapse Thread
                 </button>
               )}
             </div>

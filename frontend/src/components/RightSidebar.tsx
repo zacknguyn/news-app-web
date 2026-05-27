@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { TrendingUp, Award } from 'lucide-react';
+import { Award, BookOpen, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { backendApi } from '../lib/api';
 import { backendAuthorToUser } from '../lib/backendAdapters';
@@ -32,8 +32,8 @@ export const RightSidebar: React.FC = () => {
       <section className="mb-8">
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="w-4 h-4 text-[var(--color-app-action)]" />
-          <h3 className="text-sm font-semibold text-[var(--color-app-ink)]">
-            Top Verifiers
+          <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--color-app-ink)]">
+            Newsroom Voices
           </h3>
         </div>
         <div className="space-y-4">
@@ -48,13 +48,13 @@ export const RightSidebar: React.FC = () => {
                   @{user.username}
                 </span>
                 <span className="text-xs text-[var(--color-app-muted)]">
-                  {user.trustScore} points • {user.isVerified ? 'Verified' : 'Active'}
+                  {user.trustScore} trust / {user.isVerified ? 'verified' : 'active'}
                 </span>
               </div>
             </Link>
           )) : (
             <div className="text-sm leading-6 text-[var(--color-app-muted)]">
-              No backend authors available yet.
+              No authors available yet. Published stories will fill this rail.
             </div>
           )}
         </div>
@@ -62,13 +62,28 @@ export const RightSidebar: React.FC = () => {
 
       <section className="border-t border-[var(--color-app-border-clean)] pt-5">
         <div className="flex items-center gap-2 mb-3">
-          <Award className="w-4 h-4 text-[var(--color-app-action)]" />
-          <h3 className="text-sm font-semibold text-[var(--color-app-ink)]">
-            The Truth Score
+          <BookOpen className="w-4 h-4 text-[var(--color-app-action)]" />
+          <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--color-app-ink)]">
+            Reader Mode
           </h3>
         </div>
         <p className="mb-4 text-sm leading-6 text-[var(--color-app-muted)]">
-          Scores are derived from community voting. Upvotes increase author trust; downvotes flag disputes. High scores grant "Verified Truth" status.
+          Open any report to save progress, highlight passages, and move comments into a discussion panel.
+        </p>
+        <Link to="/app/highlights" className="hex-button-secondary inline-flex min-h-10 items-center justify-center px-3 py-2 text-sm font-medium">
+          View Highlights
+        </Link>
+      </section>
+
+      <section className="mt-8 border-t border-[var(--color-app-border-clean)] pt-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Award className="w-4 h-4 text-[var(--color-app-action)]" />
+          <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--color-app-ink)]">
+            Community Signal
+          </h3>
+        </div>
+        <p className="mb-4 text-sm leading-6 text-[var(--color-app-muted)]">
+          Voting ranks discussion around reporting. The reader stays first; the crowd layer explains what is being challenged.
         </p>
         <Link to="/app/trust" className="hex-button-secondary inline-flex min-h-10 items-center justify-center px-3 py-2 text-sm font-medium">
           View Mechanics

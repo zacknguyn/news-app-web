@@ -51,4 +51,12 @@ export type Channel = {
   slug: string;
   description: string;
   iconName: string;
+  avatarUrl?: string;
+  bannerUrl?: string;
+  rules?: string;
+  ownerId?: string;
+  ownerName?: string;
+  memberCount?: number;
+  postCount?: number;
+  joined?: boolean;
 };

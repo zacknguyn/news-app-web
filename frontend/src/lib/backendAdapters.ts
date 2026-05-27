@@ -46,6 +46,14 @@ export const backendTopicToChannel = (dto: BackendTopicDTO): Channel => ({
   slug: dto.slug || slugify(dto.name),
   description: dto.description || 'Community reports and reader discussion.',
   iconName: 'Hash',
+  avatarUrl: dto.avatar || undefined,
+  bannerUrl: dto.banner || undefined,
+  rules: dto.rules || undefined,
+  ownerId: dto.ownerId ? String(dto.ownerId) : undefined,
+  ownerName: dto.ownerName || undefined,
+  memberCount: dto.memberCount || 0,
+  postCount: dto.postCount || 0,
+  joined: Boolean(dto.joined),
 });
 
 export const backendCategoryToChannel = (dto: BackendCategoryDTO): Channel => ({

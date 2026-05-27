@@ -1,10 +1,11 @@
 import React from 'react';
 import type { Post } from '../types';
-import { MessageSquare, Share2, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Clock3, MessageSquare, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getPostTrust } from '../lib/trust';
 import { VoteControl } from './ui/VoteControl';
 import { TrustLabel } from './ui/TrustLabel';
+import { stripHtml } from '../lib/richContent';
 
 interface PostCardProps {
   post: Post;
@@ -13,65 +14,64 @@ interface PostCardProps {
 
 export const PostCard: React.FC<PostCardProps> = ({ post, onVote }) => {
   const trust = getPostTrust(post);
+  const score = post.upvotes - post.downvotes;
+  const excerpt = stripHtml(post.content);
 
   return (
-    <article data-motion="list" className="hex-card group mb-5 transition-[box-shadow,border-color] hover:border-[var(--color-app-muted)] hover:shadow-[var(--shadow-hex-card-hover)]">
-      <div className="flex gap-5 px-6 py-6">
-        {/* Voting Sidebar */}
-        <VoteControl
-          label={post.title}
-          score={post.upvotes - post.downvotes}
-          vote={post.userVote}
-          compact
-          onVote={(vote) => onVote?.(post.id, vote)}
-        />
-
-        {/* Content */}
-        <div className="min-w-0 flex-1 space-y-2">
-          {/* Header Metadata */}
-          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--color-app-muted)]">
-            <Link to={`/app/c/${post.channelId}`} className="font-semibold text-[var(--color-app-ink)] hover:underline">
+    <article data-motion="list" className="group border-t border-[var(--color-app-border)] py-5 first:border-t-0 first:pt-0">
+      <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_13rem]">
+        <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-bold uppercase tracking-widest text-[var(--color-app-muted)]">
+            <Link to={`/app/c/${post.channelId}`} className="text-[var(--color-app-action)] hover:underline">
               {post.channelName}
             </Link>
-            <span>•</span>
-            <div className="flex min-w-0 items-center gap-1 group/author">
-              <Link to={`/app/u/${post.author.username}`} className="truncate hover:underline">@{post.author.username}</Link>
-              {post.author.isVerified ? (
-                <ShieldCheck className="w-3 h-3 text-[var(--color-app-action)]" />
-              ) : post.author.trustScore < 0 ? (
-                <ShieldAlert className="w-3 h-3 text-red-600" />
-              ) : null}
-            </div>
-            <span>•</span>
-            <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-            <TrustLabel trust={trust} className="ml-auto hidden text-[10px] sm:inline" />
+            <span aria-hidden="true">/</span>
+            <Link to={`/app/u/${post.author.username}`} className="inline-flex items-center gap-1 hover:text-[var(--color-app-action)]">
+              @{post.author.username}
+              {post.author.isVerified && <ShieldCheck className="h-3 w-3 text-[var(--color-app-action)]" />}
+            </Link>
+            <span aria-hidden="true">/</span>
+            <span className="inline-flex items-center gap-1">
+              <Clock3 className="h-3 w-3" />
+              {new Date(post.createdAt).toLocaleDateString()}
+            </span>
           </div>
 
-          {/* Title & Preview */}
-          <div className="space-y-1">
-            <Link to={`/app/p/${post.id}`} className="block">
-              <h2 className="text-xl font-semibold leading-snug text-[var(--color-app-action)] transition-colors group-hover:text-[var(--color-app-action-hover)] sm:text-2xl">
-                {post.title}
-              </h2>
-            </Link>
-            <p className="line-clamp-2 text-[15px] leading-6 text-[var(--color-app-text)]">
-              {post.content}
-            </p>
-          </div>
+          <Link to={`/app/p/${post.id}`} className="block">
+            <h2 className="font-[var(--font-display)] text-[1.35rem] font-bold leading-tight text-[var(--color-app-heading)] transition-colors group-hover:text-[var(--color-app-action)] sm:text-[1.55rem]">
+              {post.title}
+            </h2>
+          </Link>
+          <p className="mt-2 line-clamp-2 text-[15px] leading-6 text-[var(--color-app-text)]">
+            {excerpt}
+          </p>
 
-          {/* Actions */}
-          <div className="flex items-center gap-2 pt-1">
-            <Link to={`/app/p/${post.id}`} className="flex min-h-10 items-center gap-1.5 px-2 py-1 text-sm font-semibold text-[var(--color-app-muted)] transition-colors hover:bg-[var(--color-app-surface-lift)] sm:min-h-8">
-              <MessageSquare className="h-3.5 w-3.5" />
-              {post.commentCount} <span className="hidden sm:inline">comments</span>
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm font-semibold text-[var(--color-app-muted)]">
+            <VoteControl
+              label={post.title}
+              score={score}
+              vote={post.userVote}
+              orientation="horizontal"
+              compact
+              onVote={(vote) => onVote?.(post.id, vote)}
+            />
+            <Link to={`/app/p/${post.id}#comments`} className="inline-flex min-h-10 items-center gap-2 hover:text-[var(--color-app-action)]">
+              <MessageSquare className="h-4 w-4" />
+              {post.commentCount} comments
             </Link>
-            <button type="button" aria-label={`Share ${post.title}`} className="flex min-h-10 items-center gap-1.5 px-2 py-1 text-sm font-semibold text-[var(--color-app-muted)] transition-colors hover:bg-[var(--color-app-surface-lift)] sm:min-h-8">
-              <Share2 className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Share</span>
-            </button>
-            <TrustLabel trust={trust} className="ml-auto flex items-center gap-1 font-mono text-[10px] sm:hidden" />
+            <TrustLabel trust={trust} className="border border-[var(--color-app-border)] px-2 py-1 text-[10px] uppercase tracking-widest" />
           </div>
         </div>
+
+        {post.mediaUrl && post.mediaType === 'image' ? (
+          <Link to={`/app/p/${post.id}`} className="story-image-frame aspect-[16/10] sm:mt-1">
+            <img src={post.mediaUrl} alt="" className="story-image grayscale-[18%] transition-all group-hover:grayscale-0" loading="lazy" />
+          </Link>
+        ) : (
+          <Link to={`/app/p/${post.id}`} className="hidden border border-[var(--color-app-border)] bg-[var(--color-app-surface-alt)] p-3 text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)] transition-colors group-hover:border-[var(--color-app-action)] group-hover:text-[var(--color-app-action)] sm:flex sm:items-end">
+            Read report
+          </Link>
+        )}
       </div>
     </article>
   );

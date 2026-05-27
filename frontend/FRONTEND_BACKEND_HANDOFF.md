@@ -1,6 +1,6 @@
 # Frontend Backend Handoff
 
-Date: 2026-05-26
+Date: 2026-05-27
 
 Purpose: document what the frontend currently does, how to run it, what backend APIs it expects, and what the backend developer should test when checking the integration.
 
@@ -183,6 +183,11 @@ Topics/posts/votes:
 
 ```text
 GET  /api/v1/topics
+GET  /api/v1/topics/mine
+GET  /api/v1/topics/slug/{slug}
+POST /api/v1/topics
+POST /api/v1/topics/{topicId}/join
+DELETE /api/v1/topics/{topicId}/join
 GET  /api/v1/posts/hot?page=0&size=20
 GET  /api/v1/posts/topic/{topicId}?page=0&size=20
 GET  /api/v1/posts/{postId}
@@ -237,6 +242,14 @@ DELETE /api/v1/users/me/highlights/{id}
 GET    /api/v1/users/me/reading-progress
 PUT    /api/v1/users/me/reading-progress
 DELETE /api/v1/users/me/reading-progress/{postId}
+```
+
+Media:
+
+```text
+GET  /api/v1/media
+POST /api/v1/media
+GET  /media/{objectKey}
 ```
 
 Other public content:
@@ -354,8 +367,11 @@ Routes:
 What it does:
 
 - Loads topics from backend.
+- Treats topics as Reddit-style communities/channels.
 - Loads hot posts or topic-filtered posts.
 - Shows compact post cards with score, comments, trust label, channel/topic, and media/source metadata where available.
+- Shows channel member/post counts and lets the current user join or leave a channel.
+- Links to `/app/c/new` for creating a user-owned channel.
 
 Test:
 
@@ -363,7 +379,29 @@ Test:
 - Confirm topics/channels load.
 - Click a topic/channel.
 - Confirm feed changes to topic-specific posts.
+- Join and leave a channel, then refresh and confirm membership state persists.
 - Open a post detail page from a post card.
+
+### 5A. Create Channel
+
+Route:
+
+```text
+/app/c/new
+```
+
+What it does:
+
+- Calls `POST /api/v1/topics`.
+- Creates a community/channel with name, description, optional rules, optional avatar URL, and optional banner URL.
+- Redirects to the new channel feed.
+
+Test:
+
+- Open `/app/c/new`.
+- Create a channel with a unique name and description.
+- Confirm the new channel appears in sidebar/feed channel lists.
+- Confirm the creator is joined automatically.
 
 ### 6. Post Voting
 
@@ -554,14 +592,32 @@ Route:
 What it does:
 
 - Creates discussion posts through `POST /api/v1/posts`.
-- Supports title, content, topic, optional linked article, optional source URL, and optional image URL.
+- Uses a Tiptap rich editor instead of a plain textarea.
+- Supports headings, bold/italic/underline, quotes, lists, indentation, text alignment, links, and multiple images.
+- Supports author-facing layout classes for small/large/lead paragraphs, callouts, fact boxes, pull quotes, and inline/wide/full image display.
+- Includes a writing inspector with draft status, word count, estimated read time, publishing checklist, channel selection, linked article selection, and thumbnail picking.
+- Autosaves submit drafts in localStorage so writers do not lose work before publishing.
+- Uploads local image files through `POST /api/v1/media`.
+- Inserts returned media URLs into the editor body.
+- Lets the author choose a thumbnail from inserted images.
+- Currently sends the selected thumbnail through existing `imageUrl` for backend compatibility.
+- Supports title, rich content, topic, optional linked article, optional source URL, and thumbnail URL.
 
 Test:
 
 - Create a post with only title/content/topic.
 - Confirm it appears in feed.
-- Create a post with source URL or image URL.
-- Confirm returned post includes these fields and the frontend displays them.
+- Add headings, a list, a quote, and a link.
+- Upload multiple images into the editor.
+- Try lead text, callout/fact/pull quote blocks, and image width controls.
+- Pick one uploaded image as the thumbnail.
+- Publish and confirm the feed card shows the thumbnail.
+- Open post detail and confirm rich formatting/images render.
+
+Backend note:
+
+- Current compatibility stores rich HTML in `posts.content` and thumbnail URL in `posts.imageUrl`.
+- Long-term backend should replace this with `contentJson`, sanitized/rendered HTML, `media` records, and `thumbnailMediaId`.
 
 ### 14. Explore
 
@@ -645,6 +701,10 @@ Backend developer note:
 - Reading progress must be stored by user and post.
 - `/auth/register` is not used by the frontend for direct signup; frontend calls `/credential-requests`.
 - Admin dashboard expects credential request review endpoints.
+- Community/channel creation expects authenticated `POST /api/v1/topics`; this is no longer admin-only.
+- Channel membership expects `joined`, `memberCount`, and `postCount` on `TopicDTO`.
+- Rich editor media upload expects authenticated `POST /api/v1/media` multipart upload.
+- Local media URLs are served from `/media/{objectKey}`; production should move this to S3/CloudFront.
 - Backend CORS must allow `PATCH`.
 - Backend CORS currently needs the actual Vite origin, usually `http://localhost:5173`.
 
@@ -660,18 +720,20 @@ Use this after backend and frontend are both running.
 6. Log out.
 7. Log in with the newly approved user.
 8. Open `/app`.
-9. Vote on a post and refresh.
-10. Open a post detail.
-11. Save/unsave linked article.
-12. Select text and save a highlight.
-13. Open `/app/highlights`.
-14. Add a private note to the highlight.
-15. Refresh and confirm note persists.
-16. Select text and quote it into a comment.
-17. Refresh and confirm comment persists.
-18. Reply to the comment and refresh.
-19. Like the comment repeatedly and confirm it only counts once.
-20. Scroll the article, leave, return, and confirm continue-reading behavior.
+9. Open `/app/c/new` and create a channel.
+10. Join/leave a channel and refresh.
+11. Vote on a post and refresh.
+12. Open a post detail.
+13. Save/unsave linked article.
+14. Select text and save a highlight.
+15. Open `/app/highlights`.
+16. Add a private note to the highlight.
+17. Refresh and confirm note persists.
+18. Select text and quote it into a comment.
+19. Refresh and confirm comment persists.
+20. Reply to the comment and refresh.
+21. Like the comment repeatedly and confirm it only counts once.
+22. Scroll the article, leave, return, and confirm continue-reading behavior.
 
 ## Build Verification
 
@@ -694,3 +756,4 @@ Result:
 - Move reader settings to backend if cross-device settings are desired.
 - Consider profile data expansion if `/app/u/:username` needs real backend profiles.
 - Consider stricter frontend route guards for admin links if non-admins should not see admin navigation at all.
+- Add channel settings/moderator UI once backend update/delete/mod management endpoints exist.
