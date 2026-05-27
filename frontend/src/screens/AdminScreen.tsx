@@ -15,12 +15,12 @@ const statusClassName = (status?: string | null) => {
   switch (status) {
     case 'ACTIVE':
     case 'APPROVED':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      return 'border-[var(--color-state-success-border)] bg-[var(--color-state-success-bg)] text-[var(--color-state-success)]';
     case 'PENDING':
-      return 'border-amber-200 bg-amber-50 text-amber-800';
+      return 'border-[var(--color-state-warning-border)] bg-[var(--color-state-warning-bg)] text-[var(--color-state-warning)]';
     case 'SUSPENDED':
     case 'REJECTED':
-      return 'border-red-200 bg-red-50 text-red-700';
+      return 'border-[var(--color-state-error-border)] bg-[var(--color-state-error-bg)] text-[var(--color-state-error)]';
     default:
       return 'border-[var(--color-app-border)] bg-[var(--color-app-surface-lift)] text-[var(--color-app-muted)]';
   }
@@ -97,7 +97,7 @@ export const AdminScreen: React.FC = () => {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 text-[var(--color-app-ink)] sm:px-6 lg:px-10">
+    <div className="app-page flex flex-col gap-8 text-[var(--color-app-ink)]">
       <header className="pb-2">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -219,9 +219,11 @@ export const AdminScreen: React.FC = () => {
             <p className="mt-1 text-sm text-[var(--color-app-muted)]">Search, activate, suspend, or change roles.</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <label className="relative">
+            <label htmlFor="admin-user-search" className="relative">
+              <span className="sr-only">Search users</span>
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-app-faint)]" />
               <input
+                id="admin-user-search"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 onKeyDown={(event) => {
@@ -232,6 +234,7 @@ export const AdminScreen: React.FC = () => {
               />
             </label>
             <select
+              aria-label="Filter users by status"
               value={userStatus}
               onChange={(event) => setUserStatus(event.target.value)}
               className="min-h-10 rounded-[6px] border border-[var(--color-app-border)] bg-[var(--color-app-surface)] px-3 text-sm font-semibold text-[var(--color-app-muted)] outline-none focus:border-[var(--color-app-action)]"
@@ -279,6 +282,7 @@ export const AdminScreen: React.FC = () => {
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
                       <select
+                        aria-label={`Set status for ${account.name}`}
                         value={account.status || 'ACTIVE'}
                         disabled={isMutating}
                         onChange={(event) => runMutation(
@@ -290,6 +294,7 @@ export const AdminScreen: React.FC = () => {
                         {USER_STATUSES.map(status => <option key={status} value={status}>{status}</option>)}
                       </select>
                       <select
+                        aria-label={`Set role for ${account.name}`}
                         value={account.role || 'USER'}
                         disabled={isMutating}
                         onChange={(event) => runMutation(

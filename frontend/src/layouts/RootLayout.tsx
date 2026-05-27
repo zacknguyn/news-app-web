@@ -6,10 +6,10 @@ import { Outlet } from 'react-router-dom';
 
 export const RootLayout: React.FC = () => {
   return (
-    <div className="app-shell flex h-dvh w-full flex-col overflow-hidden bg-[var(--color-app-canvas)] text-[var(--color-app-ink)] selection:bg-[var(--color-accent-blue-soft)] selection:text-[var(--color-app-ink)]">
+    <div className="app-shell flex min-h-svh w-full flex-col bg-[var(--color-app-bg)] text-[var(--color-app-ink)] selection:bg-[var(--color-brand-red-faint)] selection:text-[var(--color-app-ink)]">
       <AppTopBar />
 
-      <main className="min-h-0 flex-1 overflow-y-auto bg-[var(--color-app-canvas)] pb-16 lg:pb-0">
+      <main className="flex-1 bg-[var(--color-app-bg)] pb-20 lg:pb-0">
         <Outlet />
       </main>
 

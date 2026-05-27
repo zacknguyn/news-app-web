@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, Search, Bell } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { BrandMark } from './BrandMark';
 
 interface MobileHeaderProps {
@@ -23,15 +23,9 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick }) => {
           <BrandMark size="sm" />
         </Link>
       </div>
-
-      <div className="flex items-center gap-1">
-        <button type="button" aria-label="Search reports" className="p-2 text-[var(--color-app-muted)] transition-colors hover:text-[var(--color-app-action)]">
-          <Search className="w-5 h-5" />
-        </button>
-        <button type="button" aria-label="View notifications" className="p-2 text-[var(--color-app-muted)] transition-colors hover:text-[var(--color-app-action)]">
-          <Bell className="w-5 h-5" />
-        </button>
-      </div>
+      <Link to="/app/submit" className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-action)]">
+        Report
+      </Link>
     </header>
   );
 };

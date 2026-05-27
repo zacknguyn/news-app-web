@@ -8,9 +8,11 @@ const HomeScreen = lazy(() => import('./screens/HomeScreen').then(m => ({ defaul
 const PostDetailScreen = lazy(() => import('./screens/PostDetailScreen').then(m => ({ default: m.PostDetailScreen })));
 const ProfileScreen = lazy(() => import('./screens/ProfileScreen').then(m => ({ default: m.ProfileScreen })));
 const SubmitNewsScreen = lazy(() => import('./screens/SubmitNewsScreen').then(m => ({ default: m.SubmitNewsScreen })));
-const ExploreScreen = lazy(() => import('./screens/ExploreScreen').then(m => ({ default: m.ExploreScreen })));
+const CreateChannelScreen = lazy(() => import('./screens/CreateChannelScreen').then(m => ({ default: m.CreateChannelScreen })));
 const HighlightsScreen = lazy(() => import('./screens/HighlightsScreen').then(m => ({ default: m.HighlightsScreen })));
+const TopicsScreen = lazy(() => import('./screens/TopicsScreen').then(m => ({ default: m.TopicsScreen })));
 const SettingsScreen = lazy(() => import('./screens/SettingsScreen').then(m => ({ default: m.SettingsScreen })));
+const SubscribeScreen = lazy(() => import('./screens/SubscribeScreen').then(m => ({ default: m.SubscribeScreen })));
 const TrustScreen = lazy(() => import('./screens/TrustScreen').then(m => ({ default: m.TrustScreen })));
 const AdminScreen = lazy(() => import('./screens/AdminScreen').then(m => ({ default: m.AdminScreen })));
 const PublicLandingScreen = lazy(() => import('./screens/PublicLandingScreen').then(m => ({ default: m.PublicLandingScreen })));
@@ -62,6 +64,10 @@ export const router = createBrowserRouter([
         element: <LazyLoad><HomeScreen /></LazyLoad>
       },
       {
+        path: 'c/new',
+        element: <LazyLoad><CreateChannelScreen /></LazyLoad>
+      },
+      {
         path: 'c/:slug',
         element: <LazyLoad><HomeScreen /></LazyLoad>
       },
@@ -78,8 +84,8 @@ export const router = createBrowserRouter([
         element: <LazyLoad><SubmitNewsScreen /></LazyLoad>
       },
       {
-        path: 'explore',
-        element: <LazyLoad><ExploreScreen /></LazyLoad>
+        path: 'topics',
+        element: <LazyLoad><TopicsScreen /></LazyLoad>
       },
       {
         path: 'highlights',
@@ -88,6 +94,10 @@ export const router = createBrowserRouter([
       {
         path: 'settings',
         element: <LazyLoad><SettingsScreen /></LazyLoad>
+      },
+      {
+        path: 'subscribe',
+        element: <LazyLoad><SubscribeScreen /></LazyLoad>
       },
       {
         path: 'trust',

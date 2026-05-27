@@ -42,6 +42,14 @@ export type BackendTopicDTO = {
   name: string;
   slug?: string | null;
   description?: string | null;
+  avatar?: string | null;
+  banner?: string | null;
+  rules?: string | null;
+  ownerId?: number | null;
+  ownerName?: string | null;
+  memberCount?: number | null;
+  postCount?: number | null;
+  joined?: boolean | null;
   createdAt?: string | null;
 };
 
@@ -175,6 +183,18 @@ export type BackendReadingProgressDTO = {
   updatedAt: string;
 };
 
+export type BackendMediaDTO = {
+  id: number;
+  url: string;
+  objectKey: string;
+  storageProvider: string;
+  originalFilename?: string | null;
+  contentType: string;
+  sizeBytes: number;
+  altText?: string | null;
+  createdAt: string;
+};
+
 type RequestOptions = RequestInit & {
   skipAuth?: boolean;
   timeoutMs?: number;
@@ -221,7 +241,7 @@ export const apiRequest = async <T>(path: string, options: RequestOptions = {}):
       body,
       signal: controller.signal,
       headers: {
-        ...(body ? { 'Content-Type': 'application/json' } : {}),
+        ...(body && !(body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
         ...(!skipAuth && token ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
       },
@@ -263,7 +283,27 @@ export const backendApi = {
       body: JSON.stringify(input),
     }),
 
-  getTopics: () => apiRequest<BackendTopicDTO[]>('/topics', { skipAuth: true }),
+  getTopics: () => apiRequest<BackendTopicDTO[]>('/topics'),
+
+  getMyTopics: () => apiRequest<BackendTopicDTO[]>('/topics/mine'),
+
+  getTopicBySlug: (slug: string) => apiRequest<BackendTopicDTO>(`/topics/slug/${encodeURIComponent(slug)}`),
+
+  createTopic: (input: { name: string; description?: string; avatar?: string; banner?: string; rules?: string }) =>
+    apiRequest<BackendTopicDTO>('/topics', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  joinTopic: (id: string | number) =>
+    apiRequest<BackendTopicDTO>(`/topics/${id}/join`, {
+      method: 'POST',
+    }),
+
+  leaveTopic: (id: string | number) =>
+    apiRequest<BackendTopicDTO>(`/topics/${id}/join`, {
+      method: 'DELETE',
+    }),
 
   getAdminCredentialRequests: (status = '', page = 0, size = 20) =>
     apiRequest<PaginatedResponse<BackendCredentialRequestDTO>>(
@@ -369,6 +409,19 @@ export const backendApi = {
       method: 'DELETE',
     }),
 
+  getMedia: () => apiRequest<BackendMediaDTO[]>('/media'),
+
+  uploadMedia: (file: File, altText?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (altText) formData.append('altText', altText);
+
+    return apiRequest<BackendMediaDTO>('/media', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
   getAuthors: () => apiRequest<BackendAuthorDTO[]>('/authors', { skipAuth: true }),
 
   getAuthorBySlug: (slug: string) => apiRequest<BackendAuthorDTO>(`/authors/${slug}`, { skipAuth: true }),
@@ -389,6 +442,11 @@ export const backendApi = {
     apiRequest<BackendPostDTO>('/posts', {
       method: 'POST',
       body: JSON.stringify(input),
+    }),
+
+  deletePost: (postId: string | number) =>
+    apiRequest<void>(`/posts/${postId}`, {
+      method: 'DELETE',
     }),
 
   votePost: (postId: string, type: 1 | -1) =>

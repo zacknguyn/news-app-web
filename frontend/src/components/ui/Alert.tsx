@@ -12,9 +12,9 @@ type AlertProps = {
 
 const toneClass: Record<AlertTone, string> = {
   info: 'border-[var(--color-app-border)] bg-white text-[var(--color-app-ink)]',
-  success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-  warning: 'border-[var(--color-warm-gold)] bg-[rgb(205_168_73/0.12)] text-[var(--color-app-ink)]',
-  error: 'border-red-200 bg-red-50 text-red-800',
+  success: 'border-[var(--color-state-success-border)] bg-[var(--color-state-success-bg)] text-[var(--color-state-success)]',
+  warning: 'border-[var(--color-state-warning-border)] bg-[var(--color-state-warning-bg)] text-[var(--color-state-warning)]',
+  error: 'border-[var(--color-state-error-border)] bg-[var(--color-state-error-bg)] text-[var(--color-state-error)]',
 };
 
 const toneIcon: Record<AlertTone, React.ReactNode> = {

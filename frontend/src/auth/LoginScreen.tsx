@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { Alert } from '../components/ui/Alert';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
@@ -62,31 +63,31 @@ export const LoginScreen: React.FC = () => {
   };
 
   return (
-    <main ref={rootRef} className="grid min-h-dvh bg-[var(--color-canvas-white)] text-[var(--color-obsidian-ink)] lg:grid-cols-[0.92fr_1.08fr]">
-      <section className="flex min-h-[42dvh] flex-col justify-between border-b border-[var(--color-app-border)] bg-[var(--color-platinum-mist)] p-6 text-[var(--color-obsidian-ink)] sm:p-10 lg:min-h-dvh lg:border-b-0 lg:border-r">
-        <Link to="/" className="auth-reveal inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-app-muted)] hover:text-[var(--color-app-ink)]">
+    <main ref={rootRef} className="grid min-h-dvh bg-white text-[var(--color-app-text)] lg:grid-cols-[0.92fr_1.08fr]">
+      <section className="flex min-h-[42dvh] flex-col justify-between border-b border-[var(--color-app-border)] bg-[var(--color-app-surface-alt)] p-6 sm:p-10 lg:min-h-dvh lg:border-b-0 lg:border-r">
+        <Link to="/" className="auth-reveal inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-[var(--color-app-muted)] hover:text-[var(--color-app-action)]">
           <ArrowLeft className="h-4 w-4" />
           Public site
         </Link>
         <div>
-          <p className="auth-reveal mb-5 text-xs font-semibold text-[var(--color-app-muted)]">
+          <p className="auth-reveal mb-5 text-xs font-bold uppercase tracking-widest text-[var(--color-app-action)]">
             Account access
           </p>
-          <h1 className="auth-reveal max-w-xl font-serif text-5xl font-medium leading-none sm:text-6xl">
+          <h1 className="auth-reveal editorial-h2 max-w-xl !text-5xl sm:!text-6xl">
             Sign in to the newsroom.
           </h1>
-          <p className="auth-reveal mt-6 max-w-md text-sm leading-6 text-[var(--color-app-muted)]">
+          <p className="auth-reveal mt-6 max-w-md text-lg leading-relaxed text-[var(--color-app-muted)]">
             Use your approved account to read, publish, vote, and join article discussions.
           </p>
           <div className="mt-10 grid max-w-md grid-cols-1 gap-3">
             {[
-              ['Backend status', 'Local'],
+              ['Backend status', 'Local / Live'],
               ['Access model', 'Approved users'],
               ['Current role', 'Reader / Admin'],
             ].map(([label, value]) => (
-              <div key={label} className="auth-card flex items-center justify-between rounded-[6px] border border-[var(--color-app-border)] bg-[var(--color-canvas-white)] px-4 py-3 shadow-[var(--shadow-hex-card-hover)]">
-                <span className="text-xs text-[var(--color-app-muted)]">{label}</span>
-                <span className="font-mono text-sm font-bold text-[var(--color-app-ink)]">{value}</span>
+              <div key={label} className="auth-card flex items-center justify-between border border-[var(--color-app-border)] bg-white px-4 py-3 shadow-sm">
+                <span className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)]">{label}</span>
+                <span className="font-mono text-sm font-bold text-[var(--color-app-heading)]">{value}</span>
               </div>
             ))}
           </div>
@@ -95,78 +96,77 @@ export const LoginScreen: React.FC = () => {
 
       <section className="flex items-center justify-center px-5 py-12 sm:px-10">
         <div className="w-full max-w-md">
-          <header className="auth-reveal mb-10">
-            <p className="mb-3 text-xs font-semibold text-[var(--color-app-muted)]">
-              Login
-            </p>
-            <h2 className="font-serif text-4xl font-medium text-[var(--color-app-ink)]">
-              Log in
+          <header className="auth-reveal mb-10 border-b-4 border-[var(--color-app-heading)] pb-6">
+            <h2 className="editorial-h2 mb-2">
+              Sign In
             </h2>
-            <p className="mt-3 text-sm leading-6 text-[var(--color-app-muted)]">
-              Use your account email and password. Seed admin: admin@gmail.com / 12345.
+            <p className="text-sm font-medium text-[var(--color-app-muted)]">
+              Use your account email and password. Seed admin: <code className="text-[var(--color-app-action)]">admin@gmail.com</code> / <code className="text-[var(--color-app-action)]">12345</code>.
             </p>
         </header>
 
         <form className="space-y-6" onSubmit={handleSubmit}>
           {formError && (
-            <div className="border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            <Alert tone="error" className="mb-6">
               {formError}
-            </div>
+            </Alert>
           )}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-[var(--color-app-muted)]">
+            <label htmlFor="login-email" className="editorial-label !text-sm !font-bold uppercase tracking-widest">
               Email
             </label>
             <input 
+              id="login-email"
               type="email" 
               placeholder="admin@gmail.com"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-[6px] border border-[var(--color-app-border)] bg-[var(--color-app-surface)] px-4 py-3 text-sm text-[var(--color-app-ink)] outline-none transition-colors placeholder:text-[var(--color-app-faint)] focus:border-[var(--color-app-action)] focus:shadow-[var(--shadow-hex-focus)] focus:ring-0"
+              className="bulwark-input w-full"
             />
           </div>
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <label className="text-sm font-semibold text-[var(--color-app-muted)]">
+              <label htmlFor="login-password" className="editorial-label !text-sm !font-bold uppercase tracking-widest">
                 Password
               </label>
             </div>
             <input 
+              id="login-password"
               type="password" 
               placeholder="••••••••"
               required
               minLength={5}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-[6px] border border-[var(--color-app-border)] bg-[var(--color-app-surface)] px-4 py-3 text-sm text-[var(--color-app-ink)] outline-none transition-colors placeholder:text-[var(--color-app-faint)] focus:border-[var(--color-app-action)] focus:shadow-[var(--shadow-hex-focus)] focus:ring-0"
+              className="bulwark-input w-full"
             />
           </div>
 
           <button 
             type="submit"
             disabled={isSubmitting}
-            className="flex w-full items-center justify-center gap-2 rounded-[4px] border border-[var(--color-app-action)] bg-[var(--color-app-action)] py-4 text-sm font-normal text-white transition-all hover:bg-[var(--color-app-action-hover)] disabled:border-[var(--color-lavender-field)] disabled:bg-[var(--color-lavender-field)] disabled:text-[var(--color-cement-gray)]"
+            className="bulwark-button-primary w-full !h-14 !text-base uppercase tracking-widest"
           >
             {isSubmitting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
                 <>
                 Log in
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-5 h-5 ml-2" />
               </>
             )}
           </button>
         </form>
 
-        <footer className="mt-10 border-t border-[var(--color-app-border-clean)] pt-8">
-          <p className="mb-4 text-sm text-[var(--color-app-muted)]">
+        <footer className="mt-10 border-t border-[var(--color-app-border)] pt-8">
+          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)]">
             Need access?
           </p>
           <Link 
             to="/register" 
-            className="text-sm font-semibold text-[var(--color-app-ink)] hover:underline"
+            className="text-sm font-bold text-[var(--color-app-action)] hover:underline"
           >
             Request credentials
           </Link>

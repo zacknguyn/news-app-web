@@ -61,8 +61,8 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ postId, backendA
             setComments(response.content.map(comment => backendCommentToComment(comment, postId)));
             setCommentNotice('Showing article-linked discussion for this post.');
           } catch {
-            setComments(MOCK_COMMENTS.filter(c => c.postId === postId));
-            setCommentNotice(error instanceof Error ? error.message : 'Backend comments unavailable. Showing local preview comments.');
+            setComments([]);
+            setCommentNotice(error instanceof Error ? error.message : 'Backend comments unavailable.');
           }
           return;
         }
@@ -137,80 +137,82 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ postId, backendA
   };
 
   return (
-    <div className="mt-9 border-t border-[var(--color-comment-border-clean)] py-6">
-      <div className="mb-5 flex items-center gap-4">
-        <h3 className="text-sm font-semibold text-[var(--color-comment-ink)]">
-          {totalComments} Comments
+    <div className="mt-14 border-t-4 border-[var(--color-app-heading)] pb-4 pt-10 sm:mt-20 sm:pb-10 sm:pt-12">
+      <div className="mb-8 flex items-center gap-6">
+        <h3 className="editorial-h2 !text-2xl">
+          {totalComments} Responses
         </h3>
-        <div className="ml-auto flex gap-1 text-[11px] font-semibold">
+        <div className="ml-auto flex gap-2">
           {(['best', 'top', 'new'] as SortType[]).map(sort => (
             <button
               type="button"
               key={sort}
               onClick={() => setSortBy(sort)}
               aria-pressed={sortBy === sort}
-              className={`px-2.5 py-1 transition-colors ${
+              className={`h-9 px-4 text-xs font-bold uppercase tracking-widest transition-all ${
                 sortBy === sort
-                  ? 'rounded-[4px] bg-[var(--color-comment-ink)] text-[var(--color-comment-surface)]'
-                  : 'text-[var(--color-comment-muted)] hover:bg-[var(--color-comment-surface-lift)]'
+                  ? 'bg-[var(--color-app-heading)] text-white'
+                  : 'text-[var(--color-app-muted)] hover:text-[var(--color-app-action)]'
               }`}
             >
-              {sort.charAt(0).toUpperCase() + sort.slice(1)}
+              {sort}
             </button>
           ))}
         </div>
       </div>
 
       {commentNotice && (
-        <Alert tone="warning" className="mb-4">
+        <Alert tone="warning" className="mb-8">
           {commentNotice}
         </Alert>
       )}
 
-      <div className="mb-6">
+      <div className={sortedComments.length ? 'mb-8 sm:mb-10' : 'mb-0'}>
         {quoteDraft && (
-          <div className="mb-3 rounded-[8px] border border-[var(--color-comment-border-clean)] bg-[var(--color-comment-surface-lift)] p-3">
-            <div className="mb-1 flex items-center justify-between gap-3">
-              <span className="text-sm font-medium text-[var(--color-comment-action)]">
-                Quoted selection
+          <div className="mb-6 border border-[var(--color-app-border)] bg-[var(--color-app-surface-alt)] p-6">
+            <div className="mb-2 flex items-center justify-between gap-4">
+              <span className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-action)]">
+                Referencing Dispatch
               </span>
               <button
                 type="button"
                 onClick={onQuoteDraftClear}
-                className="text-sm font-medium text-[var(--color-comment-muted)] hover:text-[var(--color-comment-ink)]"
+                className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)] hover:text-[var(--color-app-action)]"
               >
-                Clear
+                Remove Quote
               </button>
             </div>
-            <p className="line-clamp-3 text-sm leading-5 text-[var(--color-comment-muted)]">
-              {quoteDraft}
+            <p className="editorial-label !text-base italic leading-relaxed text-[var(--color-app-muted)]">
+              "{quoteDraft}"
             </p>
           </div>
         )}
         <label htmlFor={composerId} className="sr-only">
-          Add a comment
+          Add a response
         </label>
         <textarea
           id={composerId}
           value={commentText}
           onChange={(e) => setCommentText(e.target.value)}
-          placeholder="Join the discussion..."
+          placeholder="Enter your response..."
           disabled={!canUseBackendComments}
-          className="min-h-[76px] w-full resize-y rounded-[7px] border border-[var(--color-comment-border)] bg-[var(--color-comment-surface)] p-3 font-sans text-sm text-[var(--color-comment-ink)] placeholder:text-[var(--color-comment-faint)] focus:border-[var(--color-comment-action)] focus:outline-none focus:ring-2 focus:ring-[var(--color-comment-focus)]"
+          className="bulwark-input min-h-[120px] w-full !p-4 !text-base leading-relaxed"
         />
-        <div className="mt-2 flex justify-end">
+        <div className="mt-4 flex justify-end">
           <button
             type="button"
             onClick={handleAddComment}
             disabled={!hasCommentContent || !canUseBackendComments}
-            className="rounded-[4px] bg-[var(--color-comment-ink)] px-4 py-2 text-sm font-semibold text-[var(--color-comment-surface)] transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:bg-[var(--color-comment-faint)]"
+            className="bulwark-button-primary !h-12 !px-8 uppercase tracking-widest"
           >
-            Comment
+            Post Response
           </button>
         </div>
       </div>
 
-      <CommentTree comments={sortedComments} postAuthorId={postAuthorId} onReply={handleAddReply} onLike={handleCommentLike} />
+      {sortedComments.length > 0 && (
+        <CommentTree comments={sortedComments} postAuthorId={postAuthorId} onReply={handleAddReply} onLike={handleCommentLike} />
+      )}
     </div>
   );
 };

@@ -1,12 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MOCK_CHANNELS } from '../lib/mockData';
-import { ArrowLeft, Send, Image as ImageIcon, Link as LinkIcon, Eye } from 'lucide-react';
+import { ArrowLeft, Eye, Send } from 'lucide-react';
 import { usePageMotion } from '../hooks/usePageMotion';
 import { backendApi } from '../lib/api';
 import { backendTopicToChannel } from '../lib/backendAdapters';
 import type { Channel } from '../types';
-import type { BackendArticleDTO } from '../lib/api';
+import { RichPostEditor } from '../components/RichPostEditor';
+import { addImageCaptions, stripHtml } from '../lib/richContent';
+import { Alert } from '../components/ui/Alert';
+
+const DRAFT_KEY = 'tourane-news-submit-draft';
+
+type SubmitDraft = {
+  title: string;
+  content: string;
+  sourceUrl: string;
+  thumbnailUrl: string;
+  selectedChannel: string;
+  selectedArticleId: string;
+  updatedAt: string;
+};
 
 export const SubmitNewsScreen: React.FC = () => {
   const pageRef = usePageMotion<HTMLDivElement>();
@@ -14,41 +27,68 @@ export const SubmitNewsScreen: React.FC = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [channels, setChannels] = useState<Channel[]>(MOCK_CHANNELS);
-  const [selectedChannel, setSelectedChannel] = useState(MOCK_CHANNELS[0].id);
-  const [articles, setArticles] = useState<BackendArticleDTO[]>([]);
-  const [selectedArticleId, setSelectedArticleId] = useState('');
+  const [thumbnailUrl, setThumbnailUrl] = useState('');
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [selectedChannel, setSelectedChannel] = useState('');
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
   const [formError, setFormError] = useState('');
+
   const titleId = 'report-title';
-  const contentId = 'report-content';
-  const titleErrorId = 'report-title-error';
-  const contentErrorId = 'report-content-error';
-  const titleError = hasSubmitted && !title.trim() ? 'Add a headline before posting.' : '';
-  const contentError = hasSubmitted && content.trim().length < 80 ? 'Add at least 80 characters of report context.' : '';
-  const canSubmit = Boolean(title.trim()) && content.trim().length >= 80;
+  const plainContent = stripHtml(content);
+  const contentError = hasSubmitted && plainContent.length < 80 ? 'Add at least 80 characters of report context.' : '';
+  const canSubmit = Boolean(title.trim()) && plainContent.length >= 80;
+  const joinedChannels = channels.filter(channel => channel.joined);
+  const otherChannels = channels.filter(channel => !channel.joined);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(DRAFT_KEY);
+    if (!stored) return;
+    try {
+      const draft = JSON.parse(stored) as SubmitDraft;
+      setTitle(draft.title || '');
+      setContent(draft.content || '');
+      setSourceUrl(draft.sourceUrl || '');
+      setThumbnailUrl(draft.thumbnailUrl || '');
+      if (draft.selectedChannel) setSelectedChannel(draft.selectedChannel);
+    } catch {
+      localStorage.removeItem(DRAFT_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!title && !content && !sourceUrl && !thumbnailUrl) return;
+    const timeout = window.setTimeout(() => {
+      const draft: Partial<SubmitDraft> = {
+        title,
+        content,
+        sourceUrl,
+        thumbnailUrl,
+        selectedChannel,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    }, 700);
+
+    return () => window.clearTimeout(timeout);
+  }, [title, content, sourceUrl, thumbnailUrl, selectedChannel]);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadTopics = async () => {
       try {
-        const [topics, latestArticles] = await Promise.all([
-          backendApi.getTopics(),
-          backendApi.getLatestArticles(20),
-        ]);
+        const topics = await backendApi.getTopics();
         if (!isMounted) return;
-        const nextChannels = topics.map(backendTopicToChannel);
+        const nextChannels = topics
+          .map(backendTopicToChannel)
+          .sort((a, b) => Number(Boolean(b.joined)) - Number(Boolean(a.joined)) || a.name.localeCompare(b.name));
         setChannels(nextChannels);
-        setSelectedChannel(nextChannels[0]?.id || MOCK_CHANNELS[0].id);
-        setArticles(latestArticles);
+        if (nextChannels.length > 0) setSelectedChannel(nextChannels[0].id);
       } catch {
         if (!isMounted) return;
-        setChannels(MOCK_CHANNELS);
-        setSelectedChannel(MOCK_CHANNELS[0].id);
-        setArticles([]);
+        setChannels([]);
       }
     };
 
@@ -69,12 +109,12 @@ export const SubmitNewsScreen: React.FC = () => {
     try {
       const createdPost = await backendApi.createPost({
         title: title.trim(),
-        content: content.trim(),
+        content: addImageCaptions(content),
         topicId: Number(selectedChannel),
-        articleId: selectedArticleId ? Number(selectedArticleId) : undefined,
         sourceUrl: sourceUrl.trim() || undefined,
-        imageUrl: imageUrl.trim() || undefined,
+        imageUrl: thumbnailUrl.trim() || undefined,
       });
+      localStorage.removeItem(DRAFT_KEY);
       navigate(`/app/p/${createdPost.id}`);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Unable to publish report.');
@@ -84,164 +124,169 @@ export const SubmitNewsScreen: React.FC = () => {
   };
 
   return (
-    <div ref={pageRef} className="mx-auto max-w-5xl px-4 py-8 sm:px-8 lg:py-10">
+    <div ref={pageRef} className="app-page">
       <button 
         type="button"
-        data-motion="page"
         onClick={() => navigate(-1)}
-        className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-app-muted)] transition-colors hover:text-[var(--color-app-ink)]"
+        className="mb-8 inline-flex min-h-10 items-center gap-2 text-sm font-bold uppercase tracking-widest text-[var(--color-app-muted)] transition-colors hover:text-[var(--color-app-action)]"
       >
         <ArrowLeft className="w-4 h-4" />
-        Cancel draft
+        Cancel Dispatch
       </button>
 
-      <div data-motion="page" className="mb-8 flex flex-col gap-4 border-b border-[var(--color-app-border)] pb-5 sm:flex-row sm:items-center sm:justify-between">
+      <header data-motion="page" className="mb-8 flex flex-col gap-6 border-b-4 border-[var(--color-app-heading)] pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-serif font-medium text-[var(--color-app-ink)]">
-            Draft report
+          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[var(--color-app-action)]">
+            Compose
+          </p>
+          <h1 className="font-[var(--font-display)] text-4xl font-bold leading-none text-[var(--color-app-heading)] sm:text-5xl">
+            Draft Dispatch
           </h1>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--color-app-muted)]">
-            Publish a focused report with evidence, source links, and a clear channel.
+          <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[var(--color-app-muted)]">
+            Publish an authoritative report with evidence and verification.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-           <button type="button" className="flex min-h-11 items-center gap-2 rounded-[4px] border border-[var(--color-app-border)] bg-white px-4 py-2 text-sm font-normal text-[var(--color-app-action)] transition-colors hover:border-[var(--color-cement-gray)] hover:bg-[var(--color-off-white)]">
-            <Eye className="w-4 h-4" />
-            Preview
+        <div className="flex flex-wrap gap-3">
+          <button type="button" onClick={() => setIsPreviewing(prev => !prev)} className="inline-flex min-h-10 items-center border border-[var(--color-app-border)] px-4 text-sm font-bold uppercase tracking-widest text-[var(--color-app-heading)] hover:border-[var(--color-app-action)] hover:text-[var(--color-app-action)]">
+            <Eye className="w-4 h-4 mr-2" />
+            {isPreviewing ? 'Edit' : 'Preview'}
           </button>
           <button 
             type="submit"
             form="submit-report-form"
             disabled={!canSubmit || isSubmitting}
-            className="flex min-h-11 items-center gap-2 rounded-[4px] border border-[var(--color-app-action)] bg-[var(--color-app-action)] px-5 py-2 text-sm font-normal text-white transition-colors hover:bg-[var(--color-app-action-hover)] disabled:cursor-not-allowed disabled:border-[var(--color-lavender-field)] disabled:bg-[var(--color-lavender-field)] disabled:text-[var(--color-cement-gray)]"
+            className="inline-flex min-h-10 items-center bg-[var(--color-app-heading)] px-5 text-sm font-bold uppercase tracking-widest text-[var(--color-app-bg)] hover:bg-[var(--color-app-action)] disabled:opacity-50"
           >
-            <Send className="w-4 h-4" />
-            {isSubmitting ? 'Posting...' : 'Post report'}
+            <Send className="w-4 h-4 mr-2" />
+            {isSubmitting ? 'Sending...' : 'Dispatch'}
           </button>
         </div>
-      </div>
+      </header>
 
-      <form id="submit-report-form" className="space-y-8" onSubmit={handleSubmit} noValidate>
+      <form id="submit-report-form" className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]" onSubmit={handleSubmit} noValidate>
         {formError && (
-          <div data-motion="page" className="border-l-2 border-red-500 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          <Alert tone="error" className="xl:col-span-2">
             {formError}
-          </div>
+          </Alert>
         )}
-        <fieldset data-motion="page" className="space-y-2">
-          <legend className="text-sm font-semibold text-[var(--color-app-muted)]">
-            Channel
-          </legend>
-          <div className="flex flex-wrap gap-2">
-            {channels.map(channel => (
-              <button
-                key={channel.id}
-                type="button"
-                onClick={() => setSelectedChannel(channel.id)}
-                aria-pressed={selectedChannel === channel.id}
-                className={`min-h-10 rounded-full border px-3 py-2 text-sm font-semibold transition-all ${
-                  selectedChannel === channel.id 
-                  ? 'border-[var(--color-app-action)] bg-[var(--color-app-action)] text-white' 
-                  : 'border-[var(--color-app-border)] bg-white text-[var(--color-app-muted)] hover:border-[var(--color-cement-gray)] hover:bg-[var(--color-off-white)] hover:text-[var(--color-app-action)]'
-                }`}
-              >
-                {channel.name}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-
-        <fieldset data-motion="page" className="space-y-2">
-          <legend className="text-sm font-semibold text-[var(--color-app-muted)]">
-            Linked Article
-          </legend>
-          <select
-            value={selectedArticleId}
-            onChange={(event) => setSelectedArticleId(event.target.value)}
-            className="w-full rounded-[6px] border border-[var(--color-app-border)] bg-[var(--color-app-surface)] px-4 py-3 text-sm text-[var(--color-app-ink)] outline-none transition-colors focus:border-[var(--color-app-action)] focus:shadow-[var(--shadow-hex-focus)] focus:ring-0"
-          >
-            <option value="">No article link, discussion comments disabled</option>
-            {articles.map(article => (
-              <option key={article.id} value={article.id}>
-                {article.title}
-              </option>
-            ))}
-          </select>
-          <p className="text-sm leading-6 text-[var(--color-app-muted)]">
-            Link an article when this report is part of an existing newsroom story.
-          </p>
-        </fieldset>
-
-        <div data-motion="page" className="space-y-4">
-          <div>
+        
+        <div className="min-w-0 space-y-8">
+          <div className="border-b-2 border-[var(--color-app-border)] pb-4">
             <label htmlFor={titleId} className="sr-only">
-              Report headline
+              Dispatch Headline
             </label>
-          <input 
-            id={titleId}
-            type="text"
-            placeholder="Headline of the story..."
-              aria-invalid={Boolean(titleError)}
-              aria-describedby={titleError ? titleErrorId : undefined}
-            className="w-full border-none bg-transparent px-0 text-4xl font-serif font-medium leading-tight text-[var(--color-app-ink)] focus:ring-0 placeholder:text-[var(--color-app-border)]"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-            {titleError && (
-              <p id={titleErrorId} className="mt-2 text-xs font-bold text-red-600">
-                {titleError}
-              </p>
-            )}
-          </div>
-          
-          <div className="grid gap-3 border-y border-[var(--color-app-border-clean)] py-4 sm:grid-cols-2">
-            <label className="flex items-center gap-2">
-              <ImageIcon className="h-5 w-5 shrink-0 text-[var(--color-app-faint)]" />
-              <input
-                type="url"
-                value={imageUrl}
-                onChange={(event) => setImageUrl(event.target.value)}
-                placeholder="Image URL"
-                className="min-w-0 flex-1 border-none bg-transparent px-0 text-sm text-[var(--color-app-ink)] outline-none placeholder:text-[var(--color-app-faint)] focus:ring-0"
-              />
-            </label>
-            <label className="flex items-center gap-2">
-              <LinkIcon className="h-5 w-5 shrink-0 text-[var(--color-app-faint)]" />
-              <input
-                type="url"
-                value={sourceUrl}
-                onChange={(event) => setSourceUrl(event.target.value)}
-                placeholder="Source URL"
-                className="min-w-0 flex-1 border-none bg-transparent px-0 text-sm text-[var(--color-app-ink)] outline-none placeholder:text-[var(--color-app-faint)] focus:ring-0"
-              />
-            </label>
+            <input 
+              id={titleId}
+              type="text"
+              placeholder="The Headline of your Story..."
+              className="w-full border-none bg-transparent px-0 font-[var(--font-display)] text-4xl font-bold leading-tight text-[var(--color-app-heading)] outline-none placeholder:text-[var(--color-app-border)] sm:text-5xl"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
           </div>
 
-          <div>
-            <label htmlFor={contentId} className="sr-only">
-              Report body
-            </label>
-          <textarea 
-            id={contentId}
-            placeholder="Tell the truth here. Use evidence, cite sources where possible..."
-              aria-invalid={Boolean(contentError)}
-              aria-describedby={contentError ? contentErrorId : undefined}
-            className="w-full min-h-[420px] resize-none border-none bg-transparent px-0 text-xl font-serif leading-relaxed text-[var(--color-app-ink)] focus:ring-0 placeholder:text-[var(--color-app-border)]"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-          />
-            {contentError && (
-              <p id={contentErrorId} className="mt-2 text-xs font-bold text-red-600">
-                {contentError}
-              </p>
+          <div className="min-h-[640px] border border-[var(--color-app-border)] bg-[var(--color-app-bg)]">
+            {isPreviewing ? (
+              <article className="min-h-full bg-[var(--color-app-bg)] p-6 sm:p-10">
+                <h2 className="mb-8 font-[var(--font-display)] text-3xl font-bold leading-tight text-[var(--color-app-heading)]">{title || 'Untitled Dispatch'}</h2>
+                {thumbnailUrl && (
+                  <span className="story-image-frame mb-10 aspect-[16/9]">
+                    <img src={thumbnailUrl} alt="" className="story-image" />
+                  </span>
+                )}
+                <div className="tourane-rich-content editorial-label !text-xl !leading-relaxed" dangerouslySetInnerHTML={{ __html: addImageCaptions(content) }} />
+              </article>
+            ) : (
+              <div className="min-h-full bg-[var(--color-app-bg)]">
+                <RichPostEditor
+                  value={content}
+                  onChange={setContent}
+                  onUploadImage={async (file) => {
+                    const uploaded = await backendApi.uploadMedia(file);
+                    setThumbnailUrl(current => current || uploaded.url);
+                    return uploaded.url;
+                  }}
+                  error={contentError}
+                />
+              </div>
             )}
           </div>
         </div>
+
+        <aside className="space-y-5 xl:sticky xl:top-32 xl:self-start">
+          <section className="border border-[var(--color-app-border)] bg-[var(--color-app-bg)] p-4">
+            <h2 className="mb-4 font-[var(--font-display)] text-lg font-bold text-[var(--color-app-heading)]">
+              Publishing
+            </h2>
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <label htmlFor="source-url" className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-app-muted)]">Source Evidence URL</label>
+                <input
+                  id="source-url"
+                  type="url"
+                  value={sourceUrl}
+                  onChange={(event) => setSourceUrl(event.target.value)}
+                  placeholder="https://..."
+                  className="hex-input min-h-10 w-full px-3 text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="dispatch-channel" className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-app-muted)]">Topic</label>
+                <select
+                  id="dispatch-channel"
+                  value={selectedChannel}
+                  onChange={(e) => setSelectedChannel(e.target.value)}
+                  className="hex-input min-h-10 w-full px-3 text-sm"
+                >
+                  {joinedChannels.length > 0 && (
+                    <optgroup label="Joined topics">
+                      {joinedChannels.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </optgroup>
+                  )}
+                  {otherChannels.length > 0 && (
+                    <optgroup label="Other topics">
+                      {otherChannels.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </optgroup>
+                  )}
+                </select>
+                <p className="text-xs leading-5 text-[var(--color-app-muted)]">
+                  Joined topics appear first. You can still post to other readable topics.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="border border-[var(--color-app-border)] bg-[var(--color-app-bg)] p-4">
+            <h2 className="mb-3 font-[var(--font-display)] text-lg font-bold text-[var(--color-app-heading)]">
+              Checklist
+            </h2>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[var(--color-app-muted)]">Headline</span>
+                <span className={title.trim() ? 'font-bold text-[var(--color-app-action)]' : 'font-bold text-[var(--color-app-muted)]'}>
+                  {title.trim() ? 'Ready' : 'Missing'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[var(--color-app-muted)]">Body context</span>
+                <span className={plainContent.length >= 80 ? 'font-bold text-[var(--color-app-action)]' : 'font-bold text-[var(--color-app-muted)]'}>
+                  {plainContent.length}/80
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[var(--color-app-muted)]">Topic</span>
+                <span className={selectedChannel ? 'font-bold text-[var(--color-app-action)]' : 'font-bold text-[var(--color-app-muted)]'}>
+                  {selectedChannel ? 'Selected' : 'Missing'}
+                </span>
+              </div>
+            </div>
+          </section>
+        </aside>
       </form>
 
-      <footer data-motion="page" className="mt-12 border-t border-[var(--color-app-border-clean)] pt-6">
-        <p className="max-w-xl text-sm leading-6 text-[var(--color-app-muted)]">
-          By posting, you agree that this information is accurate to the best of your knowledge. 
-          Intentional misinformation will result in a permanent Trust Score penalty.
+      <footer className="mt-12 border-t border-[var(--color-app-border)] pt-8">
+        <p className="editorial-label !text-sm !italic text-[var(--color-app-muted)]">
+          All dispatches are recorded to the immutable ledger. Misinformation will penalize your global Trust Score.
         </p>
       </footer>
     </div>

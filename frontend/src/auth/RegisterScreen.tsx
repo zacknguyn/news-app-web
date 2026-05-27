@@ -122,15 +122,16 @@ export const RegisterScreen: React.FC = () => {
         ) : (
         <form className="grid grid-cols-1 sm:grid-cols-2 gap-6" onSubmit={handleSubmit}>
           {formError && (
-            <div className="sm:col-span-2 border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            <div className="sm:col-span-2 border border-[var(--color-state-error-border)] bg-[var(--color-state-error-bg)] px-4 py-3 text-sm font-semibold text-[var(--color-state-error)]">
               {formError}
             </div>
           )}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-[var(--color-app-muted)]">
+            <label htmlFor="register-name" className="text-sm font-semibold text-[var(--color-app-muted)]">
               Full Name
             </label>
             <input 
+              id="register-name"
               type="text" 
               placeholder="Elena Vance"
               required
@@ -141,10 +142,11 @@ export const RegisterScreen: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-[var(--color-app-muted)]">
+            <label htmlFor="register-password" className="text-sm font-semibold text-[var(--color-app-muted)]">
               Password
             </label>
             <input
+              id="register-password"
               type="password"
               placeholder="Minimum 6 characters"
               required
@@ -156,10 +158,11 @@ export const RegisterScreen: React.FC = () => {
           </div>
 
           <div className="sm:col-span-2 space-y-2">
-            <label className="text-sm font-semibold text-[var(--color-app-muted)]">
+            <label htmlFor="register-email" className="text-sm font-semibold text-[var(--color-app-muted)]">
               Direct Contact (Email)
             </label>
             <input 
+              id="register-email"
               type="email" 
               placeholder="e.vance@truth-portal.net"
               required
@@ -170,10 +173,11 @@ export const RegisterScreen: React.FC = () => {
           </div>
 
           <div className="sm:col-span-2 space-y-2">
-            <label className="text-sm font-semibold text-[var(--color-app-muted)]">
+            <label htmlFor="register-focus" className="text-sm font-semibold text-[var(--color-app-muted)]">
               Reporting focus
             </label>
             <textarea 
+              id="register-focus"
               placeholder="Briefly describe what you want to read, publish, or verify."
               required
               value={focus}

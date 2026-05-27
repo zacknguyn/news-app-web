@@ -11,15 +11,15 @@ Enthusiasts seeking authentic, independent news. Readers looking for "real deals
 A news platform for independent news workers to reach people directly. Success is a high-trust environment where the content's integrity shines through a sophisticated, editorial interface.
 
 ## Brand Personality
-Minimalist, Sincerity, Imaginative.
+Authoritative, Urgent, Premium Editorial.
 
 ## Anti-references
-SaaS-cream dashboards, cluttered clickbait portals, generic bootstrap themes.
+SaaS-cream dashboards, purple-tinted "Linear" clones, cluttered clickbait portals, generic bootstrap themes.
 
 ## Design Principles
-1. **Raw Sincerity**: Content-first layouts that prioritize truth. No decorative fluff.
-2. **Sharp Minimalism**: Borrowing WIRED's precision to provide authority without complexity.
-3. **Imaginative Flow**: Using whitespace and typography to tell stories in non-obvious, engaging ways.
+1. **Editorial Authority**: High-contrast typography and bold accents that signal importance and urgency.
+2. **High-Contrast Clarity**: A monochromatic foundation (Black/White/Gray) punctuated by a single, purposeful Brand Red.
+3. **Journalistic Flow**: Generous white space and clear hierarchy that prioritizes the reading experience over interactive noise.
 
 ## Accessibility & Inclusion
 WCAG AA standard. High contrast for readability. Reduced motion options for GSAP animations.

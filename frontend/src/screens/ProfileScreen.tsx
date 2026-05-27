@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { PostCard } from '../components/PostCard';
 import { TrustBar } from '../components/ui/TrustBar';
-import { ShieldCheck, Calendar, Award, BarChart3, Globe } from 'lucide-react';
+import { ShieldCheck, Calendar, Award, BarChart3, Globe, Mail, UserCog } from 'lucide-react';
 import { usePageMotion } from '../hooks/usePageMotion';
 import { useAuth } from '../context/AuthContext';
-import { backendApi } from '../lib/api';
+import { backendApi, getAuthToken, setAuthSession } from '../lib/api';
 import { backendArticleToPost, backendAuthorToUser, backendUserToUser } from '../lib/backendAdapters';
 import { Alert } from '../components/ui/Alert';
 import type { Post, User } from '../types';
@@ -18,6 +19,10 @@ export const ProfileScreen: React.FC = () => {
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [notice, setNotice] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [name, setName] = useState('');
+  const [avatar, setAvatar] = useState('');
+  const [isSavingAccount, setIsSavingAccount] = useState(false);
+  const isOwnProfile = Boolean(authUser && username === authUser.username);
 
   useEffect(() => {
     let isMounted = true;
@@ -33,6 +38,8 @@ export const ProfileScreen: React.FC = () => {
           const articles = await backendApi.getArticlesByUser(currentUser.id, 0, 10).catch(() => null);
           if (!isMounted) return;
           setUser(nextUser);
+          setName(nextUser.name);
+          setAvatar(nextUser.avatarUrl || '');
           setUserPosts(articles?.content.map(backendArticleToPost) || []);
           return;
         }
@@ -59,11 +66,35 @@ export const ProfileScreen: React.FC = () => {
     };
   }, [authUser, username]);
 
+  const handleSaveAccount = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!isOwnProfile) return;
+    setIsSavingAccount(true);
+
+    try {
+      const updated = await backendApi.updateCurrentUser({
+        name: name.trim(),
+        avatar: avatar.trim() || undefined,
+      });
+      const nextUser = backendUserToUser(updated);
+      const token = getAuthToken();
+      if (token) setAuthSession(token, nextUser);
+      setUser(nextUser);
+      setName(nextUser.name);
+      setAvatar(nextUser.avatarUrl || '');
+      toast.success('Account updated.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to update account.');
+    } finally {
+      setIsSavingAccount(false);
+    }
+  };
+
   if (isLoading) return <div className="p-20 text-center text-sm text-[var(--color-app-muted)]">Loading profile</div>;
   if (!user) return <div className="p-20 text-center text-sm text-[var(--color-app-muted)]">Journalist not found: database entry missing</div>;
 
   return (
-    <div ref={pageRef} className="hex-page max-w-6xl">
+    <div ref={pageRef} className="hex-page">
       <header data-motion="page" className="hex-card mb-10 p-6 sm:p-8">
         <div className="flex flex-col items-start gap-8 md:flex-row">
           <img src={user.avatarUrl} alt={user.name} className="h-28 w-28 rounded-[8px] border border-[var(--color-app-border)] object-cover grayscale" />
@@ -130,6 +161,61 @@ export const ProfileScreen: React.FC = () => {
 
         {/* Right Column: Trust Stats */}
         <div className="space-y-8">
+          {isOwnProfile && (
+            <section data-motion="list" className="hex-card p-6">
+              <h3 className="mb-5 flex items-center gap-2 text-sm font-semibold text-[var(--color-app-ink)]">
+                <UserCog className="h-4 w-4" />
+                Account
+              </h3>
+              <form className="space-y-4" onSubmit={handleSaveAccount}>
+                <label className="block space-y-2">
+                  <span className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)]">Display name</span>
+                  <input
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    className="hex-input min-h-10 w-full px-3 text-sm"
+                  />
+                </label>
+                <label className="block space-y-2">
+                  <span className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)]">Avatar URL</span>
+                  <input
+                    value={avatar}
+                    onChange={(event) => setAvatar(event.target.value)}
+                    className="hex-input min-h-10 w-full px-3 text-sm"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={isSavingAccount || !name.trim()}
+                  className="hex-button-primary min-h-10 w-full px-4 text-sm font-semibold disabled:opacity-50"
+                >
+                  {isSavingAccount ? 'Saving' : 'Save account'}
+                </button>
+              </form>
+            </section>
+          )}
+
+          <section data-motion="list" className="hex-card p-6">
+            <h3 className="mb-5 flex items-center gap-2 text-sm font-semibold text-[var(--color-app-ink)]">
+              <Mail className="h-4 w-4" />
+              Account Details
+            </h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between gap-4 border-b border-[var(--color-app-border)] pb-3">
+                <span className="text-[var(--color-app-muted)]">Email</span>
+                <span className="font-semibold text-[var(--color-app-heading)]">{user.email || 'Not exposed'}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4 border-b border-[var(--color-app-border)] pb-3">
+                <span className="text-[var(--color-app-muted)]">Role</span>
+                <span className="font-semibold text-[var(--color-app-heading)]">{user.role || 'USER'}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-[var(--color-app-muted)]">Status</span>
+                <span className="font-semibold text-[var(--color-app-action)]">{user.status || 'ACTIVE'}</span>
+              </div>
+            </div>
+          </section>
+
           <section data-motion="list" className="hex-card p-6">
             <h3 className="mb-6 flex items-center gap-2 text-sm font-semibold text-[var(--color-app-ink)]">
               <Award className="h-4 w-4" />

@@ -33,8 +33,8 @@ export const TrustScreen: React.FC = () => {
         ))}
       </section>
 
-      <Link data-motion="page" to="/about" className="hex-button-secondary mt-6 inline-flex min-h-11 items-center px-5 text-sm font-medium">
-        Read public mission
+      <Link data-motion="page" to="/app" className="hex-button-secondary mt-6 inline-flex min-h-11 items-center px-5 text-sm font-medium">
+        Return to front page
       </Link>
     </div>
   );

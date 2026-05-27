@@ -1,7 +1,8 @@
-import { backendApi, type BackendReadingProgressDTO } from './api';
+const LOCAL_PROGRESS_KEY = 'tourane-news-reading-progress';
 
 export type ReadingProgress = {
   postId: string;
+  articleId?: string;
   title: string;
   channelName: string;
   trustLabel: string;
@@ -11,48 +12,62 @@ export type ReadingProgress = {
   updatedAt: string;
 };
 
-export const backendProgressToReadingProgress = (dto: BackendReadingProgressDTO): ReadingProgress => ({
-  postId: String(dto.postId),
-  title: dto.title,
-  channelName: dto.channelName || 'Articles',
-  trustLabel: 'Saved progress',
-  highlightCount: 0,
-  progress: dto.progress,
-  scrollY: dto.scrollY,
-  updatedAt: dto.updatedAt,
-});
+const readLocalProgress = (): ReadingProgress | null => {
+  const stored = localStorage.getItem(LOCAL_PROGRESS_KEY);
+  if (!stored) return null;
+
+  try {
+    const progress = JSON.parse(stored) as ReadingProgress;
+    return progress.progress < 98 ? progress : null;
+  } catch {
+    localStorage.removeItem(LOCAL_PROGRESS_KEY);
+    return null;
+  }
+};
+
+const writeLocalProgress = (progress: ReadingProgress) => {
+  localStorage.setItem(LOCAL_PROGRESS_KEY, JSON.stringify(progress));
+};
 
 export const readProgress = async (): Promise<ReadingProgress | null> => {
-  const progress = await backendApi.getReadingProgress();
-  const latest = progress.find(item => item.progress < 98) || null;
-  return latest ? backendProgressToReadingProgress(latest) : null;
+  return readLocalProgress();
 };
 
 export const saveProgress = async (input: {
   postId: string;
   articleId?: string;
+  title?: string;
+  channelName?: string;
   scrollY: number;
   progress: number;
 }) => {
-  const postId = Number(input.postId);
   const articleId = input.articleId ? Number(input.articleId) : undefined;
-  if (!postId || Number.isNaN(postId)) return null;
 
   if (input.progress >= 98) {
     await clearProgress(input.postId);
     return null;
   }
 
-  return backendApi.saveReadingProgress({
-    postId,
-    articleId: articleId && !Number.isNaN(articleId) ? articleId : undefined,
+  writeLocalProgress({
+    postId: input.postId,
+    articleId: articleId && !Number.isNaN(articleId) ? String(articleId) : input.articleId,
+    title: input.title || 'Saved article',
+    channelName: input.channelName || 'Articles',
+    trustLabel: 'Saved progress',
+    highlightCount: 0,
     scrollY: Math.max(0, Math.round(input.scrollY)),
     progress: Math.max(1, Math.round(input.progress)),
+    updatedAt: new Date().toISOString(),
   });
+  return null;
 };
 
 export const clearProgress = async (postId: string) => {
+  const localProgress = readLocalProgress();
+  if (localProgress?.postId === postId) {
+    localStorage.removeItem(LOCAL_PROGRESS_KEY);
+  }
+
   const numericPostId = Number(postId);
   if (!numericPostId || Number.isNaN(numericPostId)) return;
-  await backendApi.clearReadingProgress(numericPostId);
 };

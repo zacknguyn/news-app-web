@@ -1,20 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useLocation, useParams, Link } from 'react-router-dom';
+import { useLocation, useParams, Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { MOCK_POSTS } from '../lib/mockData';
-import { ArrowLeft, Share2, ShieldCheck, BookOpen, Copy, MessageSquareQuote, Highlighter, Info, X, SlidersHorizontal, Bookmark } from 'lucide-react';
+import { ArrowLeft, Share2, ShieldCheck, BookOpen, Copy, MessageSquareQuote, Highlighter, Info, X, SlidersHorizontal, Bookmark, Trash2 } from 'lucide-react';
 import { CommentSection } from '../components/CommentSection';
 import { Alert } from '../components/ui/Alert';
 import { Tooltip } from '../components/ui/Tooltip';
 import { usePageMotion } from '../hooks/usePageMotion';
-import { readProgress, saveProgress } from '../lib/readingProgress';
+import { clearProgress, readProgress, saveProgress } from '../lib/readingProgress';
 import { getHighlightsForPost, saveHighlight, type SavedHighlight } from '../lib/highlights';
 import { readReaderSettings, saveReaderSettings, type ReaderSettings } from '../lib/readerSettings';
 import { getPostTrust } from '../lib/trust';
 import { TrustLabel } from '../components/ui/TrustLabel';
 import { VoteControl } from '../components/ui/VoteControl';
 import { backendApi } from '../lib/api';
-import { backendPostToPost } from '../lib/backendAdapters';
+import { backendArticleToPost, backendPostToPost } from '../lib/backendAdapters';
+import { addImageCaptions, isRichHtml, stripHtml } from '../lib/richContent';
+import { useAuth } from '../context/AuthContext';
 import type { Post } from '../types';
 
 type SelectionMenu = {
@@ -30,15 +32,26 @@ type ArticleSegment = {
   highlight?: SavedHighlight;
 };
 
-const buildHighlightedSegments = (content: string, highlights: SavedHighlight[]): ArticleSegment[] => {
-  const matches = highlights
-    .map((highlight) => {
-      const start = typeof highlight.start === 'number' ? highlight.start : content.indexOf(highlight.text);
+type ArticleMarkRange = {
+  start: number;
+  end: number;
+  highlight?: SavedHighlight;
+};
+
+const buildArticleMarkRanges = (contentText: string, highlights: SavedHighlight[]): ArticleMarkRange[] => (
+  highlights.flatMap<ArticleMarkRange>((highlight) => {
+      const start = typeof highlight.start === 'number' ? highlight.start : contentText.indexOf(highlight.text);
       const end = typeof highlight.end === 'number' ? highlight.end : start + highlight.text.length;
-      return start >= 0 ? { start, end, highlight } : null;
+      return start >= 0 && end > start ? [{ start, end, highlight }] : [];
     })
-    .filter((match): match is { start: number; end: number; highlight: SavedHighlight } => Boolean(match))
-    .sort((a, b) => a.start - b.start);
+    .sort((a, b) => a.start - b.start)
+);
+
+const buildHighlightedSegments = (
+  content: string,
+  highlights: SavedHighlight[]
+): ArticleSegment[] => {
+  const matches = buildArticleMarkRanges(content, highlights);
 
   const segments: ArticleSegment[] = [];
   let cursor = 0;
@@ -46,7 +59,10 @@ const buildHighlightedSegments = (content: string, highlights: SavedHighlight[])
   matches.forEach((match) => {
     if (match.start < cursor) return;
     if (match.start > cursor) segments.push({ text: content.slice(cursor, match.start) });
-    segments.push({ text: content.slice(match.start, match.end), highlight: match.highlight });
+    segments.push({
+      text: content.slice(match.start, match.end),
+      highlight: match.highlight,
+    });
     cursor = match.end;
   });
 
@@ -54,25 +70,172 @@ const buildHighlightedSegments = (content: string, highlights: SavedHighlight[])
   return segments.length ? segments : [{ text: content }];
 };
 
+const markRichHtmlHighlights = (html: string, highlights: SavedHighlight[]) => {
+  if (!highlights.length || typeof document === 'undefined') return html;
+
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  const contentText = template.content.textContent || '';
+  const ranges = buildArticleMarkRanges(contentText, highlights);
+  if (!ranges.length) return html;
+
+  let textCursor = 0;
+  let rangeCursor = 0;
+  const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_TEXT);
+  const textNodes: Text[] = [];
+  let node = walker.nextNode();
+
+  while (node) {
+    textNodes.push(node as Text);
+    node = walker.nextNode();
+  }
+
+  textNodes.forEach((textNode) => {
+    const value = textNode.nodeValue || '';
+    const nodeStart = textCursor;
+    const nodeEnd = nodeStart + value.length;
+    textCursor = nodeEnd;
+
+    while (rangeCursor < ranges.length && ranges[rangeCursor].end <= nodeStart) {
+      rangeCursor += 1;
+    }
+
+    const fragments: Node[] = [];
+    let localCursor = 0;
+    let localRangeCursor = rangeCursor;
+
+    while (localRangeCursor < ranges.length) {
+      const range = ranges[localRangeCursor];
+      if (range.start >= nodeEnd) break;
+
+      const start = Math.max(range.start, nodeStart) - nodeStart;
+      const end = Math.min(range.end, nodeEnd) - nodeStart;
+      if (start > localCursor) {
+        fragments.push(document.createTextNode(value.slice(localCursor, start)));
+      }
+      if (end > start) {
+        const mark = document.createElement('mark');
+        mark.className = 'reader-highlight-mark';
+        mark.textContent = value.slice(start, end);
+        fragments.push(mark);
+      }
+      localCursor = Math.max(localCursor, end);
+      if (range.end <= nodeEnd) localRangeCursor += 1;
+      else break;
+    }
+
+    if (!fragments.length) return;
+    if (localCursor < value.length) {
+      fragments.push(document.createTextNode(value.slice(localCursor)));
+    }
+    textNode.replaceWith(...fragments);
+  });
+
+  return template.innerHTML;
+};
+
 const readerThemeClasses: Record<ReaderSettings['theme'], string> = {
-  light: 'bg-[var(--color-paper)] text-[var(--color-ink)]',
-  paper: 'bg-[var(--color-reader-paper)] text-[var(--color-reader-paper-ink)]',
-  night: 'bg-[var(--color-reader-night)] text-zinc-100',
+  light: 'bg-[var(--color-reader-page)] text-[var(--color-reader-ink)]',
+  paper: 'bg-[var(--color-reader-page)] text-[var(--color-reader-ink)]',
+  night: 'bg-[var(--color-reader-page)] text-[var(--color-reader-ink)]',
 };
 
 const readerTextClasses = (settings: ReaderSettings) => [
   settings.family === 'serif' ? 'reader-serif' : 'reader-sans',
   settings.size === 'large' ? 'text-2xl' : 'text-xl',
   settings.lineHeight === 'open' ? 'leading-[2.35]' : 'leading-10',
-  settings.theme === 'night' ? 'text-zinc-200' : 'text-zinc-700',
+  'text-[var(--color-reader-ink)]',
 ].join(' ');
+
+type ArticleBodyProps = {
+  content: string;
+  isReadingMode: boolean;
+  readerSettings: ReaderSettings;
+  savedHighlights: SavedHighlight[];
+};
+
+const ArticleBody = React.memo<ArticleBodyProps>(({ content, isReadingMode, readerSettings, savedHighlights }) => {
+  const hasRichContent = isRichHtml(content);
+
+  if (hasRichContent) {
+    return (
+      <div
+        className={`tourane-rich-content ${isReadingMode ? readerTextClasses(readerSettings) : 'reader-serif text-lg leading-8 text-[var(--color-app-ink)]'}`}
+        dangerouslySetInnerHTML={{ __html: markRichHtmlHighlights(addImageCaptions(content), savedHighlights) }}
+      />
+    );
+  }
+
+  const highlightedSegments = buildHighlightedSegments(content, savedHighlights);
+
+  return (
+    <p className={`whitespace-pre-wrap ${isReadingMode ? readerTextClasses(readerSettings) : 'reader-serif text-lg leading-8 text-[var(--color-app-ink)]'}`}>
+      {isReadingMode
+        ? highlightedSegments.map((segment, index) => segment.highlight ? (
+          <mark
+            key={`${segment.highlight.id}-${index}`}
+            className="reader-highlight-mark"
+          >
+            {segment.text}
+          </mark>
+        ) : (
+          <React.Fragment key={`segment-${index}`}>{segment.text}</React.Fragment>
+        ))
+        : content}
+    </p>
+  );
+});
+
+const getWindowScrollTop = () => (
+  window.scrollY ||
+  document.documentElement.scrollTop ||
+  document.body.scrollTop ||
+  0
+);
+
+const getAppScroller = (pageElement: HTMLElement | null) => (
+  pageElement?.closest('main') as HTMLElement | null
+);
+
+const getActiveScrollState = (pageElement: HTMLElement | null) => {
+  const appScroller = getAppScroller(pageElement);
+  const appScrollTop = appScroller?.scrollTop ?? 0;
+  const windowScrollTop = getWindowScrollTop();
+  const appCanScroll = Boolean(appScroller && appScroller.scrollHeight > appScroller.clientHeight + 1);
+  const useWindow = !appCanScroll || windowScrollTop > appScrollTop;
+
+  if (useWindow || !appScroller) {
+    return {
+      rootTop: 0,
+      scrollTop: windowScrollTop,
+      viewportHeight: window.innerHeight,
+    };
+  }
+
+  return {
+    rootTop: appScroller.getBoundingClientRect().top,
+    scrollTop: appScrollTop,
+    viewportHeight: appScroller.clientHeight,
+  };
+};
+
+const restoreScrollPosition = (pageElement: HTMLElement | null, scrollY: number) => {
+  const appScroller = getAppScroller(pageElement);
+  appScroller?.scrollTo({ top: scrollY, behavior: 'auto' });
+  window.scrollTo({ top: scrollY, behavior: 'auto' });
+};
 
 export const PostDetailScreen: React.FC = () => {
   const pageRef = usePageMotion<HTMLDivElement>();
   const articleTextRef = useRef<HTMLDivElement>(null);
+  const selectionToolbarRef = useRef<HTMLDivElement>(null);
+  const selectionMenuRef = useRef<SelectionMenu | null>(null);
+  const selectionInspectTimeoutRef = useRef<number | null>(null);
   const lastSavedProgressRef = useRef({ scrollY: -1, progress: -1, time: 0 });
   const { id } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [post, setPost] = useState<Post | null>(() => MOCK_POSTS.find(p => p.id === id) || null);
   const [isPostLoading, setIsPostLoading] = useState(true);
   const [postNotice, setPostNotice] = useState('');
@@ -85,8 +248,13 @@ export const PostDetailScreen: React.FC = () => {
   const [readingPercent, setReadingPercent] = useState(0);
   const [isArticleSaved, setIsArticleSaved] = useState(false);
   const [isSavingArticle, setIsSavingArticle] = useState(false);
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
   const [readerSettings, setReaderSettings] = useState<ReaderSettings>(() => readReaderSettings());
   const [savedHighlights, setSavedHighlights] = useState<SavedHighlight[]>([]);
+
+  useEffect(() => {
+    selectionMenuRef.current = selectionMenu;
+  }, [selectionMenu]);
 
   useEffect(() => {
     let isMounted = true;
@@ -101,14 +269,23 @@ export const PostDetailScreen: React.FC = () => {
       setPostNotice('');
 
       try {
+        if (id.startsWith('article-')) {
+          const articleId = Number(id.replace('article-', ''));
+          if (Number.isNaN(articleId)) throw new Error('Article link is invalid.');
+
+          const foundArticle = await backendApi.getArticle(articleId);
+          if (!isMounted) return;
+          setPost(backendArticleToPost(foundArticle));
+          return;
+        }
+
         const foundPost = await backendApi.getPost(id);
         if (!isMounted) return;
         setPost(backendPostToPost(foundPost));
       } catch (error) {
         if (!isMounted) return;
-        const fallbackPost = MOCK_POSTS.find(candidate => candidate.id === id) || null;
-        setPost(fallbackPost);
-        setPostNotice(error instanceof Error ? error.message : 'Backend detail unavailable. Showing local preview data.');
+        setPostNotice(error instanceof Error ? error.message : 'Backend detail unavailable.');
+        setPost(null);
       } finally {
         if (isMounted) setIsPostLoading(false);
       }
@@ -125,7 +302,7 @@ export const PostDetailScreen: React.FC = () => {
     if (!post) return;
     let isMounted = true;
 
-    getHighlightsForPost(post.id)
+    getHighlightsForPost(post.id, post.backendArticleId)
       .then(highlights => {
         if (isMounted) setSavedHighlights(highlights);
       })
@@ -189,8 +366,7 @@ export const PostDetailScreen: React.FC = () => {
         if (cancelled || saved?.postId !== post.id || saved.scrollY <= 0) return;
         window.requestAnimationFrame(() => {
           if (cancelled) return;
-          const scroller = document.querySelector('main') as HTMLElement | null;
-          scroller?.scrollTo({ top: saved.scrollY, behavior: 'auto' });
+          restoreScrollPosition(pageRef.current, saved.scrollY);
         });
       })
       .catch(() => undefined);
@@ -203,41 +379,52 @@ export const PostDetailScreen: React.FC = () => {
   useEffect(() => {
     if (!post) return;
 
-    const scroller = document.querySelector('main') as HTMLElement | null;
-    if (!scroller) return;
+    const appScroller = getAppScroller(pageRef.current);
 
     let frame = 0;
     const trackProgress = () => {
       if (frame) return;
 
       frame = window.requestAnimationFrame(() => {
-        const maxScroll = Math.max(1, scroller.scrollHeight - scroller.clientHeight);
-        const progress = Math.min(100, Math.max(0, Math.round((scroller.scrollTop / maxScroll) * 100)));
+        const articleElement = articleTextRef.current ?? pageRef.current;
+        const { rootTop, scrollTop, viewportHeight } = getActiveScrollState(pageRef.current);
+        const articleRect = articleElement?.getBoundingClientRect();
+        const articleTop = articleRect ? scrollTop + articleRect.top - rootTop : 0;
+        const articleHeight = Math.max(1, articleElement?.scrollHeight ?? articleRect?.height ?? 1);
+        const start = Math.max(0, articleTop - viewportHeight * 0.12);
+        const end = Math.max(start + 1, articleTop + articleHeight - viewportHeight * 0.62);
+        const progress = Math.min(100, Math.max(0, Math.round(((scrollTop - start) / (end - start)) * 100)));
         const now = Date.now();
         const previous = lastSavedProgressRef.current;
         setReadingPercent(progress);
         if (
           Math.abs(progress - previous.progress) >= 2 ||
-          Math.abs(scroller.scrollTop - previous.scrollY) >= 240 ||
+          Math.abs(scrollTop - previous.scrollY) >= 240 ||
           now - previous.time >= 1200
         ) {
           saveProgress({
             postId: post.id,
             articleId: post.backendArticleId,
-            scrollY: scroller.scrollTop,
+            title: post.title,
+            channelName: post.channelName,
+            scrollY: scrollTop,
             progress,
           }).catch(() => undefined);
-          lastSavedProgressRef.current = { scrollY: scroller.scrollTop, progress, time: now };
+          lastSavedProgressRef.current = { scrollY: scrollTop, progress, time: now };
         }
         frame = 0;
       });
     };
 
     trackProgress();
-    scroller.addEventListener('scroll', trackProgress, { passive: true });
+    appScroller?.addEventListener('scroll', trackProgress, { passive: true });
+    window.addEventListener('scroll', trackProgress, { passive: true });
+    window.addEventListener('resize', trackProgress);
 
     return () => {
-      scroller.removeEventListener('scroll', trackProgress);
+      appScroller?.removeEventListener('scroll', trackProgress);
+      window.removeEventListener('scroll', trackProgress);
+      window.removeEventListener('resize', trackProgress);
       if (frame) window.cancelAnimationFrame(frame);
     };
   }, [post]);
@@ -266,26 +453,48 @@ export const PostDetailScreen: React.FC = () => {
     if (!post) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && selectionMenu) {
+      if (event.key === 'Escape' && selectionMenuRef.current) {
         setSelectionMenu(null);
         clearNativeSelection();
       }
     };
 
     const inspectAfterSelectionSettles = () => {
-      window.setTimeout(inspectSelection, 80);
+      if (selectionInspectTimeoutRef.current) {
+        window.clearTimeout(selectionInspectTimeoutRef.current);
+      }
+      selectionInspectTimeoutRef.current = window.setTimeout(inspectSelection, 280);
     };
 
-    document.addEventListener('selectionchange', inspectAfterSelectionSettles);
+    const clearMenuOutsideReader = (event: PointerEvent) => {
+      if (selectionInspectTimeoutRef.current) {
+        window.clearTimeout(selectionInspectTimeoutRef.current);
+        selectionInspectTimeoutRef.current = null;
+      }
+      if (!selectionMenuRef.current) return;
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (selectionToolbarRef.current?.contains(target)) return;
+      if (articleTextRef.current?.contains(target)) return;
+      setSelectionMenu(null);
+    };
+
     document.addEventListener('pointerup', inspectAfterSelectionSettles);
+    document.addEventListener('pointerdown', clearMenuOutsideReader);
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', inspectAfterSelectionSettles);
 
     return () => {
-      document.removeEventListener('selectionchange', inspectAfterSelectionSettles);
       document.removeEventListener('pointerup', inspectAfterSelectionSettles);
+      document.removeEventListener('pointerdown', clearMenuOutsideReader);
       document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', inspectAfterSelectionSettles);
+      if (selectionInspectTimeoutRef.current) {
+        window.clearTimeout(selectionInspectTimeoutRef.current);
+        selectionInspectTimeoutRef.current = null;
+      }
     };
-  }, [post?.id, selectionMenu]);
+  }, [post?.id]);
 
   if (isPostLoading) return <div className="p-20 text-center text-sm font-semibold text-[var(--color-app-muted)]">Loading transmission</div>;
   if (!post) return <div className="p-20 text-center text-sm font-semibold text-[var(--color-app-muted)]">Transmission lost: post not found</div>;
@@ -293,7 +502,7 @@ export const PostDetailScreen: React.FC = () => {
   const trust = getPostTrust(post);
   const trustScore = post.upvotes - post.downvotes;
   const highlightCount = savedHighlights.length;
-  const highlightedSegments = buildHighlightedSegments(post.content, savedHighlights);
+  const canDeletePost = !post.id.startsWith('article-') && Boolean(user && (user.role === 'ADMIN' || user.id === post.authorId));
   const readerShellClass = isReadingMode ? readerThemeClasses[readerSettings.theme] : '';
 
   const clearNativeSelection = () => {
@@ -316,7 +525,6 @@ export const PostDetailScreen: React.FC = () => {
     const selection = window.getSelection();
     const selectedText = selection?.toString().trim() || '';
     if (!selection || selection.rangeCount === 0 || selectedText.length < 2 || !articleTextRef.current) {
-      setSelectionMenu(null);
       return;
     }
 
@@ -326,19 +534,16 @@ export const PostDetailScreen: React.FC = () => {
       : range.commonAncestorContainer;
 
     if (!selectedNode || !articleTextRef.current.contains(selectedNode)) {
-      setSelectionMenu(null);
       return;
     }
 
     const rect = range.getBoundingClientRect();
     if (!rect.width && !rect.height) {
-      setSelectionMenu(null);
       return;
     }
 
     const offsets = getSelectionOffsets(range);
     if (!offsets) {
-      setSelectionMenu(null);
       return;
     }
 
@@ -389,6 +594,11 @@ export const PostDetailScreen: React.FC = () => {
   };
 
   const handleVote = async (vote: 'up' | 'down') => {
+    if (post.id.startsWith('article-')) {
+      toast.message('Article votes are tracked through article views and comments.');
+      return;
+    }
+
     const previousPost = post;
     const previousVote = post.userVote;
     const clearedPost = {
@@ -447,6 +657,24 @@ export const PostDetailScreen: React.FC = () => {
     }
   };
 
+  const handleDeletePost = async () => {
+    if (!canDeletePost || isDeletingPost) return;
+    const confirmed = window.confirm('Delete this post? This removes its votes, comments, highlights, and reading progress.');
+    if (!confirmed) return;
+
+    setIsDeletingPost(true);
+    try {
+      await backendApi.deletePost(post.id);
+      await clearProgress(post.id).catch(() => undefined);
+      toast.success('Post deleted.');
+      navigate('/app');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to delete post.');
+    } finally {
+      setIsDeletingPost(false);
+    }
+  };
+
   const updateReaderSettings = <Key extends keyof ReaderSettings>(key: Key, value: ReaderSettings[Key]) => {
     setReaderSettings(prev => ({ ...prev, [key]: value }));
   };
@@ -459,19 +687,23 @@ export const PostDetailScreen: React.FC = () => {
     }, 0);
   };
 
-  const readerInactiveControl = 'border border-[var(--color-reader-border)] text-[var(--color-reader-muted)] hover:border-[var(--color-reader-control)] hover:text-[var(--color-reader-ink)]';
-  const readerActiveControl = 'bg-[var(--color-reader-control)] text-[var(--color-reader-control-text)]';
+  const readerInactiveControl = 'border border-[var(--color-reader-border)] text-[var(--color-reader-muted)] hover:border-[var(--color-reader-control)] hover:text-[var(--color-reader-control)]';
+  const readerActiveControl = 'border border-[var(--color-reader-control)] bg-[var(--color-reader-control)] text-[var(--color-reader-control-text)]';
   const readerSecondaryText = 'text-[var(--color-reader-muted)]';
+  const readerHeadingClass = isReadingMode ? 'text-[var(--color-reader-ink)]' : 'text-[var(--color-app-heading)]';
+  const readerMutedClass = isReadingMode ? 'text-[var(--color-reader-muted)]' : 'text-[var(--color-app-muted)]';
+  const readerDividerClass = isReadingMode ? 'border-[var(--color-reader-border)]' : 'border-[var(--color-app-heading)]';
+  const readerMetaLinkClass = isReadingMode ? 'text-[var(--color-reader-ink)] hover:text-[var(--color-reader-control)]' : 'text-[var(--color-app-heading)] hover:text-[var(--color-app-action)]';
 
   const readerControls = (
-    <>
+    <div className="flex flex-wrap gap-2">
       {(['regular', 'large'] as const).map(size => (
         <button
           key={size}
           type="button"
           onClick={() => updateReaderSettings('size', size)}
           aria-pressed={readerSettings.size === size}
-          className={`min-h-10 px-3 py-1 text-sm font-semibold sm:min-h-8 ${readerSettings.size === size ? readerActiveControl : readerInactiveControl}`}
+          className={`h-9 px-3 text-sm font-bold uppercase tracking-widest transition-all ${readerSettings.size === size ? readerActiveControl : readerInactiveControl}`}
         >
           {size === 'regular' ? 'A' : 'A+'}
         </button>
@@ -482,7 +714,7 @@ export const PostDetailScreen: React.FC = () => {
           type="button"
           onClick={() => updateReaderSettings('family', family)}
           aria-pressed={readerSettings.family === family}
-          className={`min-h-10 px-3 py-1 text-sm font-semibold sm:min-h-8 ${readerSettings.family === family ? readerActiveControl : readerInactiveControl}`}
+          className={`h-9 px-3 text-sm font-bold uppercase tracking-widest transition-all ${readerSettings.family === family ? readerActiveControl : readerInactiveControl}`}
         >
           {family}
         </button>
@@ -493,27 +725,19 @@ export const PostDetailScreen: React.FC = () => {
           type="button"
           onClick={() => updateReaderSettings('theme', theme)}
           aria-pressed={readerSettings.theme === theme}
-          className={`min-h-10 px-3 py-1 text-sm font-semibold capitalize sm:min-h-8 ${readerSettings.theme === theme ? readerActiveControl : readerInactiveControl}`}
+          className={`h-9 px-3 text-sm font-bold uppercase tracking-widest transition-all ${readerSettings.theme === theme ? readerActiveControl : readerInactiveControl}`}
         >
           {theme}
         </button>
       ))}
-      <button
-        type="button"
-        onClick={() => updateReaderSettings('lineHeight', readerSettings.lineHeight === 'relaxed' ? 'open' : 'relaxed')}
-        aria-pressed={readerSettings.lineHeight === 'open'}
-        className={`min-h-10 px-3 py-1 text-sm font-semibold sm:min-h-8 ${readerInactiveControl}`}
-      >
-        Line
-      </button>
-    </>
+    </div>
   );
 
   return (
     <div
       ref={pageRef}
       data-reader-theme={isReadingMode ? readerSettings.theme : undefined}
-      className={`mx-auto px-4 py-7 sm:px-6 sm:py-9 ${isReadingMode ? `reader-theme-scope min-h-dvh max-w-none ${readerShellClass}` : 'max-w-3xl'}`}
+      className={`mx-auto px-4 py-7 sm:px-6 sm:py-9 lg:px-10 ${isReadingMode ? `reader-theme-scope min-h-svh max-w-none ${readerShellClass}` : 'max-w-[1320px]'}`}
     >
       <div className="fixed left-0 right-0 top-0 z-30 h-1 bg-[var(--color-reader-progress-track)]">
         <div
@@ -529,6 +753,7 @@ export const PostDetailScreen: React.FC = () => {
 
       {selectionMenu && (
         <div
+          ref={selectionToolbarRef}
           role="toolbar"
           aria-label="Selected text actions"
           className="fixed z-40 flex -translate-x-1/2 -translate-y-full items-center gap-1 border border-[var(--color-reader-border)] bg-[var(--color-reader-popover)] p-1 text-[var(--color-reader-popover-text)] shadow-xl"
@@ -563,7 +788,8 @@ export const PostDetailScreen: React.FC = () => {
 
       {isReadingMode && (
         <div className="sticky top-0 z-20 -mx-4 mb-6 border-b border-[var(--color-reader-border)] bg-[var(--color-reader-surface)]/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6">
-          <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-2">
+          <div className="mx-auto grid max-w-5xl gap-3 lg:grid-cols-[auto_minmax(10rem,1fr)_auto] lg:items-center">
+            <div className="flex items-center gap-2">
             <Link to="/app" className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-sm hover:bg-[var(--color-reader-surface-lift)] hover:text-[var(--color-reader-ink)] sm:min-h-8 sm:min-w-8 ${readerSecondaryText}`}>
               <span className="sr-only">Back to feed</span>
               <ArrowLeft className="h-4 w-4" />
@@ -575,14 +801,16 @@ export const PostDetailScreen: React.FC = () => {
             >
               Exit
             </button>
-            <div className="min-w-0 flex-1 px-2">
+            </div>
+            <div className="min-w-0 px-0 lg:px-2">
               <div className="h-1 overflow-hidden rounded-full bg-[var(--color-reader-progress-track)]">
                 <div className="h-full bg-[var(--color-reader-progress-fill)]" style={{ width: `${readingPercent}%` }} />
               </div>
             </div>
-            <span className={`hidden text-sm font-semibold sm:inline ${readerSecondaryText}`}>
-              {readingPercent}%
-            </span>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className={`text-sm font-semibold ${readerSecondaryText}`}>
+                {readingPercent}%
+              </span>
             <Tooltip label="Open discussion" side="bottom">
               <button
                 type="button"
@@ -595,6 +823,9 @@ export const PostDetailScreen: React.FC = () => {
             <Link to="/app/highlights" className={`hidden min-h-10 px-3 py-1.5 text-sm font-semibold sm:inline-flex sm:min-h-8 ${readerInactiveControl}`}>
               {highlightCount} Notes
             </Link>
+            <div className="hidden items-center gap-1 sm:flex">
+              {readerControls}
+            </div>
             <Tooltip label="Reader settings" side="bottom">
               <button
                 type="button"
@@ -606,11 +837,9 @@ export const PostDetailScreen: React.FC = () => {
                 <SlidersHorizontal className="h-4 w-4" />
               </button>
             </Tooltip>
-            <div className="ml-auto hidden items-center gap-1 sm:flex">
-              {readerControls}
             </div>
             {isReaderSettingsOpen && (
-              <div className="grid w-full grid-cols-2 gap-2 border-t border-[var(--color-reader-border)] pt-2 sm:hidden">
+              <div className="grid gap-2 border-t border-[var(--color-reader-border)] pt-2 sm:hidden">
                 <button
                   type="button"
                   onClick={openDiscussion}
@@ -633,77 +862,83 @@ export const PostDetailScreen: React.FC = () => {
         Back to feed
       </Link>
 
-      <article className={`space-y-6 ${isReadingMode ? 'mx-auto max-w-5xl' : ''}`}>
-        <header data-motion="page" className={isReadingMode ? 'space-y-5 border-b border-[var(--color-reader-border-clean)] pb-6' : 'space-y-3'}>
-          <div className={`flex items-center gap-2 text-sm ${isReadingMode ? 'text-[var(--color-reader-muted)]' : 'text-[var(--color-app-muted)]'}`}>
-            <span className={isReadingMode ? 'font-bold text-[var(--color-reader-ink)]' : 'font-bold text-[var(--color-app-ink)]'}>{post.channelName}</span>
-            <span>•</span>
-            <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-              <Tooltip label="View trust details" side="bottom">
-                <button
-                  type="button"
-                  onClick={() => setIsTrustOpen(true)}
-                  className="ml-auto inline-flex items-center gap-1"
-                >
-                  <TrustLabel trust={trust} />
-                  <Info className="h-3.5 w-3.5" />
-                </button>
-              </Tooltip>
+      <article className={`space-y-8 ${isReadingMode ? 'mx-auto max-w-5xl' : ''}`}>
+        <header data-motion="page" className={`border-b-4 pb-8 ${readerDividerClass}`}>
+          <div className="mb-5 flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-widest text-[var(--color-app-action)]">
+            <Link to={`/app/c/${post.channelId}`} className={readerMetaLinkClass}>{post.channelName}</Link>
+            <span className={isReadingMode ? 'text-[var(--color-reader-border)]' : 'text-[var(--color-app-border)]'}>|</span>
+            <span className={readerMutedClass}>{new Date(post.createdAt).toLocaleDateString()}</span>
+              <button
+                type="button"
+                onClick={() => setIsTrustOpen(true)}
+                className="ml-auto flex items-center gap-1 hover:underline"
+              >
+                <TrustLabel trust={trust} className="tracking-widest" />
+                <Info className="h-3.5 w-3.5" />
+              </button>
           </div>
           
-          <h1 className={`${isReadingMode ? 'reader-serif max-w-3xl text-4xl font-semibold text-[var(--color-reader-ink)] sm:text-5xl' : 'text-3xl font-semibold text-[var(--color-app-ink)] sm:text-4xl'} leading-tight`}>
+          <h1 className={`max-w-4xl font-[var(--font-display)] text-4xl font-bold leading-[1.04] sm:text-6xl ${readerHeadingClass}`}>
             {post.title}
           </h1>
+          <p className={`mt-5 max-w-3xl text-lg leading-8 ${readerMutedClass}`}>
+            {stripHtml(post.content).slice(0, 260)}{stripHtml(post.content).length > 260 ? '...' : ''}
+          </p>
 
-          <div className={`flex flex-wrap items-center justify-between gap-3 border-y border-[var(--color-app-border-clean)] py-4 ${isReadingMode ? 'hidden' : ''}`}>
-            <Link to={`/app/u/${post.author.username}`} className="flex items-center gap-3 group">
-              <img src={post.author.avatarUrl} className="h-9 w-9 rounded-full grayscale transition-all group-hover:grayscale-0" alt="" />
+          {post.mediaUrl && post.mediaType === 'image' && (
+            <figure className="story-image-frame mt-8 max-h-[680px]">
+              <img src={post.mediaUrl} alt="" className="story-image max-h-[680px] grayscale-[10%]" />
+            </figure>
+          )}
+
+          <div className={`mt-7 flex flex-wrap items-center justify-between gap-6 pt-2 ${isReadingMode ? 'hidden' : ''}`}>
+            <Link to={`/app/u/${post.author.username}`} className="flex items-center gap-4 group">
+              <img src={post.author.avatarUrl} className="h-12 w-12 rounded-full border border-[var(--color-app-border)] grayscale transition-all group-hover:grayscale-0" alt="" />
               <div className="flex flex-col">
                 <div className="flex items-center gap-1">
-                  <span className="font-bold text-sm group-hover:underline">@{post.author.username}</span>
+                  <span className="editorial-label !text-sm !font-bold uppercase tracking-widest group-hover:underline">@{post.author.username}</span>
                   {post.author.isVerified && <ShieldCheck className="w-4 h-4 text-[var(--color-app-action)]" />}
                 </div>
-                <span className="text-xs text-[var(--color-app-muted)]">Trust score: {post.author.trustScore}</span>
+                <span className="text-xs font-bold text-[var(--color-app-muted)] uppercase tracking-tighter">Credibility: {post.author.trustScore}</span>
               </div>
             </Link>
 
-            <div className="flex items-center gap-2">
-              <Tooltip label="Open reader mode" side="top">
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => setIsReadingMode(prev => !prev)}
+                className="bulwark-button-ghost border border-[var(--color-app-border)] !h-11 !px-4"
+              >
+                <BookOpen className="h-4 w-4 mr-2" />
+                Reader
+              </button>
+              {post.backendArticleId && (
                 <button
                   type="button"
-                  onClick={() => setIsReadingMode(prev => !prev)}
-                  aria-pressed={isReadingMode}
-                  className={`flex min-h-10 items-center gap-2 rounded-[4px] px-3 py-2 text-sm font-normal transition-colors ${isReadingMode ? 'border border-[var(--color-app-action)] bg-[var(--color-app-action)] text-white' : 'border border-[var(--color-app-border)] bg-white text-[var(--color-app-muted)] hover:bg-[var(--color-off-white)] hover:text-[var(--color-app-action)]'}`}
+                  onClick={handleToggleSavedArticle}
+                  disabled={isSavingArticle}
+                  className={`bulwark-button-ghost border !h-11 !px-4 ${isArticleSaved ? 'bg-[var(--color-brand-red-faint)] border-[var(--color-app-action)] text-[var(--color-app-action)]' : 'border-[var(--color-app-border)]'}`}
                 >
-                  <BookOpen className="h-4 w-4" />
-                  <span>Read</span>
+                  <Bookmark className={`h-4 w-4 mr-2 ${isArticleSaved ? 'fill-current' : ''}`} />
+                  {isArticleSaved ? 'Saved' : 'Save'}
                 </button>
-              </Tooltip>
-              {post.backendArticleId && (
-                <Tooltip label={isArticleSaved ? 'Remove saved article' : 'Save article'} side="top">
-                  <button
-                    type="button"
-                    onClick={handleToggleSavedArticle}
-                    disabled={isSavingArticle}
-                    aria-pressed={isArticleSaved}
-                    className={`flex min-h-10 items-center gap-2 rounded-[4px] border px-3 py-2 text-sm font-normal transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                      isArticleSaved
-                        ? 'border-[var(--color-app-action)] bg-[rgb(49_38_59/0.08)] text-[var(--color-app-action)]'
-                        : 'border-[var(--color-app-border)] bg-white text-[var(--color-app-muted)] hover:bg-[var(--color-off-white)] hover:text-[var(--color-app-action)]'
-                    }`}
-                  >
-                    <Bookmark className={`h-4 w-4 ${isArticleSaved ? 'fill-current' : ''}`} />
-                    <span>{isArticleSaved ? 'Saved' : 'Save'}</span>
-                  </button>
-                </Tooltip>
               )}
               <VoteControl label={post.title} score={post.upvotes - post.downvotes} vote={post.userVote} orientation="horizontal" onVote={handleVote} />
-              <Tooltip label="Share article" side="top">
-                <button type="button" aria-label={`Share ${post.title}`} className="flex min-h-11 items-center gap-2 rounded-[4px] border border-[var(--color-app-border)] bg-white px-3 py-2 text-[var(--color-app-muted)] transition-colors hover:bg-[var(--color-off-white)] hover:text-[var(--color-app-action)] sm:min-h-8">
-                  <Share2 className="h-4 w-4" />
-                  <span className="text-sm font-semibold">Share</span>
+              {canDeletePost && (
+                <button
+                  type="button"
+                  onClick={handleDeletePost}
+                  disabled={isDeletingPost}
+                  className="bulwark-button-ghost border border-[var(--color-state-error-border)] !h-11 !px-4 text-[var(--color-state-error)] hover:border-[var(--color-state-error)] hover:text-[var(--color-state-error)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {isDeletingPost ? 'Deleting' : 'Delete'}
                 </button>
-              </Tooltip>
+              )}
+              <button type="button" className="bulwark-button-ghost border border-[var(--color-app-border)] !h-11 !px-4">
+                <Share2 className="h-4 w-4 mr-2" />
+                Share
+              </button>
             </div>
           </div>
         </header>
@@ -737,23 +972,61 @@ export const PostDetailScreen: React.FC = () => {
             </section>
           )}
 
-          <div className={isReadingMode ? 'grid gap-8 xl:grid-cols-[minmax(0,68ch)_18rem]' : ''}>
-            <div ref={articleTextRef} className={isReadingMode ? 'max-w-[68ch]' : 'max-w-none'}>
-              <p className={`whitespace-pre-wrap ${isReadingMode ? readerTextClasses(readerSettings) : 'reader-serif text-lg leading-8 text-[var(--color-app-ink)]'}`}>
-                {isReadingMode
-                  ? highlightedSegments.map((segment, index) => segment.highlight ? (
-                    <mark
-                      key={`${segment.highlight.id}-${index}`}
-                      className="rounded-sm bg-[var(--color-reader-highlight)] px-0.5 text-inherit"
-                    >
-                      {segment.text}
-                    </mark>
-                  ) : (
-                    <React.Fragment key={`segment-${index}`}>{segment.text}</React.Fragment>
-                  ))
-                  : post.content}
-              </p>
+          <div className={isReadingMode ? 'grid gap-8 xl:grid-cols-[minmax(0,72ch)_18rem]' : 'grid gap-12 xl:grid-cols-[minmax(0,76ch)_20rem]'}>
+            <div ref={articleTextRef} className={isReadingMode ? 'max-w-[72ch]' : 'max-w-[76ch]'}>
+              <ArticleBody
+                content={post.content}
+                isReadingMode={isReadingMode}
+                readerSettings={readerSettings}
+                savedHighlights={savedHighlights}
+              />
             </div>
+
+            {!isReadingMode && (
+              <aside className="hidden xl:block">
+                <div className="sticky top-8 space-y-5">
+                  <section className="border border-[var(--color-app-border)] bg-[var(--color-app-surface)] p-4">
+                    <div className="mb-3 text-xs font-bold uppercase tracking-widest text-[var(--color-app-action)]">
+                      Community signal
+                    </div>
+                    <VoteControl label={post.title} score={post.upvotes - post.downvotes} vote={post.userVote} orientation="horizontal" onVote={handleVote} />
+                    <div className="mt-4 grid grid-cols-2 gap-3 border-t border-[var(--color-app-border)] pt-4">
+                      <div>
+                        <div className="font-mono text-xl font-bold text-[var(--color-app-heading)]">{post.commentCount}</div>
+                        <div className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)]">Comments</div>
+                      </div>
+                      <div>
+                        <div className="font-mono text-xl font-bold text-[var(--color-app-heading)]">{highlightCount}</div>
+                        <div className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)]">Notes</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openDiscussion}
+                      className="mt-4 inline-flex min-h-10 w-full items-center justify-center bg-[var(--color-app-heading)] px-3 text-sm font-bold text-[var(--color-app-surface)] hover:bg-[var(--color-app-action)]"
+                    >
+                      Open discussion
+                    </button>
+                  </section>
+
+                  <section className="border border-[var(--color-app-border)] bg-[var(--color-app-surface-alt)] p-4">
+                    <div className="mb-2 text-xs font-bold uppercase tracking-widest text-[var(--color-app-action)]">
+                      Reader tools
+                    </div>
+                    <p className="text-sm leading-6 text-[var(--color-app-muted)]">
+                      Select text in the story to save highlights, copy passages, or quote into the comments.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setIsReadingMode(true)}
+                      className="mt-4 inline-flex min-h-10 w-full items-center justify-center border border-[var(--color-app-border)] bg-[var(--color-app-surface)] px-3 text-sm font-bold text-[var(--color-app-heading)] hover:border-[var(--color-app-action)] hover:text-[var(--color-app-action)]"
+                    >
+                      Focus reader
+                    </button>
+                  </section>
+                </div>
+              </aside>
+            )}
 
             {isReadingMode && (
               <aside className="hidden xl:block">
