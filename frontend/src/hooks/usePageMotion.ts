@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
+import { readAppPreferences } from '../lib/appPreferences';
 
 gsap.registerPlugin(useGSAP);
 
@@ -10,7 +11,8 @@ export function usePageMotion<T extends HTMLElement>() {
   useGSAP(() => {
     const pageTargets = gsap.utils.toArray<HTMLElement>('[data-motion="page"]');
     const listTargets = gsap.utils.toArray<HTMLElement>('[data-motion="list"]');
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const motionPreference = readAppPreferences().motion;
+    const reduceMotion = motionPreference === 'reduced' || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (reduceMotion) {
       if (pageTargets.length) gsap.set(pageTargets, { autoAlpha: 1, y: 0 });

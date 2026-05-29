@@ -2,20 +2,22 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useParams, Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { MOCK_POSTS } from '../lib/mockData';
-import { ArrowLeft, Share2, ShieldCheck, BookOpen, Copy, MessageSquareQuote, Highlighter, Info, X, SlidersHorizontal, Bookmark, Trash2 } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, BookOpen, Copy, MessageSquareQuote, Highlighter, Info, X, SlidersHorizontal, Bookmark, Trash2, MessageSquare, StickyNote } from 'lucide-react';
 import { CommentSection } from '../components/CommentSection';
 import { Alert } from '../components/ui/Alert';
 import { Tooltip } from '../components/ui/Tooltip';
 import { usePageMotion } from '../hooks/usePageMotion';
 import { clearProgress, readProgress, saveProgress } from '../lib/readingProgress';
 import { getHighlightsForPost, saveHighlight, type SavedHighlight } from '../lib/highlights';
-import { readReaderSettings, saveReaderSettings, type ReaderSettings } from '../lib/readerSettings';
+import { readReaderSettings, saveReaderSettings, subscribeReaderSettings, type ReaderSettings } from '../lib/readerSettings';
 import { getPostTrust } from '../lib/trust';
 import { TrustLabel } from '../components/ui/TrustLabel';
 import { VoteControl } from '../components/ui/VoteControl';
+import { ShareButton } from '../components/ui/ShareButton';
 import { backendApi } from '../lib/api';
 import { backendArticleToPost, backendPostToPost } from '../lib/backendAdapters';
 import { addImageCaptions, isRichHtml, stripHtml } from '../lib/richContent';
+import { readAppPreferences, subscribeAppPreferences, type AppPreferences } from '../lib/appPreferences';
 import { useAuth } from '../context/AuthContext';
 import type { Post } from '../types';
 
@@ -36,6 +38,13 @@ type ArticleMarkRange = {
   start: number;
   end: number;
   highlight?: SavedHighlight;
+};
+
+const READER_MODE_SESSION_KEY = 'tourane-reader-mode-active';
+
+const readReaderModeSession = () => {
+  if (typeof window === 'undefined') return false;
+  return window.sessionStorage.getItem(READER_MODE_SESSION_KEY) === 'true';
 };
 
 const buildArticleMarkRanges = (contentText: string, highlights: SavedHighlight[]): ArticleMarkRange[] => (
@@ -142,10 +151,15 @@ const readerThemeClasses: Record<ReaderSettings['theme'], string> = {
 
 const readerTextClasses = (settings: ReaderSettings) => [
   settings.family === 'serif' ? 'reader-serif' : 'reader-sans',
-  settings.size === 'large' ? 'text-2xl' : 'text-xl',
-  settings.lineHeight === 'open' ? 'leading-[2.35]' : 'leading-10',
+  settings.size === 'large' ? 'text-[1.55rem]' : 'text-[1.32rem]',
+  settings.lineHeight === 'open' ? 'leading-[2.55]' : 'leading-[2.12]',
   'text-[var(--color-reader-ink)]',
 ].join(' ');
+
+const readerFontLabel: Record<ReaderSettings['family'], string> = {
+  serif: 'Serif',
+  sans: 'Sans',
+};
 
 type ArticleBodyProps = {
   content: string;
@@ -241,20 +255,30 @@ export const PostDetailScreen: React.FC = () => {
   const [postNotice, setPostNotice] = useState('');
   const [selectionMenu, setSelectionMenu] = useState<SelectionMenu | null>(null);
   const [quoteDraft, setQuoteDraft] = useState<string | null>(null);
-  const [isReadingMode, setIsReadingMode] = useState(false);
+  const [isReadingMode, setIsReadingMode] = useState(() => readReaderModeSession());
   const [isDiscussionOpen, setIsDiscussionOpen] = useState(false);
   const [isTrustOpen, setIsTrustOpen] = useState(false);
   const [isReaderSettingsOpen, setIsReaderSettingsOpen] = useState(false);
+  const [isReaderNotesOpen, setIsReaderNotesOpen] = useState(false);
   const [readingPercent, setReadingPercent] = useState(0);
   const [isArticleSaved, setIsArticleSaved] = useState(false);
   const [isSavingArticle, setIsSavingArticle] = useState(false);
   const [isDeletingPost, setIsDeletingPost] = useState(false);
   const [readerSettings, setReaderSettings] = useState<ReaderSettings>(() => readReaderSettings());
+  const [preferences, setPreferences] = useState<AppPreferences>(() => readAppPreferences());
   const [savedHighlights, setSavedHighlights] = useState<SavedHighlight[]>([]);
 
   useEffect(() => {
     selectionMenuRef.current = selectionMenu;
   }, [selectionMenu]);
+
+  useEffect(() => {
+    window.sessionStorage.setItem(READER_MODE_SESSION_KEY, String(isReadingMode));
+    if (!isReadingMode) {
+      setIsReaderSettingsOpen(false);
+      setIsReaderNotesOpen(false);
+    }
+  }, [isReadingMode]);
 
   useEffect(() => {
     let isMounted = true;
@@ -356,6 +380,14 @@ export const PostDetailScreen: React.FC = () => {
     saveReaderSettings(readerSettings);
   }, [readerSettings]);
 
+  useEffect(() => subscribeReaderSettings(setReaderSettings), []);
+
+  useEffect(() => subscribeAppPreferences(setPreferences), []);
+
+  useEffect(() => {
+    if (!preferences.trustAlerts) setIsTrustOpen(false);
+  }, [preferences.trustAlerts]);
+
   useEffect(() => {
     if (!post) return;
 
@@ -441,13 +473,22 @@ export const PostDetailScreen: React.FC = () => {
     if (!isReadingMode) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsReadingMode(false);
+      if (event.key !== 'Escape') return;
+      if (isReaderNotesOpen) {
+        setIsReaderNotesOpen(false);
+        return;
+      }
+      if (isReaderSettingsOpen) {
+        setIsReaderSettingsOpen(false);
+        return;
+      }
+      setIsReadingMode(false);
     };
 
     document.addEventListener('keydown', handleKeyDown);
 
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isReadingMode]);
+  }, [isReadingMode, isReaderSettingsOpen, isReaderNotesOpen]);
 
   useEffect(() => {
     if (!post) return;
@@ -689,14 +730,20 @@ export const PostDetailScreen: React.FC = () => {
 
   const readerInactiveControl = 'border border-[var(--color-reader-border)] text-[var(--color-reader-muted)] hover:border-[var(--color-reader-control)] hover:text-[var(--color-reader-control)]';
   const readerActiveControl = 'border border-[var(--color-reader-control)] bg-[var(--color-reader-control)] text-[var(--color-reader-control-text)]';
+  const readerIconControl = `inline-flex min-h-10 min-w-10 items-center justify-center ${readerInactiveControl}`;
   const readerSecondaryText = 'text-[var(--color-reader-muted)]';
-  const readerHeadingClass = isReadingMode ? 'text-[var(--color-reader-ink)]' : 'text-[var(--color-app-heading)]';
+  const readerFontClass = readerSettings.family === 'serif' ? 'reader-serif' : 'reader-sans';
+  const readerHeadingClass = isReadingMode ? `${readerFontClass} text-[var(--color-reader-ink)]` : 'font-[var(--font-display)] text-[var(--color-app-heading)]';
+  const readerSummaryClass = isReadingMode ? readerFontClass : '';
   const readerMutedClass = isReadingMode ? 'text-[var(--color-reader-muted)]' : 'text-[var(--color-app-muted)]';
   const readerDividerClass = isReadingMode ? 'border-[var(--color-reader-border)]' : 'border-[var(--color-app-heading)]';
   const readerMetaLinkClass = isReadingMode ? 'text-[var(--color-reader-ink)] hover:text-[var(--color-reader-control)]' : 'text-[var(--color-app-heading)] hover:text-[var(--color-app-action)]';
 
-  const readerControls = (
-    <div className="flex flex-wrap gap-2">
+  const readerDisplayControls = (
+    <div className="grid gap-4">
+      <div>
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--color-reader-faint)]">Text size</div>
+        <div className="flex gap-2">
       {(['regular', 'large'] as const).map(size => (
         <button
           key={size}
@@ -708,28 +755,66 @@ export const PostDetailScreen: React.FC = () => {
           {size === 'regular' ? 'A' : 'A+'}
         </button>
       ))}
+        </div>
+      </div>
+      <div>
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--color-reader-faint)]">Typeface</div>
+        <div className="grid grid-cols-2 border border-[var(--color-reader-border)]">
       {(['serif', 'sans'] as const).map(family => (
         <button
           key={family}
           type="button"
           onClick={() => updateReaderSettings('family', family)}
           aria-pressed={readerSettings.family === family}
-          className={`h-9 px-3 text-sm font-bold uppercase tracking-widest transition-all ${readerSettings.family === family ? readerActiveControl : readerInactiveControl}`}
+          className={`h-10 px-3 text-sm font-bold uppercase tracking-widest transition-all ${readerSettings.family === family ? readerActiveControl : 'text-[var(--color-reader-muted)] hover:text-[var(--color-reader-control)]'}`}
         >
-          {family}
+          {readerFontLabel[family]}
         </button>
       ))}
+        </div>
+      </div>
+      <div>
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--color-reader-faint)]">Line spacing</div>
+        <div className="grid grid-cols-2 border border-[var(--color-reader-border)]">
+      {(['relaxed', 'open'] as const).map(lineHeight => (
+        <button
+          key={lineHeight}
+          type="button"
+          onClick={() => updateReaderSettings('lineHeight', lineHeight)}
+          aria-pressed={readerSettings.lineHeight === lineHeight}
+          className={`h-10 px-3 text-sm font-bold uppercase tracking-widest transition-all ${readerSettings.lineHeight === lineHeight ? readerActiveControl : 'text-[var(--color-reader-muted)] hover:text-[var(--color-reader-control)]'}`}
+        >
+          {lineHeight === 'relaxed' ? 'Standard' : 'Roomy'}
+        </button>
+      ))}
+        </div>
+      </div>
+      <div>
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--color-reader-faint)]">Theme</div>
+        <div className="grid grid-cols-3 gap-2">
       {(['light', 'paper', 'night'] as const).map(theme => (
         <button
           key={theme}
           type="button"
           onClick={() => updateReaderSettings('theme', theme)}
           aria-pressed={readerSettings.theme === theme}
-          className={`h-9 px-3 text-sm font-bold uppercase tracking-widest transition-all ${readerSettings.theme === theme ? readerActiveControl : readerInactiveControl}`}
+          className={`h-12 border text-xs font-bold uppercase tracking-widest transition-all ${
+            readerSettings.theme === theme
+              ? 'border-[var(--color-reader-control)] shadow-[var(--shadow-focus)]'
+              : 'border-[var(--color-reader-border)] hover:border-[var(--color-reader-control)]'
+          } ${
+            theme === 'light'
+              ? 'bg-[oklch(98.5%_0.006_78)] text-[oklch(20%_0.01_70)]'
+              : theme === 'paper'
+                ? 'bg-[oklch(97%_0.012_83)] text-[oklch(22%_0.015_70)]'
+                : 'bg-[oklch(18%_0.008_70)] text-[oklch(91%_0.006_80)]'
+          }`}
         >
           {theme}
         </button>
       ))}
+        </div>
+      </div>
     </div>
   );
 
@@ -737,9 +822,9 @@ export const PostDetailScreen: React.FC = () => {
     <div
       ref={pageRef}
       data-reader-theme={isReadingMode ? readerSettings.theme : undefined}
-      className={`mx-auto px-4 py-7 sm:px-6 sm:py-9 lg:px-10 ${isReadingMode ? `reader-theme-scope min-h-svh max-w-none ${readerShellClass}` : 'max-w-[1320px]'}`}
+      className={`mx-auto px-4 py-7 sm:px-6 sm:py-9 ${isReadingMode ? `reader-theme-scope min-h-svh max-w-none lg:px-16 ${readerShellClass}` : 'max-w-[1320px] lg:px-10'}`}
     >
-      <div className="fixed left-0 right-0 top-0 z-30 h-1 bg-[var(--color-reader-progress-track)]">
+      <div className={`${isReadingMode ? 'hidden' : 'fixed'} left-0 right-0 top-0 z-30 h-1 bg-[var(--color-reader-progress-track)]`}>
         <div
           className="h-full bg-[var(--color-reader-progress-fill)] transition-[width]"
           style={{ width: `${readingPercent}%` }}
@@ -777,6 +862,18 @@ export const PostDetailScreen: React.FC = () => {
               Copy
             </button>
           </Tooltip>
+          <Tooltip label="Share selected quote" side="bottom">
+            <ShareButton
+              title={post.title}
+              text={selectionMenu.text}
+              url={`/app/p/${post.id}`}
+              kind="quote"
+              label="Share"
+              className="flex items-center gap-1 px-2 py-1.5 text-sm font-semibold hover:bg-[var(--color-reader-surface-lift)]/20"
+              successMessage="Quote copied with link."
+              onDiscuss={handleQuoteComment}
+            />
+          </Tooltip>
         </div>
       )}
 
@@ -787,70 +884,161 @@ export const PostDetailScreen: React.FC = () => {
       )}
 
       {isReadingMode && (
-        <div className="sticky top-0 z-20 -mx-4 mb-6 border-b border-[var(--color-reader-border)] bg-[var(--color-reader-surface)]/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6">
-          <div className="mx-auto grid max-w-5xl gap-3 lg:grid-cols-[auto_minmax(10rem,1fr)_auto] lg:items-center">
+        <div className="sticky top-0 z-50 -mx-4 mb-14 border-b border-[var(--color-reader-border)] bg-[var(--color-reader-surface)]/96 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-16 lg:px-16">
+          <div className="relative mx-auto grid max-w-6xl grid-cols-[auto_minmax(8rem,1fr)_auto] items-center gap-4">
             <div className="flex items-center gap-2">
-            <Link to="/app" className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-sm hover:bg-[var(--color-reader-surface-lift)] hover:text-[var(--color-reader-ink)] sm:min-h-8 sm:min-w-8 ${readerSecondaryText}`}>
+            <Link to="/app" className={readerIconControl}>
               <span className="sr-only">Back to feed</span>
               <ArrowLeft className="h-4 w-4" />
             </Link>
             <button
               type="button"
               onClick={() => setIsReadingMode(false)}
-              className={`min-h-10 px-3 py-1.5 text-sm font-semibold sm:min-h-8 ${readerInactiveControl}`}
+              className={`hidden min-h-10 px-3 py-1.5 text-sm font-semibold sm:inline-flex ${readerInactiveControl}`}
             >
               Exit
             </button>
             </div>
-            <div className="min-w-0 px-0 lg:px-2">
+            <div className="min-w-0">
               <div className="h-1 overflow-hidden rounded-full bg-[var(--color-reader-progress-track)]">
                 <div className="h-full bg-[var(--color-reader-progress-fill)]" style={{ width: `${readingPercent}%` }} />
               </div>
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className={`text-sm font-semibold ${readerSecondaryText}`}>
+            <div className="flex items-center justify-end gap-1">
+              <span className={`hidden text-sm font-semibold sm:inline ${readerSecondaryText}`}>
                 {readingPercent}%
               </span>
-            <Tooltip label="Open discussion" side="bottom">
-              <button
-                type="button"
-                onClick={openDiscussion}
-                className="hidden min-h-10 bg-[var(--color-comment-ink)] px-3 py-1.5 text-sm font-semibold text-[var(--color-comment-surface)] hover:opacity-90 sm:inline-flex sm:min-h-8"
-              >
-                Discussion
-              </button>
-            </Tooltip>
-            <Link to="/app/highlights" className={`hidden min-h-10 px-3 py-1.5 text-sm font-semibold sm:inline-flex sm:min-h-8 ${readerInactiveControl}`}>
-              {highlightCount} Notes
-            </Link>
-            <div className="hidden items-center gap-1 sm:flex">
-              {readerControls}
-            </div>
-            <Tooltip label="Reader settings" side="bottom">
+            <Tooltip label="Display" side="bottom">
               <button
                 type="button"
                 onClick={() => setIsReaderSettingsOpen(prev => !prev)}
                 aria-expanded={isReaderSettingsOpen}
-                className={`ml-auto min-h-11 min-w-11 rounded-sm p-1.5 sm:hidden ${readerInactiveControl}`}
-                aria-label="Reader settings"
+                className={readerIconControl}
+                aria-label="Reader display settings"
               >
                 <SlidersHorizontal className="h-4 w-4" />
               </button>
             </Tooltip>
+            <Tooltip label="Notes" side="bottom">
+            <button
+              type="button"
+              onClick={() => setIsReaderNotesOpen(true)}
+              className={readerIconControl}
+              aria-label={`${highlightCount} notes`}
+            >
+              <StickyNote className="h-4 w-4" />
+            </button>
+            </Tooltip>
+            <ShareButton
+              title={post.title}
+              text={stripHtml(post.content).slice(0, 220)}
+              url={`/app/p/${post.id}`}
+              kind="post"
+              iconOnly
+              label="Share report"
+              className={readerIconControl}
+              successMessage="Report link copied."
+            />
+            <Tooltip label="Discussion" side="bottom">
+              <button
+                type="button"
+                onClick={openDiscussion}
+                className={readerIconControl}
+                aria-label="Open discussion"
+              >
+                <MessageSquare className="h-4 w-4" />
+              </button>
+            </Tooltip>
             </div>
-            {isReaderSettingsOpen && (
-              <div className="grid gap-2 border-t border-[var(--color-reader-border)] pt-2 sm:hidden">
-                <button
-                  type="button"
-                  onClick={openDiscussion}
-                  className="min-h-10 bg-[var(--color-comment-ink)] px-3 py-1.5 text-sm font-semibold text-[var(--color-comment-surface)]"
-                >
-                  Discussion
-                </button>
-                <Link to="/app/highlights" className={`inline-flex min-h-10 items-center justify-center px-3 py-1.5 text-sm font-semibold ${readerInactiveControl}`}>
-                  {highlightCount} Notes
-                </Link>
-                {readerControls}
+          </div>
+        </div>
+      )}
+
+      {isReadingMode && isReaderSettingsOpen && (
+        <div
+          className="fixed inset-0 z-[80] grid min-h-dvh place-items-center overflow-y-auto bg-[rgba(0,0,0,0.32)] px-4 py-10"
+          role="presentation"
+          onClick={() => setIsReaderSettingsOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-label="Reader display settings"
+            className="max-h-[calc(100dvh-5rem)] w-[min(92vw,32rem)] overflow-y-auto border border-[var(--color-reader-border)] bg-[var(--color-reader-popover)] p-5 text-[var(--color-reader-popover-text)] shadow-[var(--shadow-modal)] sm:p-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-5 flex items-start justify-between gap-3 border-b border-[var(--color-reader-border)] pb-4">
+              <div>
+                <h2 className="font-[var(--font-display)] text-2xl font-bold text-[var(--color-reader-ink)]">Display</h2>
+                <p className="mt-1 text-sm leading-6 text-[var(--color-reader-muted)]">Tune this article without leaving reader mode.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsReaderSettingsOpen(false)}
+                className="inline-flex min-h-10 min-w-10 items-center justify-center text-[var(--color-reader-muted)] hover:text-[var(--color-reader-control)]"
+                aria-label="Close display settings"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            {readerDisplayControls}
+          </div>
+        </div>
+      )}
+
+      {isReadingMode && isReaderNotesOpen && (
+        <div
+          className="fixed inset-0 z-[80] grid min-h-dvh place-items-center overflow-y-auto bg-[rgba(0,0,0,0.32)] px-4 py-10"
+          role="presentation"
+          onClick={() => setIsReaderNotesOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-label="Reader notes"
+            className="max-h-[calc(100dvh-5rem)] w-[min(92vw,36rem)] overflow-y-auto border border-[var(--color-reader-border)] bg-[var(--color-reader-popover)] p-5 text-[var(--color-reader-popover-text)] shadow-[var(--shadow-modal)] sm:p-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-5 flex items-start justify-between gap-3 border-b border-[var(--color-reader-border)] pb-4">
+              <div>
+                <h2 className="font-[var(--font-display)] text-2xl font-bold text-[var(--color-reader-ink)]">Notes</h2>
+                <p className="mt-1 text-sm leading-6 text-[var(--color-reader-muted)]">
+                  {highlightCount === 0 ? 'Saved highlights from this article will appear here.' : `${highlightCount} saved ${highlightCount === 1 ? 'highlight' : 'highlights'} in this article.`}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsReaderNotesOpen(false)}
+                className="inline-flex min-h-10 min-w-10 items-center justify-center text-[var(--color-reader-muted)] hover:text-[var(--color-reader-control)]"
+                aria-label="Close notes"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            {savedHighlights.length === 0 ? (
+              <p className="text-sm leading-6 text-[var(--color-reader-muted)]">
+                Select text in the story and choose Highlight to save a passage without leaving reader mode.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {savedHighlights.map(highlight => (
+                  <article key={highlight.id} className="border border-[var(--color-reader-border)] bg-[var(--color-reader-surface)] p-4">
+                    <blockquote className="text-base leading-7 text-[var(--color-reader-ink)]">
+                      {highlight.text}
+                    </blockquote>
+                    {highlight.note && (
+                      <p className="mt-3 text-sm leading-6 text-[var(--color-reader-muted)]">{highlight.note}</p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsReaderNotesOpen(false);
+                        quoteHighlight(highlight.text);
+                      }}
+                      className="mt-3 inline-flex min-h-10 items-center text-sm font-semibold text-[var(--color-reader-progress-fill)] hover:text-[var(--color-reader-control-hover)]"
+                    >
+                      Quote in discussion
+                    </button>
+                  </article>
+                ))}
               </div>
             )}
           </div>
@@ -862,26 +1050,32 @@ export const PostDetailScreen: React.FC = () => {
         Back to feed
       </Link>
 
-      <article className={`space-y-8 ${isReadingMode ? 'mx-auto max-w-5xl' : ''}`}>
-        <header data-motion="page" className={`border-b-4 pb-8 ${readerDividerClass}`}>
+      <article className={`space-y-10 ${isReadingMode ? `mx-auto max-w-[960px] ${readerFontClass}` : ''}`}>
+        <header data-motion="page" className={`border-b-4 ${isReadingMode ? 'pb-12 pt-8' : 'pb-8'} ${readerDividerClass}`}>
           <div className="mb-5 flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-widest text-[var(--color-app-action)]">
             <Link to={`/app/c/${post.channelId}`} className={readerMetaLinkClass}>{post.channelName}</Link>
             <span className={isReadingMode ? 'text-[var(--color-reader-border)]' : 'text-[var(--color-app-border)]'}>|</span>
             <span className={readerMutedClass}>{new Date(post.createdAt).toLocaleDateString()}</span>
-              <button
-                type="button"
-                onClick={() => setIsTrustOpen(true)}
-                className="ml-auto flex items-center gap-1 hover:underline"
-              >
-                <TrustLabel trust={trust} className="tracking-widest" />
-                <Info className="h-3.5 w-3.5" />
-              </button>
+              {preferences.trustAlerts ? (
+                <button
+                  type="button"
+                  onClick={() => setIsTrustOpen(true)}
+                  className="ml-auto flex items-center gap-1 hover:underline"
+                >
+                  <TrustLabel trust={trust} className="tracking-widest" />
+                  <Info className="h-3.5 w-3.5" />
+                </button>
+              ) : (
+                <span className="ml-auto">
+                  <TrustLabel trust={trust} className="tracking-widest" />
+                </span>
+              )}
           </div>
           
-          <h1 className={`max-w-4xl font-[var(--font-display)] text-4xl font-bold leading-[1.04] sm:text-6xl ${readerHeadingClass}`}>
+          <h1 className={`max-w-5xl font-bold leading-[1.08] ${isReadingMode ? 'text-[3rem] sm:text-[4rem]' : 'text-4xl sm:text-6xl'} ${readerHeadingClass}`}>
             {post.title}
           </h1>
-          <p className={`mt-5 max-w-3xl text-lg leading-8 ${readerMutedClass}`}>
+          <p className={`mt-5 max-w-3xl text-lg leading-8 ${isReadingMode ? 'hidden' : ''} ${readerMutedClass} ${readerSummaryClass}`}>
             {stripHtml(post.content).slice(0, 260)}{stripHtml(post.content).length > 260 ? '...' : ''}
           </p>
 
@@ -935,10 +1129,14 @@ export const PostDetailScreen: React.FC = () => {
                   {isDeletingPost ? 'Deleting' : 'Delete'}
                 </button>
               )}
-              <button type="button" className="bulwark-button-ghost border border-[var(--color-app-border)] !h-11 !px-4">
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </button>
+              <ShareButton
+                title={post.title}
+                text={stripHtml(post.content).slice(0, 220)}
+                url={`/app/p/${post.id}`}
+                kind="post"
+                className="bulwark-button-ghost border border-[var(--color-app-border)] !h-11 !px-4"
+                successMessage="Report link copied."
+              />
             </div>
           </div>
         </header>
@@ -972,11 +1170,12 @@ export const PostDetailScreen: React.FC = () => {
             </section>
           )}
 
-          <div className={isReadingMode ? 'grid gap-8 xl:grid-cols-[minmax(0,72ch)_18rem]' : 'grid gap-12 xl:grid-cols-[minmax(0,76ch)_20rem]'}>
-            <div ref={articleTextRef} className={isReadingMode ? 'max-w-[72ch]' : 'max-w-[76ch]'}>
-              <ArticleBody
-                content={post.content}
-                isReadingMode={isReadingMode}
+          <div className={isReadingMode ? 'block' : 'grid gap-12 xl:grid-cols-[minmax(0,76ch)_20rem]'}>
+            <div ref={articleTextRef} className={isReadingMode ? 'mx-auto max-w-[84ch]' : 'max-w-[76ch]'}>
+            <ArticleBody
+              key={`${readerSettings.family}-${readerSettings.size}-${readerSettings.lineHeight}-${isReadingMode ? 'reader' : 'standard'}`}
+              content={post.content}
+              isReadingMode={isReadingMode}
                 readerSettings={readerSettings}
                 savedHighlights={savedHighlights}
               />
@@ -1024,39 +1223,6 @@ export const PostDetailScreen: React.FC = () => {
                       Focus reader
                     </button>
                   </section>
-                </div>
-              </aside>
-            )}
-
-            {isReadingMode && (
-              <aside className="hidden xl:block">
-                <div className="sticky top-20 border border-[var(--color-reader-border)] bg-[var(--color-reader-surface-lift)]/70 p-3">
-                  <div className={`mb-3 text-sm font-semibold ${readerSecondaryText}`}>
-                    Margin notes
-                  </div>
-                  {savedHighlights.length === 0 ? (
-                    <p className={`text-sm leading-6 ${readerSecondaryText}`}>Select article text to save highlights here.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {savedHighlights.slice(0, 5).map(highlight => (
-                        <div key={highlight.id} className="space-y-2 border-l border-[var(--color-reader-progress-fill)] pl-3">
-                          <blockquote className="text-sm leading-6 text-[var(--color-reader-muted)]">
-                            {highlight.text}
-                          </blockquote>
-                          {highlight.note && (
-                            <p className={`text-xs leading-5 ${readerSecondaryText}`}>{highlight.note}</p>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => quoteHighlight(highlight.text)}
-                            className="inline-flex min-h-10 items-center text-sm font-semibold text-[var(--color-reader-progress-fill)] hover:text-[var(--color-reader-control-hover)] sm:min-h-8"
-                          >
-                            Quote in discussion
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </aside>
             )}

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { MOCK_CHANNELS } from '../lib/mockData';
-import { Sword, Cpu, Building, CloudRain, Hash, Info, PlusCircle, Settings, LogOut, LogIn, Highlighter, ShieldCheck, Newspaper } from 'lucide-react';
+import { Sword, Cpu, Building, CloudRain, Hash, Info, PlusCircle, LogOut, LogIn, Highlighter, ShieldCheck, Newspaper } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { backendApi } from '../lib/api';
 import { backendTopicToChannel } from '../lib/backendAdapters';
@@ -164,16 +164,6 @@ export const Sidebar: React.FC = () => {
             >
               <Info className="w-4 h-4" />
               Trust Mechanics
-            </NavLink>
-            <NavLink
-              to="/app/settings"
-              className={({ isActive }) => `
-                flex items-center gap-3 px-3 py-2 text-sm font-semibold transition-all
-                ${isActive ? 'bg-[var(--color-app-surface-lift)] text-[var(--color-app-ink)] shadow-[var(--shadow-hex-focus)]' : 'text-[var(--color-app-muted)] hover:text-[var(--color-app-ink)] hover:bg-[var(--color-app-surface-lift)]'}
-              `}
-            >
-              <Settings className="w-4 h-4" />
-              Preferences
             </NavLink>
             {isAdmin && (
               <NavLink

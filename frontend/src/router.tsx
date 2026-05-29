@@ -11,7 +11,6 @@ const SubmitNewsScreen = lazy(() => import('./screens/SubmitNewsScreen').then(m 
 const CreateChannelScreen = lazy(() => import('./screens/CreateChannelScreen').then(m => ({ default: m.CreateChannelScreen })));
 const HighlightsScreen = lazy(() => import('./screens/HighlightsScreen').then(m => ({ default: m.HighlightsScreen })));
 const TopicsScreen = lazy(() => import('./screens/TopicsScreen').then(m => ({ default: m.TopicsScreen })));
-const SettingsScreen = lazy(() => import('./screens/SettingsScreen').then(m => ({ default: m.SettingsScreen })));
 const SubscribeScreen = lazy(() => import('./screens/SubscribeScreen').then(m => ({ default: m.SubscribeScreen })));
 const TrustScreen = lazy(() => import('./screens/TrustScreen').then(m => ({ default: m.TrustScreen })));
 const AdminScreen = lazy(() => import('./screens/AdminScreen').then(m => ({ default: m.AdminScreen })));
@@ -93,7 +92,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'settings',
-        element: <LazyLoad><SettingsScreen /></LazyLoad>
+        element: <Navigate to="/app" replace />
       },
       {
         path: 'subscribe',

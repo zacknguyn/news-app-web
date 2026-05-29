@@ -141,9 +141,84 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
+body:has(.app-shell[data-app-theme="dark"]) {
+  background-color: oklch(17% 0.008 70);
+}
+
+.app-shell[data-app-theme="dark"] {
+  --color-brand-red: oklch(56% 0.185 28);
+  --color-brand-red-hover: oklch(62% 0.19 28);
+  --color-brand-red-active: oklch(50% 0.17 28);
+  --color-brand-red-faint: oklch(38% 0.075 28 / 0.38);
+  --color-news-red-wash: oklch(23% 0.035 28);
+  --color-news-red-soft: oklch(31% 0.065 28);
+  --color-news-blue: oklch(74% 0.055 248);
+  --color-news-blue-wash: oklch(23% 0.02 248);
+  --color-news-blue-soft: oklch(31% 0.04 248);
+  --color-state-success: oklch(76% 0.095 155);
+  --color-state-success-bg: oklch(24% 0.035 155);
+  --color-state-success-border: oklch(38% 0.055 155);
+  --color-state-warning: oklch(79% 0.085 78);
+  --color-state-warning-bg: oklch(25% 0.035 78);
+  --color-state-warning-border: oklch(39% 0.06 78);
+  --color-state-error: oklch(72% 0.145 25);
+  --color-state-error-bg: oklch(25% 0.055 25);
+  --color-state-error-border: oklch(41% 0.085 25);
+  --color-editorial-black: oklch(93% 0.006 78);
+  --color-charcoal: oklch(86% 0.008 78);
+  --color-med-gray: oklch(70% 0.009 78);
+  --color-light-gray: oklch(60% 0.01 78);
+  --color-pale-gray: oklch(23% 0.01 70);
+  --color-warm-gray: oklch(37% 0.012 72);
+  --color-white: oklch(17% 0.008 70);
+  --color-off-white: oklch(19% 0.008 70);
+  --color-near-white: oklch(21% 0.009 70);
+  --color-canvas-white: oklch(17% 0.008 70);
+  --color-app-bg: oklch(17% 0.008 70);
+  --color-app-surface: oklch(20% 0.009 70);
+  --color-app-surface-alt: oklch(24% 0.01 70);
+  --color-app-text: oklch(86% 0.008 78);
+  --color-app-heading: oklch(94% 0.006 78);
+  --color-app-muted: oklch(70% 0.009 78);
+  --color-app-faint: oklch(59% 0.01 78);
+  --color-app-border: oklch(37% 0.012 72);
+  --color-app-action: var(--color-brand-red);
+  --color-app-action-hover: var(--color-brand-red-hover);
+  --color-app-ink: var(--color-app-heading);
+  --color-app-canvas: var(--color-app-bg);
+  --color-app-border-clean: oklch(31% 0.011 72);
+  --color-app-surface-lift: oklch(25% 0.011 70);
+  --color-comment-ink: var(--color-app-text);
+  --color-comment-surface: var(--color-app-surface);
+  --color-comment-surface-lift: var(--color-app-surface-alt);
+  --color-comment-muted: var(--color-app-muted);
+  --color-comment-faint: var(--color-app-faint);
+  --color-comment-border: var(--color-app-border);
+  --color-comment-border-clean: var(--color-app-border-clean);
+  --color-comment-action: var(--color-app-action);
+  --color-reader-control-text: oklch(96% 0.006 78);
+  --color-vote-surface: oklch(24% 0.01 70);
+  --color-vote-border: var(--color-app-border);
+  --color-vote-muted: var(--color-app-muted);
+  --color-vote-hover: oklch(28% 0.012 70);
+  --color-lavender-field: var(--color-app-border);
+  --color-cement-gray: var(--color-app-faint);
+  --color-obsidian-ink: var(--color-app-heading);
+  --color-platinum-mist: var(--color-app-surface-alt);
+  --shadow-subtle: rgba(0, 0, 0, 0.22) 0px 1px 2px 0px;
+  --shadow-raised: rgba(0, 0, 0, 0.34) 0px 10px 28px -18px;
+  --shadow-modal: rgba(0, 0, 0, 0.45) 0px 24px 80px -24px;
+  --shadow-focus: inset 0px 0px 0px 2px var(--color-brand-red-faint);
+}
+
 #root {
   width: 100%;
   min-height: 100dvh;
+}
+
+body.reading-mode-active .app-topbar,
+body.reading-mode-active .app-bottom-nav {
+  display: none;
 }
 
 .reader-theme-scope {
@@ -191,18 +266,22 @@ html, body {
 }
 
 .reader-serif {
-  font-family: Georgia, "Times New Roman", Times, serif;
+  font-family: Georgia, "Times New Roman", Times, serif !important;
 }
 
 .reader-sans {
-  font-family: var(--font-body);
+  font-family: "Aptos", "Helvetica Neue", Helvetica, system-ui, sans-serif !important;
 }
 
 .reader-theme-scope .tourane-rich-content,
 .reader-theme-scope .tourane-rich-content :where(p, li, blockquote, figcaption, span, strong, em) {
   color: inherit;
-  font-family: inherit;
+  font-family: inherit !important;
   line-height: inherit;
+}
+
+.reader-theme-scope .tourane-rich-content * {
+  font-family: inherit !important;
 }
 
 .reader-highlight-mark {
@@ -244,7 +323,7 @@ html, body {
   height: 40px;
   padding: 0 20px;
   background-color: var(--color-app-action);
-  color: var(--color-white);
+  color: oklch(98% 0.006 78);
   font-size: 14px;
   font-weight: 500;
   border: 1px solid var(--color-app-action);
@@ -353,6 +432,37 @@ html, body {
   font-size: 15px;
   line-height: 1.65;
   color: var(--color-app-muted);
+}
+
+.app-shell[data-app-density="compact"] .app-page,
+.app-shell[data-app-density="compact"] .hex-page {
+  padding-top: 24px;
+  padding-bottom: 56px;
+}
+
+.app-shell[data-app-density="compact"] .hex-page-header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+}
+
+.app-shell[data-app-density="compact"] [data-motion="list"] {
+  scroll-margin-top: 88px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.app-shell[data-app-density="compact"] .hex-card,
+.app-shell[data-app-density="compact"] .hex-panel {
+  box-shadow: none;
+}
+
+.app-shell[data-app-motion="reduced"] *,
+.app-shell[data-app-motion="reduced"] *::before,
+.app-shell[data-app-motion="reduced"] *::after {
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
 }
 
 .hex-card,

@@ -4,8 +4,7 @@ import { ChevronDown, CreditCard, LogOut, Search, Settings, Share2, User } from 
 import { useAuth } from '../context/AuthContext';
 import { Tooltip } from './ui/Tooltip';
 import { BrandMark } from './BrandMark';
-import { readReaderSettings, saveReaderSettings, type ReaderSettings } from '../lib/readerSettings';
-import { readAppPreferences, saveAppPreferences, type AppPreferences } from '../lib/appPreferences';
+import { readAppPreferences, saveAppPreferences, subscribeAppPreferences, type AppPreferences } from '../lib/appPreferences';
 import { backendApi } from '../lib/api';
 import { backendArticleToPost } from '../lib/backendAdapters';
 import { stripHtml } from '../lib/richContent';
@@ -17,6 +16,41 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
       ? 'border-[var(--color-app-action)] text-[var(--color-app-heading)]'
       : 'border-transparent text-[var(--color-app-muted)] hover:text-[var(--color-app-action)]'
   }`;
+
+type SegmentedOption<T extends string> = {
+  value: T;
+  label: string;
+};
+
+type SegmentedControlProps<T extends string> = {
+  label: string;
+  value: T;
+  options: Array<SegmentedOption<T>>;
+  onChange: (value: T) => void;
+};
+
+const SegmentedControl = <T extends string>({ label, value, options, onChange }: SegmentedControlProps<T>) => (
+  <div className="space-y-2">
+    <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-app-muted)]">{label}</div>
+    <div className="grid border border-[var(--color-app-border)]" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+      {options.map(option => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          aria-pressed={value === option.value}
+          className={`min-h-10 px-3 text-sm font-bold transition-colors ${
+            value === option.value
+              ? 'bg-[var(--color-app-heading)] text-[var(--color-app-bg)]'
+              : 'border-l border-[var(--color-app-border)] text-[var(--color-app-muted)] first:border-l-0 hover:text-[var(--color-app-action)]'
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  </div>
+);
 
 export const AppTopBar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -33,16 +67,13 @@ export const AppTopBar: React.FC = () => {
   const [searchResults, setSearchResults] = useState<Post[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
-  const [readerSettings, setReaderSettings] = useState<ReaderSettings>(() => readReaderSettings());
   const [preferences, setPreferences] = useState<AppPreferences>(() => readAppPreferences());
-
-  useEffect(() => {
-    saveReaderSettings(readerSettings);
-  }, [readerSettings]);
 
   useEffect(() => {
     saveAppPreferences(preferences);
   }, [preferences]);
+
+  useEffect(() => subscribeAppPreferences(setPreferences), []);
 
   useEffect(() => {
     if (!isSettingsOpen && !isAccountOpen && !isSearchOpen) return;
@@ -141,7 +172,7 @@ export const AppTopBar: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--color-app-border)] bg-[var(--color-app-bg)]">
+    <header className="app-topbar sticky top-0 z-40 border-b border-[var(--color-app-border)] bg-[var(--color-app-bg)]">
       <div className="mx-auto flex min-h-16 w-full max-w-[1320px] items-center gap-4 px-4 py-3 sm:px-6 lg:px-10">
         <Link to="/app" className="shrink-0">
           <BrandMark size="sm" />
@@ -268,8 +299,8 @@ export const AppTopBar: React.FC = () => {
               <div className="absolute right-0 top-12 z-50 w-[min(92vw,22rem)] border border-[var(--color-app-border)] bg-[var(--color-app-bg)] p-4 shadow-[var(--shadow-raised)]" role="dialog" aria-label="Display preferences">
                 <div className="mb-4 flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="font-[var(--font-display)] text-lg font-bold text-[var(--color-app-heading)]">Display Preferences</h2>
-                    <p className="mt-1 text-xs leading-5 text-[var(--color-app-muted)]">Applies while you keep reading.</p>
+                    <h2 className="font-[var(--font-display)] text-lg font-bold text-[var(--color-app-heading)]">Preferences</h2>
+                    <p className="mt-1 text-xs leading-5 text-[var(--color-app-muted)]">App-wide controls for this device.</p>
                   </div>
                   <button
                     type="button"
@@ -281,60 +312,57 @@ export const AppTopBar: React.FC = () => {
                 </div>
 
                 <div className="space-y-4">
-                  <label className="block space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-app-muted)]">Reader size</span>
-                    <select
-                      value={readerSettings.size}
-                      onChange={(event) => setReaderSettings(current => ({ ...current, size: event.target.value as ReaderSettings['size'] }))}
-                      className="hex-input min-h-10 w-full px-3 text-sm"
+                  <SegmentedControl
+                    label="App theme"
+                    value={preferences.theme}
+                    options={[
+                      { value: 'system', label: 'System' },
+                      { value: 'light', label: 'Light' },
+                      { value: 'dark', label: 'Dark' },
+                    ]}
+                    onChange={(theme) => setPreferences(current => ({ ...current, theme }))}
+                  />
+                  <SegmentedControl
+                    label="Density"
+                    value={preferences.density}
+                    options={[
+                      { value: 'comfortable', label: 'Comfort' },
+                      { value: 'compact', label: 'Compact' },
+                    ]}
+                    onChange={(density) => setPreferences(current => ({ ...current, density }))}
+                  />
+                  <SegmentedControl
+                    label="Motion"
+                    value={preferences.motion}
+                    options={[
+                      { value: 'system', label: 'System' },
+                      { value: 'reduced', label: 'Reduced' },
+                    ]}
+                    onChange={(motion) => setPreferences(current => ({ ...current, motion }))}
+                  />
+                  <div className="flex min-h-14 items-center justify-between gap-4 border border-[var(--color-app-border)] px-3">
+                    <span>
+                      <span className="block text-sm font-semibold text-[var(--color-app-heading)]">Show trust signals</span>
+                      <span className="block text-xs leading-5 text-[var(--color-app-muted)]">Evidence details on reports.</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPreferences(current => ({ ...current, trustAlerts: !current.trustAlerts }))}
+                      aria-pressed={preferences.trustAlerts}
+                      className={`relative h-7 w-12 shrink-0 border transition-colors ${
+                        preferences.trustAlerts
+                          ? 'border-[var(--color-app-action)] bg-[var(--color-app-action)]'
+                          : 'border-[var(--color-app-border)] bg-[var(--color-app-surface-alt)]'
+                      }`}
+                      aria-label="Toggle trust signals"
                     >
-                      <option value="regular">Regular</option>
-                      <option value="large">Large</option>
-                    </select>
-                  </label>
-                  <label className="block space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-app-muted)]">Typeface</span>
-                    <select
-                      value={readerSettings.family}
-                      onChange={(event) => setReaderSettings(current => ({ ...current, family: event.target.value as ReaderSettings['family'] }))}
-                      className="hex-input min-h-10 w-full px-3 text-sm"
-                    >
-                      <option value="serif">Serif</option>
-                      <option value="sans">Sans</option>
-                    </select>
-                  </label>
-                  <label className="block space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-app-muted)]">Reader theme</span>
-                    <select
-                      value={readerSettings.theme}
-                      onChange={(event) => setReaderSettings(current => ({ ...current, theme: event.target.value as ReaderSettings['theme'] }))}
-                      className="hex-input min-h-10 w-full px-3 text-sm"
-                    >
-                      <option value="light">Light</option>
-                      <option value="paper">Paper</option>
-                      <option value="night">Night</option>
-                    </select>
-                  </label>
-                  <label className="block space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-app-muted)]">App density</span>
-                    <select
-                      value={preferences.density}
-                      onChange={(event) => setPreferences(current => ({ ...current, density: event.target.value as AppPreferences['density'] }))}
-                      className="hex-input min-h-10 w-full px-3 text-sm"
-                    >
-                      <option value="comfortable">Comfortable</option>
-                      <option value="compact">Compact</option>
-                    </select>
-                  </label>
-                  <label className="flex min-h-10 items-center justify-between gap-4 border border-[var(--color-app-border)] px-3">
-                    <span className="text-sm font-semibold text-[var(--color-app-heading)]">Trust alerts</span>
-                    <input
-                      type="checkbox"
-                      checked={preferences.trustAlerts}
-                      onChange={(event) => setPreferences(current => ({ ...current, trustAlerts: event.target.checked }))}
-                      className="h-4 w-4 accent-[var(--color-app-action)]"
-                    />
-                  </label>
+                      <span
+                        className={`absolute top-1 h-5 w-5 bg-[var(--color-app-bg)] transition-transform ${
+                          preferences.trustAlerts ? 'translate-x-5' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -365,15 +393,6 @@ export const AppTopBar: React.FC = () => {
                 >
                   <User className="h-4 w-4" />
                   Account
-                </Link>
-                <Link
-                  to="/app/settings"
-                  onClick={() => setIsAccountOpen(false)}
-                  className="flex min-h-10 items-center gap-3 px-3 text-sm font-semibold text-[var(--color-app-heading)] hover:bg-[var(--color-app-surface-alt)]"
-                  role="menuitem"
-                >
-                  <Settings className="h-4 w-4" />
-                  Full preferences
                 </Link>
                 <Link
                   to="/app/subscribe"
