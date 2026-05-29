@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { getPostTrust } from '../lib/trust';
 import { VoteControl } from './ui/VoteControl';
 import { TrustLabel } from './ui/TrustLabel';
+import { ShareButton } from './ui/ShareButton';
 import { stripHtml } from '../lib/richContent';
 
 interface PostCardProps {
@@ -59,6 +60,13 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onVote }) => {
               <MessageSquare className="h-4 w-4" />
               {post.commentCount} comments
             </Link>
+            <ShareButton
+              title={post.title}
+              text={excerpt}
+              url={`/app/p/${post.id}`}
+              kind="post"
+              successMessage="Report link copied."
+            />
             <TrustLabel trust={trust} className="border border-[var(--color-app-border)] px-2 py-1 text-[10px] uppercase tracking-widest" />
           </div>
         </div>

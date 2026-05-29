@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Check, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePageMotion } from '../hooks/usePageMotion';
-import { readAppPreferences, saveAppPreferences, type AppPreferences } from '../lib/appPreferences';
+import { readAppPreferences, saveAppPreferences, subscribeAppPreferences, type AppPreferences } from '../lib/appPreferences';
 
 const plans: Array<{
   id: AppPreferences['subscriptionPlan'];
@@ -42,6 +42,8 @@ export const SubscribeScreen: React.FC = () => {
     saveAppPreferences(preferences);
   }, [preferences]);
 
+  useEffect(() => subscribeAppPreferences(setPreferences), []);
+
   const selectPlan = (subscriptionPlan: AppPreferences['subscriptionPlan']) => {
     setPreferences(current => ({ ...current, subscriptionPlan }));
     toast.success('Subscription preference saved.');
@@ -49,22 +51,32 @@ export const SubscribeScreen: React.FC = () => {
 
   return (
     <div ref={pageRef} className="app-page">
-      <header data-motion="page" className="hex-page-header">
-        <p className="hex-kicker">Subscribe</p>
-        <h1 className="hex-title mt-2">Support the reader.</h1>
-        <p className="hex-copy mt-3 max-w-2xl">
-          Subscription preferences are active in the frontend now. Billing can be wired to the backend when the API exists.
-        </p>
+      <header data-motion="page" className="grid gap-6 border-b-4 border-[var(--color-app-heading)] pb-7 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-end">
+        <div>
+          <p className="hex-kicker">Subscribe</p>
+          <h1 className="mt-3 font-[var(--font-display)] text-4xl font-bold leading-none text-[var(--color-app-heading)] sm:text-5xl">
+            Fund the reporting, tune the digest.
+          </h1>
+        </div>
+        <div className="border border-[var(--color-app-border)] p-4">
+          <div className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)]">Current plan</div>
+          <div className="mt-2 font-[var(--font-display)] text-2xl font-bold text-[var(--color-app-heading)]">
+            {plans.find(plan => plan.id === preferences.subscriptionPlan)?.name || 'Reader'}
+          </div>
+          <p className="mt-2 text-sm leading-6 text-[var(--color-app-muted)]">
+            Frontend preferences are active. Billing can connect when the API exists.
+          </p>
+        </div>
       </header>
 
-      <section className="grid gap-5 lg:grid-cols-3">
+      <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_1.15fr_1fr]">
         {plans.map(plan => {
           const selected = preferences.subscriptionPlan === plan.id;
           return (
             <article
               data-motion="list"
               key={plan.id}
-              className={`border p-5 ${selected ? 'border-[var(--color-app-action)] shadow-[var(--shadow-focus)]' : 'border-[var(--color-app-border)]'}`}
+              className={`border p-5 ${selected ? 'border-[var(--color-app-action)] bg-[var(--color-news-red-wash)] shadow-[var(--shadow-focus)] lg:-mt-4 lg:pb-9 lg:pt-7' : 'border-[var(--color-app-border)]'}`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -98,7 +110,7 @@ export const SubscribeScreen: React.FC = () => {
         })}
       </section>
 
-      <section data-motion="page" className="mt-8 grid gap-5 border border-[var(--color-app-border)] p-5 lg:grid-cols-[1fr_18rem] lg:items-center">
+      <section data-motion="page" className="mt-8 grid gap-5 border-t border-[var(--color-app-border-clean)] pt-6 lg:grid-cols-[1fr_18rem] lg:items-center">
         <div>
           <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--color-app-action)]">
             <Mail className="h-4 w-4" />

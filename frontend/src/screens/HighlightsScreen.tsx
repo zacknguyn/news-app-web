@@ -5,6 +5,7 @@ import { ArrowRight, Bookmark, Highlighter, MessageSquareQuote, Trash2, X } from
 import { deleteHighlight, getHighlights, updateHighlightNote, type SavedHighlight } from '../lib/highlights';
 import { usePageMotion } from '../hooks/usePageMotion';
 import { Alert } from '../components/ui/Alert';
+import { ShareButton } from '../components/ui/ShareButton';
 import { backendApi, type BackendSavedArticleDTO } from '../lib/api';
 
 type NotebookTab = 'highlights' | 'posts';
@@ -108,15 +109,26 @@ export const HighlightsScreen: React.FC = () => {
 
   return (
     <div ref={pageRef} className="hex-page">
-      <header data-motion="page" className="hex-page-header">
-        <div className="hex-kicker mb-2 flex items-center gap-2">
-          <Highlighter className="h-4 w-4" />
-          Notebook
+      <header data-motion="page" className="mb-6 grid gap-5 border-b border-[var(--color-app-border-clean)] pb-5 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-end">
+        <div>
+          <div className="hex-kicker mb-2 flex items-center gap-2">
+            <Highlighter className="h-4 w-4" />
+            Notebook
+          </div>
+          <h1 className="font-[var(--font-display)] text-4xl font-bold leading-none text-[var(--color-app-heading)] sm:text-5xl">
+            Saved reading.
+          </h1>
         </div>
-        <h1 className="hex-title">Notebook</h1>
-        <p className="hex-copy mt-2 max-w-xl">
-          Keep passages and full stories worth returning to.
-        </p>
+        <div className="grid grid-cols-2 border border-[var(--color-app-border)]">
+          <div className="border-r border-[var(--color-app-border)] p-4">
+            <div className="font-mono text-2xl font-bold text-[var(--color-app-heading)]">{highlights.length}</div>
+            <div className="mt-1 text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)]">Highlights</div>
+          </div>
+          <div className="p-4">
+            <div className="font-mono text-2xl font-bold text-[var(--color-app-heading)]">{savedPosts.length}</div>
+            <div className="mt-1 text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)]">Posts</div>
+          </div>
+        </div>
       </header>
 
       {notice && (
@@ -125,17 +137,17 @@ export const HighlightsScreen: React.FC = () => {
         </Alert>
       )}
 
-      <div data-motion="page" className="mb-6 flex flex-wrap gap-2 border-b border-[var(--color-app-border-clean)] pb-3">
+      <div data-motion="page" className="mb-6 grid grid-cols-2 border border-[var(--color-app-border)] sm:inline-grid">
         {tabs.map(tab => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
             aria-pressed={activeTab === tab.id}
-            className={`inline-flex min-h-10 items-center gap-2 px-4 text-sm font-bold ${
+            className={`inline-flex min-h-11 items-center justify-center gap-2 px-4 text-sm font-bold ${
               activeTab === tab.id
                 ? 'bg-[var(--color-app-heading)] text-[var(--color-app-bg)]'
-                : 'border border-[var(--color-app-border)] text-[var(--color-app-muted)] hover:border-[var(--color-app-action)] hover:text-[var(--color-app-action)]'
+                : 'text-[var(--color-app-muted)] hover:text-[var(--color-app-action)]'
             }`}
           >
             {tab.label}
@@ -200,6 +212,15 @@ export const HighlightsScreen: React.FC = () => {
                           <MessageSquareQuote className="h-3.5 w-3.5" />
                           Discuss
                         </Link>
+                        <ShareButton
+                          title={highlight.postTitle || 'Saved highlight'}
+                          text={highlight.text}
+                          url={highlight.postId ? `/app/p/${highlight.postId}` : '/app'}
+                          kind="quote"
+                          label="Share"
+                          className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-app-muted)] transition-colors hover:text-[var(--color-app-action)]"
+                          successMessage="Highlight copied with link."
+                        />
                         <button
                           type="button"
                           onClick={() => handleDelete(highlight.id)}
@@ -251,6 +272,16 @@ export const HighlightsScreen: React.FC = () => {
                 <Link to={`/app/p/article-${saved.article.id}`} className="inline-flex min-h-10 items-center justify-center bg-[var(--color-app-heading)] px-4 text-sm font-bold text-[var(--color-app-bg)] hover:bg-[var(--color-app-action)]">
                   Open
                 </Link>
+                <ShareButton
+                  title={saved.article.title}
+                  text={saved.article.subtitle || undefined}
+                  url={`/app/p/article-${saved.article.id}`}
+                  kind="saved"
+                  iconOnly
+                  label={`Share ${saved.article.title}`}
+                  className="inline-flex min-h-10 min-w-10 items-center justify-center border border-[var(--color-app-border)] text-[var(--color-app-muted)] hover:border-[var(--color-app-action)] hover:text-[var(--color-app-action)]"
+                  successMessage="Saved post link copied."
+                />
                 <button
                   type="button"
                   onClick={() => handleUnsavePost(saved.article.id)}
