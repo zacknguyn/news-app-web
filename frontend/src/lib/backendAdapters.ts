@@ -1,5 +1,13 @@
 import type { Channel, Comment, Post, User } from '../types';
-import type { BackendArticleDTO, BackendAuthorDTO, BackendCategoryDTO, BackendCommentDTO, BackendPostDTO, BackendTopicDTO, BackendUserDTO } from './api';
+import type {
+  BackendArticleDTO,
+  BackendAuthorDTO,
+  BackendCategoryDTO,
+  BackendCommentDTO,
+  BackendPostDTO,
+  BackendTopicDTO,
+  BackendUserDTO,
+} from './api';
 
 const slugify = (value: string) =>
   value
@@ -136,7 +144,7 @@ export const backendCommentToComment = (dto: BackendCommentDTO, postId: string):
   const authorName = dto.userName || `User ${dto.userId}`;
   const quoteMatch = dto.content.match(/^> ([\s\S]*?)(?:\n\n([\s\S]*))?$/);
   const quote = quoteMatch?.[1]?.replace(/\n> /g, '\n').trim();
-  const content = quoteMatch ? (quoteMatch[2]?.trim() || '') : dto.content;
+  const content = quoteMatch ? quoteMatch[2]?.trim() || '' : dto.content;
 
   return {
     id: String(dto.id),

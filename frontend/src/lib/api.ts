@@ -307,7 +307,7 @@ export const backendApi = {
 
   getAdminCredentialRequests: (status = '', page = 0, size = 20) =>
     apiRequest<PaginatedResponse<BackendCredentialRequestDTO>>(
-      `/admin/credential-requests?status=${encodeURIComponent(status)}&page=${page}&size=${size}`
+      `/admin/credential-requests?status=${encodeURIComponent(status)}&page=${page}&size=${size}`,
     ),
 
   approveCredentialRequest: (id: number) =>
@@ -428,7 +428,8 @@ export const backendApi = {
 
   getCategories: () => apiRequest<BackendCategoryDTO[]>('/categories', { skipAuth: true }),
 
-  getTags: (keyword?: string) => apiRequest<BackendTagDTO[]>(`/tags${keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''}`, { skipAuth: true }),
+  getTags: (keyword?: string) =>
+    apiRequest<BackendTagDTO[]>(`/tags${keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''}`, { skipAuth: true }),
 
   getHotPosts: (page = 0, size = 20) =>
     apiRequest<PaginatedResponse<BackendPostDTO>>(`/posts/hot?page=${page}&size=${size}`),
@@ -438,7 +439,14 @@ export const backendApi = {
 
   getPost: (postId: string) => apiRequest<BackendPostDTO>(`/posts/${postId}`),
 
-  createPost: (input: { title: string; content: string; topicId: number; articleId?: number; sourceUrl?: string; imageUrl?: string }) =>
+  createPost: (input: {
+    title: string;
+    content: string;
+    topicId: number;
+    articleId?: number;
+    sourceUrl?: string;
+    imageUrl?: string;
+  }) =>
     apiRequest<BackendPostDTO>('/posts', {
       method: 'POST',
       body: JSON.stringify(input),
@@ -462,22 +470,31 @@ export const backendApi = {
   getAllArticles: (page = 0, size = 20) =>
     apiRequest<PaginatedResponse<BackendArticleDTO>>(`/articles/all?page=${page}&size=${size}`),
 
-  getLatestArticles: (limit = 20) => apiRequest<BackendArticleDTO[]>(`/articles/latest?limit=${limit}`, { skipAuth: true }),
+  getLatestArticles: (limit = 20) =>
+    apiRequest<BackendArticleDTO[]>(`/articles/latest?limit=${limit}`, { skipAuth: true }),
 
-  getTrendingArticles: (limit = 10) => apiRequest<BackendArticleDTO[]>(`/articles/trending?limit=${limit}`, { skipAuth: true }),
+  getTrendingArticles: (limit = 10) =>
+    apiRequest<BackendArticleDTO[]>(`/articles/trending?limit=${limit}`, { skipAuth: true }),
 
   getFeaturedArticles: () => apiRequest<BackendArticleDTO[]>('/articles/featured', { skipAuth: true }),
 
   getEditorsPicks: () => apiRequest<BackendArticleDTO[]>('/articles/editors-picks', { skipAuth: true }),
 
   getArticlesByCategory: (slug: string, page = 0, size = 20) =>
-    apiRequest<PaginatedResponse<BackendArticleDTO>>(`/articles/by-category/${slug}?page=${page}&size=${size}`, { skipAuth: true }),
+    apiRequest<PaginatedResponse<BackendArticleDTO>>(`/articles/by-category/${slug}?page=${page}&size=${size}`, {
+      skipAuth: true,
+    }),
 
   getArticlesByUser: (userId: number, page = 0, size = 20) =>
-    apiRequest<PaginatedResponse<BackendArticleDTO>>(`/articles/by-user/${userId}?page=${page}&size=${size}`, { skipAuth: true }),
+    apiRequest<PaginatedResponse<BackendArticleDTO>>(`/articles/by-user/${userId}?page=${page}&size=${size}`, {
+      skipAuth: true,
+    }),
 
   searchArticles: (keyword: string, page = 0, size = 20) =>
-    apiRequest<PaginatedResponse<BackendArticleDTO>>(`/articles/search?keyword=${encodeURIComponent(keyword)}&page=${page}&size=${size}`, { skipAuth: true }),
+    apiRequest<PaginatedResponse<BackendArticleDTO>>(
+      `/articles/search?keyword=${encodeURIComponent(keyword)}&page=${page}&size=${size}`,
+      { skipAuth: true },
+    ),
 
   incrementArticleViews: (articleId: number) =>
     apiRequest<void>(`/articles/${articleId}/view`, {
@@ -486,7 +503,9 @@ export const backendApi = {
     }),
 
   getCommentsByArticle: (articleId: number, page = 0, size = 100) =>
-    apiRequest<PaginatedResponse<BackendCommentDTO>>(`/comments/article/${articleId}?page=${page}&size=${size}`, { skipAuth: true }),
+    apiRequest<PaginatedResponse<BackendCommentDTO>>(`/comments/article/${articleId}?page=${page}&size=${size}`, {
+      skipAuth: true,
+    }),
 
   createArticleComment: (articleId: number, input: { content: string; parentId?: number }) =>
     apiRequest<BackendCommentDTO>(`/comments/article/${articleId}`, {
@@ -495,7 +514,9 @@ export const backendApi = {
     }),
 
   getCommentsByPost: (postId: string, page = 0, size = 100) =>
-    apiRequest<PaginatedResponse<BackendCommentDTO>>(`/comments/post/${postId}?page=${page}&size=${size}`, { skipAuth: true }),
+    apiRequest<PaginatedResponse<BackendCommentDTO>>(`/comments/post/${postId}?page=${page}&size=${size}`, {
+      skipAuth: true,
+    }),
 
   createPostComment: (postId: string, input: { content: string; parentId?: number }) =>
     apiRequest<BackendCommentDTO>(`/comments/post/${postId}`, {

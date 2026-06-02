@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tourane News - Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&family=Geist+Mono:wght@400&display=swap');
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#eeeeee",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed": "#1c1b1b",
+                        "secondary": "#5f5e5e",
+                        "on-tertiary-fixed": "#001e30",
+                        "primary": "#b70011",
+                        "outline": "#916f6b",
+                        "on-primary-fixed": "#410002",
+                        "on-error-container": "#93000a",
+                        "background": "#f9f9f9",
+                        "inverse-primary": "#ffb4ab",
+                        "primary-fixed-dim": "#ffb4ab",
+                        "surface-tint": "#bf0715",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#90cdff",
+                        "on-primary-container": "#fff6f5",
+                        "secondary-fixed-dim": "#c9c6c5",
+                        "primary-fixed": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#004b71",
+                        "on-surface": "#1a1c1c",
+                        "surface-container-highest": "#e2e2e2",
+                        "secondary-container": "#e5e2e1",
+                        "carbon-ink": "#0A0A0A",
+                        "on-secondary-container": "#656464",
+                        "on-primary-fixed-variant": "#93000b",
+                        "surface-container-high": "#e8e8e8",
+                        "paper-white": "#FAFAFA",
+                        "on-surface-variant": "#5c403c",
+                        "warn-amber": "#D97706",
+                        "steel-subdued": "#71717A",
+                        "tertiary-fixed": "#cbe6ff",
+                        "on-primary": "#ffffff",
+                        "on-background": "#1a1c1c",
+                        "on-secondary-fixed-variant": "#474646",
+                        "error": "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        "inverse-surface": "#2f3131",
+                        "surface-container-low": "#f3f3f3",
+                        "on-tertiary-container": "#f3f8ff",
+                        "inverse-on-surface": "#f0f1f1",
+                        "approved-green": "#16A34A",
+                        "signal-red": "#DC2626",
+                        "surface-bright": "#f9f9f9",
+                        "surface-dim": "#dadada",
+                        "surface-lift": "#FFFFFF",
+                        "tertiary": "#005e8d",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-container": "#0078b2",
+                        "surface": "#f9f9f9",
+                        "primary-container": "#dc2626",
+                        "outline-variant": "#e6bdb8",
+                        "on-secondary": "#ffffff",
+                        "slate-body": "#3F3F46",
+                        "fog-hairline": "#E4E4E7",
+                        "surface-variant": "#e2e2e2",
+                        "secondary-fixed": "#e5e2e1"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "rail-left": "12rem",
+                        "padding-desktop": "2.5rem",
+                        "padding-tablet": "1.5rem",
+                        "gap-section": "3rem",
+                        "rail-right": "16rem",
+                        "unit": "4px",
+                        "max-width-container": "1320px",
+                        "max-width-feed": "720px",
+                        "padding-mobile": "1rem",
+                        "gap-feed": "2rem",
+                        "admin-row-height": "36px"
+                    },
+                    "fontFamily": {
+                        "display": ["Geist"],
+                        "body-standard": ["Geist"],
+                        "body-article": ["Geist"],
+                        "h1-admin": ["Geist"],
+                        "display-mobile": ["Geist"],
+                        "mono-metadata": ["Geist Mono"],
+                        "micro-label": ["Geist"],
+                        "h2": ["Geist"]
+                    },
+                    "fontSize": {
+                        "display": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-standard": ["15px", {"lineHeight": "1.55", "fontWeight": "400"}],
+                        "body-article": ["17px", {"lineHeight": "1.7", "fontWeight": "400"}],
+                        "h1-admin": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                        "display-mobile": ["24px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                        "mono-metadata": ["12px", {"lineHeight": "1", "fontWeight": "400"}],
+                        "micro-label": ["11px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "h2": ["20px", {"lineHeight": "1.4", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface-container-lowest text-on-surface font-body-standard antialiased">
+<!-- TopNavBar (Shared Component) -->
+<nav class="fixed top-0 w-full z-50 bg-surface-container-lowest border-b border-fog-hairline">
+<div class="flex justify-between items-center h-16 px-padding-desktop w-full max-w-max-width-container mx-auto">
+<!-- Brand -->
+<div class="flex items-center space-x-6">
+<a class="font-display text-display-mobile font-bold text-primary border-t-4 border-primary pt-1 hover:text-primary transition-colors duration-150 flex items-center h-full" href="#">Tourane News</a>
+<!-- Search -->
+<div class="hidden md:flex items-center border border-carbon-ink/20 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/25 bg-paper-white h-8 px-2 transition-all duration-150 group">
+<span class="material-symbols-outlined text-secondary group-focus-within:text-primary mr-2" style="font-size: 18px;">search</span>
+<input class="bg-transparent border-none outline-none text-body-standard text-on-surface w-48 placeholder:text-steel-subdued focus:ring-0 p-0 h-full" placeholder="Search Tourane News..." type="text"/>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="hidden md:flex items-center space-x-8 h-full">
+<a class="font-display text-display-mobile uppercase tracking-tighter text-primary border-b-2 border-primary font-bold h-full flex items-center hover:text-primary transition-colors duration-150" href="#">Latest</a>
+<a class="font-display text-display-mobile uppercase tracking-tighter text-secondary h-full flex items-center hover:text-primary transition-colors duration-150" href="#">Popular</a>
+<a class="font-display text-display-mobile uppercase tracking-tighter text-secondary h-full flex items-center hover:text-primary transition-colors duration-150" href="#">Communities</a>
+<a class="font-display text-display-mobile uppercase tracking-tighter text-secondary h-full flex items-center hover:text-primary transition-colors duration-150" href="#">Journalists</a>
+</div>
+<!-- Trailing Actions -->
+<div class="flex items-center space-x-4">
+<div class="hidden md:flex items-center space-x-3 text-secondary">
+<button class="hover:text-primary transition-colors duration-150 translate-y-[0.5px]"><span class="material-symbols-outlined">notifications</span></button>
+<button class="hover:text-primary transition-colors duration-150 translate-y-[0.5px]"><span class="material-symbols-outlined">mail</span></button>
+</div>
+<button class="bg-carbon-ink text-on-primary px-4 py-2 font-micro-label uppercase tracking-widest hover:bg-surface-tint transition-colors duration-150 translate-y-[0.5px]">Create Post</button>
+<button class="hover:text-primary transition-colors duration-150 text-secondary md:hidden"><span class="material-symbols-outlined">menu</span></button>
+<button class="hidden md:block hover:text-primary transition-colors duration-150 text-secondary"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_circle</span></button>
+</div>
+</div>
+</nav>
+<!-- Main Layout Container -->
+<main class="max-w-max-width-container mx-auto px-padding-mobile md:px-padding-desktop pt-24 pb-12 flex flex-col md:flex-row gap-gap-feed">
+<!-- Left Rail: SideNavBar (Shared Component) -->
+<aside class="hidden md:flex sticky top-24 h-[calc(100vh-6rem)] w-rail-left flex-col py-6 pr-4 space-y-2 border-r border-fog-hairline bg-surface-container-lowest">
+<div class="mb-6 px-3">
+<h2 class="font-display text-h2 text-primary mb-1">Navigation</h2>
+<p class="font-mono-metadata text-mono-metadata text-steel-subdued uppercase">Explore the Newsroom</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center space-x-3 px-3 py-2 text-primary font-bold border-r-2 border-primary bg-surface-container-low transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-body-standard text-body-standard">Home</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 text-secondary hover:bg-surface-container-low hover:text-primary transition-colors duration-150 translate-x-[1px]" href="#">
+<span class="material-symbols-outlined text-lg">language</span>
+<span class="font-body-standard text-body-standard">All</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 text-secondary hover:bg-surface-container-low hover:text-primary transition-colors duration-150 translate-x-[1px]" href="#">
+<span class="material-symbols-outlined text-lg">trending_up</span>
+<span class="font-body-standard text-body-standard">Top</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 text-secondary hover:bg-surface-container-low hover:text-primary transition-colors duration-150 translate-x-[1px]" href="#">
+<span class="material-symbols-outlined text-lg">groups</span>
+<span class="font-body-standard text-body-standard">Communities</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 text-secondary hover:bg-surface-container-low hover:text-primary transition-colors duration-150 translate-x-[1px]" href="#">
+<span class="material-symbols-outlined text-lg">security</span>
+<span class="font-body-standard text-body-standard">Moderation</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 text-secondary hover:bg-surface-container-low hover:text-primary transition-colors duration-150 translate-x-[1px]" href="#">
+<span class="material-symbols-outlined text-lg">settings</span>
+<span class="font-body-standard text-body-standard">Settings</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-fog-hairline flex flex-wrap gap-x-4 gap-y-2 px-3">
+<a class="flex items-center space-x-1 text-steel-subdued hover:text-primary transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[14px]">description</span>
+<span class="font-mono-metadata text-mono-metadata">Privacy</span>
+</a>
+<a class="flex items-center space-x-1 text-steel-subdued hover:text-primary transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[14px]">policy</span>
+<span class="font-mono-metadata text-mono-metadata">Terms</span>
+</a>
+<a class="flex items-center space-x-1 text-steel-subdued hover:text-primary transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[14px]">mail</span>
+<span class="font-mono-metadata text-mono-metadata">Contact</span>
+</a>
+</div>
+</aside>
+<!-- Center Feed -->
+<section class="flex-1 max-w-max-width-feed mx-auto w-full">
+<!-- Feed Header & Sort Tabs -->
+<div class="mb-6 pb-2 border-b border-fog-hairline flex justify-between items-end">
+<h1 class="font-display text-display text-carbon-ink">Front Page</h1>
+<div class="flex space-x-4">
+<button class="flex items-center space-x-1 text-primary border-b-2 border-primary pb-2 -mb-[3px] font-bold">
+<span class="material-symbols-outlined text-[16px]">local_fire_department</span>
+<span class="font-body-standard text-body-standard">Hot</span>
+</button>
+<button class="flex items-center space-x-1 text-secondary hover:text-primary transition-colors duration-150 pb-2">
+<span class="material-symbols-outlined text-[16px]">new_releases</span>
+<span class="font-body-standard text-body-standard">New</span>
+</button>
+<button class="flex items-center space-x-1 text-secondary hover:text-primary transition-colors duration-150 pb-2">
+<span class="material-symbols-outlined text-[16px]">arrow_upward</span>
+<span class="font-body-standard text-body-standard">Top</span>
+</button>
+</div>
+</div>
+<!-- Post Rows -->
+<div class="space-y-0">
+<!-- Post Item 1 -->
+<article class="flex py-4 border-b border-fog-hairline hover:bg-surface-bright transition-colors duration-150 group">
+<!-- Vote Column -->
+<div class="flex flex-col items-center w-12 shrink-0 space-y-1">
+<button class="text-secondary hover:text-primary transition-colors"><span class="material-symbols-outlined" style="font-size: 20px;">keyboard_arrow_up</span></button>
+<span class="font-mono-metadata text-mono-metadata font-bold text-carbon-ink">24.5k</span>
+<button class="text-secondary hover:text-primary transition-colors"><span class="material-symbols-outlined" style="font-size: 20px;">keyboard_arrow_down</span></button>
+</div>
+<!-- Content Column -->
+<div class="flex-1 px-3">
+<div class="flex items-center space-x-2 mb-1">
+<span class="font-micro-label text-micro-label text-primary uppercase">t/Technology</span>
+<span class="text-steel-subdued font-mono-metadata text-mono-metadata">•</span>
+<span class="text-steel-subdued font-mono-metadata text-mono-metadata">Posted by u/tech_reporter 2h ago</span>
+</div>
+<h2 class="font-h2 text-h2 text-carbon-ink mb-2 group-hover:text-primary transition-colors">Global Semiconductor Supply Chain Shows Signs of Stabilization Amidst New Policy Shifts</h2>
+<div class="flex items-center space-x-4 text-secondary">
+<button class="flex items-center space-x-1 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">chat_bubble</span>
+<span class="font-mono-metadata text-mono-metadata">1.2k Comments</span>
+</button>
+<button class="flex items-center space-x-1 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">share</span>
+<span class="font-mono-metadata text-mono-metadata">Share</span>
+</button>
+<button class="flex items-center space-x-1 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">bookmark</span>
+<span class="font-mono-metadata text-mono-metadata">Save</span>
+</button>
+</div>
+</div>
+</article>
+<!-- Post Item 2 -->
+<article class="flex py-4 border-b border-fog-hairline hover:bg-surface-bright transition-colors duration-150 group">
+<div class="flex flex-col items-center w-12 shrink-0 space-y-1">
+<button class="text-secondary hover:text-primary transition-colors"><span class="material-symbols-outlined" style="font-size: 20px;">keyboard_arrow_up</span></button>
+<span class="font-mono-metadata text-mono-metadata font-bold text-carbon-ink">18.2k</span>
+<button class="text-secondary hover:text-primary transition-colors"><span class="material-symbols-outlined" style="font-size: 20px;">keyboard_arrow_down</span></button>
+</div>
+<div class="flex-1 px-3">
+<div class="flex items-center space-x-2 mb-1">
+<span class="font-micro-label text-micro-label text-primary uppercase">t/WorldNews</span>
+<span class="text-steel-subdued font-mono-metadata text-mono-metadata">•</span>
+<span class="text-steel-subdued font-mono-metadata text-mono-metadata">Posted by u/global_desk 4h ago</span>
+</div>
+<h2 class="font-h2 text-h2 text-carbon-ink mb-2 group-hover:text-primary transition-colors">European Central Bank Announces Unexpected Rate Adjustment in Response to Inflation Data</h2>
+<div class="flex items-center space-x-4 text-secondary">
+<button class="flex items-center space-x-1 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">chat_bubble</span>
+<span class="font-mono-metadata text-mono-metadata">856 Comments</span>
+</button>
+<button class="flex items-center space-x-1 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">share</span>
+<span class="font-mono-metadata text-mono-metadata">Share</span>
+</button>
+</div>
+</div>
+</article>
+<!-- Post Item 3 (Image Post) -->
+<article class="flex py-4 border-b border-fog-hairline hover:bg-surface-bright transition-colors duration-150 group">
+<div class="flex flex-col items-center w-12 shrink-0 space-y-1">
+<button class="text-secondary hover:text-primary transition-colors"><span class="material-symbols-outlined" style="font-size: 20px;">keyboard_arrow_up</span></button>
+<span class="font-mono-metadata text-mono-metadata font-bold text-carbon-ink">15.7k</span>
+<button class="text-secondary hover:text-primary transition-colors"><span class="material-symbols-outlined" style="font-size: 20px;">keyboard_arrow_down</span></button>
+</div>
+<div class="flex-1 px-3">
+<div class="flex items-center space-x-2 mb-1">
+<span class="font-micro-label text-micro-label text-primary uppercase">t/Science</span>
+<span class="text-steel-subdued font-mono-metadata text-mono-metadata">•</span>
+<span class="text-steel-subdued font-mono-metadata text-mono-metadata">Posted by u/astro_phys 5h ago</span>
+</div>
+<h2 class="font-h2 text-h2 text-carbon-ink mb-2 group-hover:text-primary transition-colors">James Webb Telescope Captures Unprecedented Detail of the Orion Nebula's Inner Core</h2>
+<div class="mb-3 w-full h-48 bg-surface-dim border border-fog-hairline relative overflow-hidden" data-alt="A striking digital visualization of the Orion Nebula captured in high contrast. The image features deep blacks of space punctuated by intense accents of vibrant reds and cool blues, representing cosmic gases. The mood is serene yet scientifically profound, adhering to a minimalist, high-density editorial aesthetic. The lighting is dramatic, emphasizing the structure of the cosmic dust clouds in a flat, structural presentation.">
+<!-- Placeholder for image, using CSS gradient as per rules if no real image -->
+<div class="absolute inset-0 bg-gradient-to-br from-carbon-ink via-primary/20 to-carbon-ink mix-blend-overlay"></div>
+</div>
+<div class="flex items-center space-x-4 text-secondary">
+<button class="flex items-center space-x-1 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">chat_bubble</span>
+<span class="font-mono-metadata text-mono-metadata">2.1k Comments</span>
+</button>
+<button class="flex items-center space-x-1 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">share</span>
+<span class="font-mono-metadata text-mono-metadata">Share</span>
+</button>
+</div>
+</div>
+</article>
+</div>
+<div class="mt-6 flex justify-center">
+<button class="border border-carbon-ink text-carbon-ink px-6 py-2 font-micro-label uppercase tracking-widest hover:bg-carbon-ink hover:text-paper-white transition-colors duration-150">Load More Stories</button>
+</div>
+</section>
+<!-- Right Rail: Contextual Data -->
+<aside class="hidden lg:block w-rail-right shrink-0 space-y-8">
+<!-- Today's Stats -->
+<div class="border border-fog-hairline bg-paper-white p-4">
+<h3 class="font-micro-label text-micro-label text-steel-subdued uppercase mb-4 border-b border-fog-hairline pb-2">Market Overview</h3>
+<div class="space-y-3">
+<div class="flex justify-between items-center">
+<span class="font-mono-metadata text-mono-metadata text-carbon-ink">S&amp;P 500</span>
+<span class="font-mono-metadata text-mono-metadata text-approved-green">+1.24%</span>
+</div>
+<div class="h-[1px] w-full bg-fog-hairline"></div>
+<div class="flex justify-between items-center">
+<span class="font-mono-metadata text-mono-metadata text-carbon-ink">NASDAQ</span>
+<span class="font-mono-metadata text-mono-metadata text-approved-green">+1.56%</span>
+</div>
+<div class="h-[1px] w-full bg-fog-hairline"></div>
+<div class="flex justify-between items-center">
+<span class="font-mono-metadata text-mono-metadata text-carbon-ink">DOW JONES</span>
+<span class="font-mono-metadata text-mono-metadata text-signal-red">-0.32%</span>
+</div>
+</div>
+</div>
+<!-- Most Read -->
+<div>
+<h3 class="font-micro-label text-micro-label text-steel-subdued uppercase mb-4 border-b border-fog-hairline pb-2">Most Read Today</h3>
+<ul class="space-y-4">
+<li class="group cursor-pointer">
+<span class="font-mono-metadata text-mono-metadata text-primary block mb-1">01</span>
+<h4 class="font-body-standard text-body-standard text-carbon-ink group-hover:text-primary transition-colors line-clamp-2">Analysis: The Economic Ripple Effects of the New Trade Agreement</h4>
+</li>
+<li class="group cursor-pointer">
+<span class="font-mono-metadata text-mono-metadata text-primary block mb-1">02</span>
+<h4 class="font-body-standard text-body-standard text-carbon-ink group-hover:text-primary transition-colors line-clamp-2">Why Urban Planners Are Rethinking the '15-Minute City' Concept</h4>
+</li>
+<li class="group cursor-pointer">
+<span class="font-mono-metadata text-mono-metadata text-primary block mb-1">03</span>
+<h4 class="font-body-standard text-body-standard text-carbon-ink group-hover:text-primary transition-colors line-clamp-2">Deep Dive: The Next Generation of Battery Technology Explained</h4>
+</li>
+</ul>
+</div>
+<!-- Daily Brief Signup -->
+<div class="border border-carbon-ink bg-surface-bright p-5">
+<span class="material-symbols-outlined text-primary mb-2" style="font-size: 24px;">mail</span>
+<h3 class="font-h2 text-h2 text-carbon-ink mb-2">The Daily Briefing</h3>
+<p class="font-body-standard text-body-standard text-slate-body mb-4">Get the critical news of the day curated by our editors, delivered straight to your inbox.</p>
+<form class="flex flex-col space-y-2">
+<input class="border border-carbon-ink/20 focus:border-primary focus:ring-1 focus:ring-primary/25 bg-paper-white px-3 py-2 text-body-standard outline-none rounded-none w-full" placeholder="Email address" type="email"/>
+<button class="bg-carbon-ink text-on-primary px-4 py-2 font-micro-label uppercase tracking-widest hover:bg-surface-tint transition-colors duration-150 w-full translate-y-[0.5px]" type="submit">Subscribe</button>
+</form>
+</div>
+</aside>
+</main>
+<!-- Footer (Shared Component) -->
+<footer class="w-full py-8 mt-gap-section border-t border-fog-hairline bg-surface-container-lowest">
+<div class="max-w-max-width-container mx-auto px-padding-desktop flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+<div class="flex flex-col items-center md:items-start">
+<span class="font-display text-body-standard font-bold text-primary mb-1">Tourane News</span>
+<span class="font-mono-metadata text-mono-metadata uppercase text-steel-subdued">© 2024 Tourane News. Independent. Swiss-Grid.</span>
+</div>
+<nav class="flex flex-wrap justify-center gap-x-6 gap-y-2">
+<a class="font-mono-metadata text-mono-metadata uppercase text-steel-subdued hover:text-primary transition-opacity opacity-80 hover:opacity-100" href="#">Editorial Guidelines</a>
+<a class="font-mono-metadata text-mono-metadata uppercase text-steel-subdued hover:text-primary transition-opacity opacity-80 hover:opacity-100" href="#">Masthead</a>
+<a class="font-mono-metadata text-mono-metadata uppercase text-steel-subdued hover:text-primary transition-opacity opacity-80 hover:opacity-100" href="#">Archive</a>
+<a class="font-mono-metadata text-mono-metadata uppercase text-steel-subdued hover:text-primary transition-opacity opacity-80 hover:opacity-100" href="#">RSS Feed</a>
+</nav>
+</div>
+</footer>
+</body></html>

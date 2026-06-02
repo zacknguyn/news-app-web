@@ -4,8 +4,15 @@ import { cn } from '../../lib/utils';
 type TooltipProps = {
   label: string;
   children: React.ReactNode;
-  side?: 'top' | 'bottom';
+  side?: 'top' | 'bottom' | 'left' | 'right';
   className?: string;
+};
+
+const sideClass: Record<NonNullable<TooltipProps['side']>, string> = {
+  top: 'bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2',
+  bottom: 'top-[calc(100%+8px)] left-1/2 -translate-x-1/2',
+  left: 'right-[calc(100%+8px)] top-1/2 -translate-y-1/2',
+  right: 'left-[calc(100%+8px)] top-1/2 -translate-y-1/2',
 };
 
 export const Tooltip: React.FC<TooltipProps> = ({ label, children, side = 'bottom', className }) => (
@@ -14,8 +21,8 @@ export const Tooltip: React.FC<TooltipProps> = ({ label, children, side = 'botto
     <span
       role="tooltip"
       className={cn(
-        'pointer-events-none absolute left-1/2 z-50 hidden -translate-x-1/2 whitespace-nowrap rounded-[4px] bg-[var(--color-app-ink)] px-2 py-1 text-xs font-medium text-white shadow-[var(--shadow-hex-card)] group-hover/tooltip:block group-focus-within/tooltip:block',
-        side === 'top' ? 'bottom-[calc(100%+8px)]' : 'top-[calc(100%+8px)]'
+        'pointer-events-none absolute z-50 hidden whitespace-nowrap bg-app-heading px-2 py-1 font-mono text-[11px] text-app-bg group-hover/tooltip:block group-focus-within/tooltip:block',
+        sideClass[side],
       )}
     >
       {label}

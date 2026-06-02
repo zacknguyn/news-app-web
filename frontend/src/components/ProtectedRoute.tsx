@@ -12,10 +12,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-[var(--color-off-white)] p-20">
-        <div className="hex-card px-5 py-3 text-sm font-medium text-[var(--color-app-muted)] animate-pulse">
-          Verifying credentials...
-        </div>
+      <div className="flex h-full w-full items-center justify-center bg-app-bg p-20">
+        <span className="swiss-loading">
+          <span>.</span> Verifying credentials
+        </span>
       </div>
     );
   }

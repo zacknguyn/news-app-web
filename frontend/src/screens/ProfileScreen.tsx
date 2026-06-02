@@ -1,266 +1,251 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { toast } from 'sonner';
-import { PostCard } from '../components/PostCard';
-import { TrustBar } from '../components/ui/TrustBar';
-import { ShieldCheck, Calendar, Award, BarChart3, Globe, Mail, UserCog } from 'lucide-react';
-import { usePageMotion } from '../hooks/usePageMotion';
-import { useAuth } from '../context/AuthContext';
-import { backendApi, getAuthToken, setAuthSession } from '../lib/api';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { backendApi } from '../lib/api';
 import { backendArticleToPost, backendAuthorToUser, backendUserToUser } from '../lib/backendAdapters';
+import { useAuth } from '../context/AuthContext';
 import { Alert } from '../components/ui/Alert';
+import { PostCard } from '../components/PostCard';
 import type { Post, User } from '../types';
 
+type ProfileTab = 'byline' | 'reports';
+
 export const ProfileScreen: React.FC = () => {
-  const pageRef = usePageMotion<HTMLDivElement>();
   const { username } = useParams();
   const { user: authUser } = useAuth();
-  const [user, setUser] = useState<User | null>(null);
+  const [profileUser, setProfileUser] = useState<User | null>(null);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [notice, setNotice] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [name, setName] = useState('');
-  const [avatar, setAvatar] = useState('');
-  const [isSavingAccount, setIsSavingAccount] = useState(false);
+  const [activeTab, setActiveTab] = useState<ProfileTab>('byline');
+
   const isOwnProfile = Boolean(authUser && username === authUser.username);
 
   useEffect(() => {
     let isMounted = true;
-
     const loadProfile = async () => {
       setIsLoading(true);
       setNotice('');
-
       try {
         if (authUser && username === authUser.username) {
           const currentUser = await backendApi.getCurrentUser();
-          const nextUser = backendUserToUser(currentUser);
           const articles = await backendApi.getArticlesByUser(currentUser.id, 0, 10).catch(() => null);
           if (!isMounted) return;
-          setUser(nextUser);
-          setName(nextUser.name);
-          setAvatar(nextUser.avatarUrl || '');
+          setProfileUser(backendUserToUser(currentUser));
           setUserPosts(articles?.content.map(backendArticleToPost) || []);
           return;
         }
-
         const author = await backendApi.getAuthorBySlug(username || '');
         if (!isMounted) return;
-        setUser(backendAuthorToUser(author));
+        setProfileUser(backendAuthorToUser(author));
         setUserPosts([]);
-        setNotice('Backend authors are separate from app users, so author report history is not exposed here yet.');
+        setNotice(
+          'This contributor files through the newsroom backend; their dispatch history is not surfaced here yet.',
+        );
       } catch (error) {
         if (!isMounted) return;
-        setUser(null);
+        setProfileUser(null);
         setUserPosts([]);
         setNotice(error instanceof Error ? error.message : 'Profile unavailable.');
       } finally {
         if (isMounted) setIsLoading(false);
       }
     };
-
     loadProfile();
-
     return () => {
       isMounted = false;
     };
   }, [authUser, username]);
 
-  const handleSaveAccount = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!isOwnProfile) return;
-    setIsSavingAccount(true);
+  const beats = useMemo(
+    () => Array.from(new Set(userPosts.map((post) => post.channelName).filter(Boolean))),
+    [userPosts],
+  );
 
-    try {
-      const updated = await backendApi.updateCurrentUser({
-        name: name.trim(),
-        avatar: avatar.trim() || undefined,
-      });
-      const nextUser = backendUserToUser(updated);
-      const token = getAuthToken();
-      if (token) setAuthSession(token, nextUser);
-      setUser(nextUser);
-      setName(nextUser.name);
-      setAvatar(nextUser.avatarUrl || '');
-      toast.success('Account updated.');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to update account.');
-    } finally {
-      setIsSavingAccount(false);
-    }
-  };
-
-  if (isLoading) return <div className="p-20 text-center text-sm text-[var(--color-app-muted)]">Loading profile</div>;
-  if (!user) return <div className="p-20 text-center text-sm text-[var(--color-app-muted)]">Journalist not found: database entry missing</div>;
+  if (isLoading)
+    return (
+      <div className="px-4 py-20">
+        <span className="swiss-loading">
+          <span>.</span> Loading profile
+        </span>
+      </div>
+    );
+  if (!profileUser) return <div className="px-4 py-20 text-sm italic text-app-muted">Contributor not found.</div>;
 
   return (
-    <div ref={pageRef} className="hex-page">
-      <header data-motion="page" className="hex-card mb-10 p-6 sm:p-8">
-        <div className="flex flex-col items-start gap-8 md:flex-row">
-          <img src={user.avatarUrl} alt={user.name} className="h-28 w-28 rounded-[8px] border border-[var(--color-app-border)] object-cover grayscale" />
-          
-          <div className="flex-1 space-y-4">
-            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-              <div>
-                <h1 className="flex items-center gap-2 text-3xl font-semibold text-[var(--color-app-action)]">
-                  {user.name}
-                  {user.isVerified && <ShieldCheck className="h-6 w-6 text-[var(--color-app-action)]" />}
-                </h1>
-                <p className="mt-1 text-sm text-[var(--color-app-muted)]">
-                  @{user.username}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => navigator.clipboard?.writeText(window.location.href)} className="hex-button-secondary min-h-10 px-5 py-2 text-sm font-medium">
-                  Share
-                </button>
-              </div>
-            </div>
-
-            <p className="max-w-2xl text-base leading-7 text-[var(--color-app-text)]">
-              {user.bio}
-            </p>
-
-            <div className="flex flex-wrap gap-6 pt-2">
-              <div className="flex items-center gap-2 text-sm text-[var(--color-app-muted)]">
-                <Calendar className="h-4 w-4" />
-                Joined {user.joinedDate ? new Date(user.joinedDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently'}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-[var(--color-app-muted)]">
-                <Globe className="h-4 w-4" />
-                truth-portal.net/u/{user.username}
-              </div>
-            </div>
+    <div className="app-page">
+      <header className="grid gap-5 border-b-2 border-app-heading pb-6 md:grid-cols-[64px_minmax(0,1fr)_auto]">
+        <img
+          src={
+            profileUser.avatarUrl ||
+            `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(profileUser.username)}`
+          }
+          alt=""
+          className="h-16 w-16 border border-app-border object-cover"
+        />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-[32px] font-semibold leading-tight text-app-heading">{profileUser.name}</h1>
+            {profileUser.isVerified && (
+              <span className="font-mono text-[11px] uppercase tracking-wider text-app-action">Verified</span>
+            )}
           </div>
+          <p className="mt-1 font-mono text-[11px] text-app-muted">
+            @{profileUser.username} · {profileUser.role === 'ADMIN' ? 'Editor' : 'Contributor'}
+          </p>
+          {profileUser.bio && (
+            <p className="mt-4 max-w-[68ch] text-[17px] leading-7 text-app-text">{profileUser.bio}</p>
+          )}
+          <p className="mt-4 font-mono text-[12px] text-app-muted">
+            Joined{' '}
+            {profileUser.joinedDate
+              ? new Date(profileUser.joinedDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+              : 'Unknown'}{' '}
+            · {userPosts.length} reports · {profileUser.trustScore.toLocaleString('en-US')} karma
+          </p>
+        </div>
+        <div className="flex gap-4 md:justify-end">
+          {isOwnProfile ? (
+            <Link
+              to="/app/subscribe"
+              className="font-mono text-[11px] uppercase tracking-wider text-app-action hover:underline"
+            >
+              Account settings
+            </Link>
+          ) : (
+            <a
+              href={`mailto:${profileUser.email || ''}`}
+              className="font-mono text-[11px] uppercase tracking-wider text-app-action hover:underline"
+            >
+              Pitch
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={() => navigator.clipboard?.writeText(window.location.href)}
+            className="font-mono text-[11px] uppercase tracking-wider text-app-muted hover:text-app-action"
+          >
+            Share
+          </button>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {notice && (
-          <Alert tone="warning" className="lg:col-span-3">
-            {notice}
-          </Alert>
-        )}
-        <div data-motion="page" className="space-y-6 lg:col-span-2">
-          <div className="flex items-center justify-between border-b border-[var(--color-app-border-clean)] pb-4">
-            <h3 className="text-sm font-semibold text-[var(--color-app-ink)]">
-              Recent Reports
-            </h3>
-            <span className="text-sm text-[var(--color-app-muted)]">{userPosts.length} posts</span>
-          </div>
-          <div className="space-y-5">
-            {userPosts.length > 0 ? (
-              userPosts.map(post => <PostCard key={post.id} post={post} />)
-            ) : (
-              <div className="hex-panel py-16 text-center text-sm text-[var(--color-app-muted)]">
-                No archived reports found.
-              </div>
-            )}
-          </div>
-        </div>
+      {notice && (
+        <Alert tone="info" className="mt-6">
+          {notice}
+        </Alert>
+      )}
 
-        {/* Right Column: Trust Stats */}
-        <div className="space-y-8">
-          {isOwnProfile && (
-            <section data-motion="list" className="hex-card p-6">
-              <h3 className="mb-5 flex items-center gap-2 text-sm font-semibold text-[var(--color-app-ink)]">
-                <UserCog className="h-4 w-4" />
-                Account
-              </h3>
-              <form className="space-y-4" onSubmit={handleSaveAccount}>
-                <label className="block space-y-2">
-                  <span className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)]">Display name</span>
-                  <input
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    className="hex-input min-h-10 w-full px-3 text-sm"
-                  />
-                </label>
-                <label className="block space-y-2">
-                  <span className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)]">Avatar URL</span>
-                  <input
-                    value={avatar}
-                    onChange={(event) => setAvatar(event.target.value)}
-                    className="hex-input min-h-10 w-full px-3 text-sm"
-                  />
-                </label>
-                <button
-                  type="submit"
-                  disabled={isSavingAccount || !name.trim()}
-                  className="hex-button-primary min-h-10 w-full px-4 text-sm font-semibold disabled:opacity-50"
-                >
-                  {isSavingAccount ? 'Saving' : 'Save account'}
-                </button>
-              </form>
-            </section>
+      <nav className="mt-8 flex gap-5 border-b border-app-border" aria-label="Profile sections">
+        {[
+          ['byline', 'Byline'],
+          ['reports', 'Reports'],
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setActiveTab(id as ProfileTab)}
+            className={`border-b-2 pb-3 font-mono text-[11px] uppercase tracking-wider ${activeTab === id ? 'border-app-action text-app-action' : 'border-transparent text-app-muted hover:text-app-heading'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="grid gap-10 pt-8 lg:grid-cols-[minmax(0,1fr)_16rem]">
+        <main className="min-w-0">
+          {activeTab === 'byline' ? (
+            <div className="space-y-8">
+              <section>
+                <h2 className="mono-label mb-3 text-app-muted">Byline</h2>
+                <p className="max-w-[68ch] text-[17px] leading-7 text-app-text">
+                  {profileUser.bio ||
+                    (isOwnProfile
+                      ? 'Add a bio to introduce your reporting focus.'
+                      : 'This contributor has not added a bio yet.')}
+                </p>
+              </section>
+              <section>
+                <h2 className="mono-label mb-3 text-app-muted">Beats</h2>
+                {beats.length > 0 ? (
+                  <ul className="flex flex-wrap gap-2">
+                    {beats.map((beat) => (
+                      <li
+                        key={beat}
+                        className="border border-app-border px-2 py-1 font-mono text-[11px] uppercase tracking-wider text-app-heading"
+                      >
+                        {beat}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm italic text-app-muted">No beats yet.</p>
+                )}
+              </section>
+              <section>
+                <h2 className="mono-label mb-3 text-app-muted">Latest dispatch</h2>
+                {userPosts[0] ? (
+                  <PostCard post={userPosts[0]} />
+                ) : (
+                  <p className="text-sm italic text-app-muted">No dispatches yet.</p>
+                )}
+              </section>
+            </div>
+          ) : (
+            <div className="border-t border-app-border">
+              {userPosts.length > 0 ? (
+                userPosts.map((post) => <PostCard key={post.id} post={post} />)
+              ) : (
+                <p className="py-6 text-sm italic text-app-muted">
+                  No dispatches yet. The first story is the hardest to file.
+                </p>
+              )}
+            </div>
           )}
+        </main>
 
-          <section data-motion="list" className="hex-card p-6">
-            <h3 className="mb-5 flex items-center gap-2 text-sm font-semibold text-[var(--color-app-ink)]">
-              <Mail className="h-4 w-4" />
-              Account Details
-            </h3>
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center justify-between gap-4 border-b border-[var(--color-app-border)] pb-3">
-                <span className="text-[var(--color-app-muted)]">Email</span>
-                <span className="font-semibold text-[var(--color-app-heading)]">{user.email || 'Not exposed'}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4 border-b border-[var(--color-app-border)] pb-3">
-                <span className="text-[var(--color-app-muted)]">Role</span>
-                <span className="font-semibold text-[var(--color-app-heading)]">{user.role || 'USER'}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-[var(--color-app-muted)]">Status</span>
-                <span className="font-semibold text-[var(--color-app-action)]">{user.status || 'ACTIVE'}</span>
+        <aside className="space-y-8 lg:sticky lg:top-24 lg:self-start">
+          <section>
+            <h2 className="mono-label mb-4 text-app-muted">Card</h2>
+            <div className="flex gap-3">
+              <img
+                src={
+                  profileUser.avatarUrl ||
+                  `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(profileUser.username)}`
+                }
+                alt=""
+                className="h-12 w-12 border border-app-border object-cover"
+              />
+              <div className="min-w-0">
+                <p className="truncate font-semibold text-app-heading">{profileUser.name}</p>
+                <p className="font-mono text-[11px] text-app-muted">@{profileUser.username}</p>
               </div>
             </div>
           </section>
-
-          <section data-motion="list" className="hex-card p-6">
-            <h3 className="mb-6 flex items-center gap-2 text-sm font-semibold text-[var(--color-app-ink)]">
-              <Award className="h-4 w-4" />
-              Authority Metrics
-            </h3>
-            
-            <div className="space-y-6">
-              <div>
-                <div className="flex justify-between items-end mb-2">
-                  <span className="text-sm font-medium text-[var(--color-app-muted)]">Trust Score</span>
-                  <span className="text-2xl font-semibold text-[var(--color-app-action)]">{user.trustScore}</span>
-                </div>
-                <TrustBar score={user.trustScore} />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-[8px] border border-[var(--color-app-border-clean)] bg-white p-4">
-                  <span className="mb-1 block text-xs text-[var(--color-app-muted)]">Upvoted Reports</span>
-                  <span className="text-xl font-semibold text-[var(--color-app-ink)]">92%</span>
-                </div>
-                <div className="rounded-[8px] border border-[var(--color-app-border-clean)] bg-white p-4">
-                   <span className="mb-1 block text-xs text-[var(--color-app-muted)]">Accuracy Rating</span>
-                   <span className="text-xl font-semibold text-[var(--color-app-ink)]">A+</span>
-                </div>
-              </div>
-
-              <div className="border-t border-[var(--color-app-border-clean)] pt-4">
-                 <div className="flex items-center gap-2 text-sm font-medium text-[var(--color-app-muted)]">
-                    <BarChart3 className="h-4 w-4" />
-                    Community Verdict: <span className="text-[var(--color-app-action)]">Highly Reliable</span>
-                 </div>
-              </div>
+          <section>
+            <h2 className="mono-label mb-4 text-app-muted">Activity</h2>
+            <div className="grid grid-cols-3 border-y border-app-border">
+              <Stat label="Reports" value={userPosts.length} />
+              <Stat label="Karma" value={profileUser.trustScore} />
+              <Stat label="Comments" value={0} />
             </div>
           </section>
-
-          <section data-motion="list" className="hex-card-soft p-6">
-             <h3 className="mb-4 text-sm font-semibold text-[var(--color-app-ink)]">
-               About Verification
-             </h3>
-             <p className="text-sm leading-6 text-[var(--color-app-muted)]">
-               Verified authors have undergone manual community review of their prior independent work and maintain a Trust Score above 500.
-             </p>
+          <section>
+            <h2 className="mono-label mb-4 text-app-muted">Verification</h2>
+            <p className="text-sm leading-6 text-app-muted">
+              {profileUser.isVerified
+                ? 'Verified newsroom account.'
+                : 'Contributor account. Trust grows through useful reporting and discussion.'}
+            </p>
           </section>
-        </div>
+        </aside>
       </div>
     </div>
   );
 };
+
+const Stat: React.FC<{ label: string; value: number }> = ({ label, value }) => (
+  <div className="border-r border-app-border px-2 py-3 last:border-r-0">
+    <p className="font-mono text-[16px] font-semibold tabular-nums text-app-heading">{value.toLocaleString('en-US')}</p>
+    <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-app-muted">{label}</p>
+  </div>
+);

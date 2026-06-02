@@ -9,7 +9,7 @@ export const MOCK_USERS: User[] = [
     isVerified: true,
     avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elena',
     bio: 'Former chief correspondent at Global Times. Now independent, uncovering the truths they want to bury. Specialized in conflict zones and geopolitical shifts.',
-    joinedDate: '2025-01-12'
+    joinedDate: '2025-01-12',
   },
   {
     id: 'u2',
@@ -19,7 +19,7 @@ export const MOCK_USERS: User[] = [
     isVerified: true,
     avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus',
     bio: 'Tech whistleblower and digital privacy advocate. Exposing the algorithms that shape our reality.',
-    joinedDate: '2025-03-05'
+    joinedDate: '2025-03-05',
   },
   {
     id: 'u3',
@@ -29,15 +29,33 @@ export const MOCK_USERS: User[] = [
     isVerified: false,
     avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
     bio: 'Local investigative reporter focusing on municipal corruption and environmental justice.',
-    joinedDate: '2026-02-20'
-  }
+    joinedDate: '2026-02-20',
+  },
 ];
 
 export const MOCK_CHANNELS: Channel[] = [
-  { id: 'c1', name: 'War Correspondence', slug: 'war', description: 'Raw reports from the frontlines.', iconName: 'Sword' },
+  {
+    id: 'c1',
+    name: 'War Correspondence',
+    slug: 'war',
+    description: 'Raw reports from the frontlines.',
+    iconName: 'Sword',
+  },
   { id: 'c2', name: 'Tech Whistleblowing', slug: 'tech', description: 'The truth behind big tech.', iconName: 'Cpu' },
-  { id: 'c3', name: 'Local Governance', slug: 'local', description: 'Exposing city hall secrets.', iconName: 'Building' },
-  { id: 'c4', name: 'Climate Crisis', slug: 'climate', description: 'Independent environmental data.', iconName: 'CloudRain' }
+  {
+    id: 'c3',
+    name: 'Local Governance',
+    slug: 'local',
+    description: 'Exposing city hall secrets.',
+    iconName: 'Building',
+  },
+  {
+    id: 'c4',
+    name: 'Climate Crisis',
+    slug: 'climate',
+    description: 'Independent environmental data.',
+    iconName: 'CloudRain',
+  },
 ];
 
 export const MOCK_COMMENTS: Comment[] = [
@@ -45,7 +63,8 @@ export const MOCK_COMMENTS: Comment[] = [
     id: 'c7',
     postId: 'p1',
     author: MOCK_USERS[1],
-    content: 'The displacement numbers match the satellite damage estimates. The ministry summary leaves out the eastern corridor entirely.',
+    content:
+      'The displacement numbers match the satellite damage estimates. The ministry summary leaves out the eastern corridor entirely.',
     createdAt: new Date(Date.now() - 5400000).toISOString(),
     upvotes: 28,
     downvotes: 1,
@@ -65,15 +84,16 @@ export const MOCK_COMMENTS: Comment[] = [
             postId: 'p1',
             author: MOCK_USERS[2],
             parentId: 'c8',
-            content: 'Can confirm the clinic. Local council minutes mention emergency medical supply requests from the same date.',
+            content:
+              'Can confirm the clinic. Local council minutes mention emergency medical supply requests from the same date.',
             createdAt: new Date(Date.now() - 2400000).toISOString(),
             upvotes: 11,
             downvotes: 0,
-            replies: []
-          }
-        ]
-      }
-    ]
+            replies: [],
+          },
+        ],
+      },
+    ],
   },
   {
     id: 'c1',
@@ -89,7 +109,8 @@ export const MOCK_COMMENTS: Comment[] = [
         postId: 'p2',
         author: MOCK_USERS[0],
         parentId: 'c1',
-        content: 'Did you manage to get any logs? We need harder proof to flip the Trust Score on the official rebuttal.',
+        content:
+          'Did you manage to get any logs? We need harder proof to flip the Trust Score on the official rebuttal.',
         createdAt: new Date(Date.now() - 1800000).toISOString(),
         upvotes: 12,
         downvotes: 0,
@@ -119,19 +140,20 @@ export const MOCK_COMMENTS: Comment[] = [
                     postId: 'p2',
                     author: MOCK_USERS[0],
                     parentId: 'c5',
-                    content: 'Send the timestamps privately. If they match the procurement leak, we have a clean chain.',
+                    content:
+                      'Send the timestamps privately. If they match the procurement leak, we have a clean chain.',
                     createdAt: new Date(Date.now() - 420000).toISOString(),
                     upvotes: 9,
                     downvotes: 0,
-                    replies: []
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    ]
+                    replies: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   {
     id: 'c4',
@@ -141,8 +163,8 @@ export const MOCK_COMMENTS: Comment[] = [
     createdAt: new Date(Date.now() - 7200000).toISOString(),
     upvotes: 5,
     downvotes: 10,
-    replies: []
-  }
+    replies: [],
+  },
 ];
 
 export const MOCK_POSTS: Post[] = [
@@ -178,7 +200,7 @@ This report is based on field notes from three shelter visits, two repair crew i
     downvotes: 12,
     commentCount: 89,
     createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    userVote: null
+    userVote: null,
   },
   {
     id: 'p2',
@@ -216,6 +238,6 @@ The documents include two architecture diagrams, four policy review comments, an
     downvotes: 5,
     commentCount: 142,
     createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    userVote: 'up'
-  }
+    userVote: 'up',
+  },
 ];

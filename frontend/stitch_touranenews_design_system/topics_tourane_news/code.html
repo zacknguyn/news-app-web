@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Topics - Tourane News</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&amp;family=Geist:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#f9f9f9",
+                        "surface-lift": "#FFFFFF",
+                        "tertiary": "#005e8d",
+                        "tertiary-fixed": "#cbe6ff",
+                        "signal-red": "#DC2626",
+                        "on-error": "#ffffff",
+                        "tertiary-container": "#0078b2",
+                        "secondary-fixed": "#e5e2e1",
+                        "surface-container-highest": "#e2e2e2",
+                        "on-secondary-fixed-variant": "#474646",
+                        "primary-fixed-dim": "#ffb4ab",
+                        "slate-body": "#3F3F46",
+                        "on-secondary-fixed": "#1c1b1b",
+                        "surface-dim": "#dadada",
+                        "on-error-container": "#93000a",
+                        "on-primary": "#ffffff",
+                        "surface-container-low": "#f3f3f3",
+                        "outline-variant": "#e6bdb8",
+                        "steel-subdued": "#71717A",
+                        "background": "#f9f9f9",
+                        "inverse-primary": "#ffb4ab",
+                        "surface-variant": "#e2e2e2",
+                        "inverse-on-surface": "#f0f1f1",
+                        "surface-container-high": "#e8e8e8",
+                        "on-surface-variant": "#5c403c",
+                        "tertiary-fixed-dim": "#90cdff",
+                        "secondary-fixed-dim": "#c9c6c5",
+                        "primary-container": "#dc2626",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-container": "#f3f8ff",
+                        "surface-tint": "#bf0715",
+                        "approved-green": "#16A34A",
+                        "carbon-ink": "#0A0A0A",
+                        "secondary-container": "#e5e2e1",
+                        "error-container": "#ffdad6",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#5f5e5e",
+                        "fog-hairline": "#E4E4E7",
+                        "on-tertiary-fixed-variant": "#004b71",
+                        "surface-container": "#eeeeee",
+                        "outline": "#916f6b",
+                        "inverse-surface": "#2f3131",
+                        "on-tertiary": "#ffffff",
+                        "warn-amber": "#D97706",
+                        "surface": "#f9f9f9",
+                        "on-primary-container": "#fff6f5",
+                        "on-primary-fixed": "#410002",
+                        "primary-fixed": "#ffdad6",
+                        "paper-white": "#FAFAFA",
+                        "primary": "#b70011",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed-variant": "#93000b",
+                        "on-tertiary-fixed": "#001e30",
+                        "on-background": "#1a1c1c",
+                        "on-secondary-container": "#656464",
+                        "on-surface": "#1a1c1c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0px",
+                        "lg": "0px",
+                        "xl": "0px",
+                        "full": "0px"
+                    },
+                    "spacing": {
+                        "rail-right": "16rem",
+                        "unit": "4px",
+                        "padding-mobile": "1rem",
+                        "padding-desktop": "2.5rem",
+                        "max-width-feed": "720px",
+                        "gap-section": "3rem",
+                        "padding-tablet": "1.5rem",
+                        "gap-feed": "2rem",
+                        "admin-row-height": "36px",
+                        "max-width-container": "1320px",
+                        "rail-left": "12rem"
+                    },
+                    "fontFamily": {
+                        "micro-label": ["Geist"],
+                        "display-mobile": ["Geist"],
+                        "h1-admin": ["Geist"],
+                        "display": ["Geist"],
+                        "mono-metadata": ["Geist Mono"],
+                        "h2": ["Geist"],
+                        "body-article": ["Geist"],
+                        "body-standard": ["Geist"]
+                    },
+                    "fontSize": {
+                        "micro-label": ["11px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "display-mobile": ["24px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "h1-admin": ["24px", { "lineHeight": "1.3", "fontWeight": "700" }],
+                        "display": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "mono-metadata": ["12px", { "lineHeight": "1", "fontWeight": "400" }],
+                        "h2": ["20px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "body-article": ["17px", { "lineHeight": "1.7", "fontWeight": "400" }],
+                        "body-standard": ["15px", { "lineHeight": "1.55", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-paper-white text-carbon-ink font-body-standard antialiased selection:bg-signal-red selection:text-paper-white min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-surface-container-lowest border-b border-fog-hairline">
+<div class="flex justify-between items-center h-16 px-padding-desktop w-full max-w-max-width-container mx-auto">
+<!-- Brand -->
+<div class="flex items-center space-x-6">
+<a class="font-display text-display-mobile font-bold text-primary border-t-4 border-primary pt-1" href="#">
+                    Tourane News
+                </a>
+<!-- Search Bar (on_left) -->
+<div class="hidden md:flex items-center relative w-64 ml-4">
+<span class="material-symbols-outlined absolute left-2 text-steel-subdued" style="font-size: 18px;">search</span>
+<input class="w-full h-8 pl-8 pr-3 bg-surface-container-low border border-fog-hairline text-mono-metadata font-mono-metadata text-carbon-ink focus:outline-none focus:border-signal-red focus:ring-1 focus:ring-signal-red/25 transition-colors" placeholder="Search..." type="text"/>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="hidden md:flex items-center space-x-8">
+<a class="text-secondary hover:text-primary transition-colors duration-150 font-display text-display-mobile uppercase tracking-tighter" href="#" style="font-size: 14px;">Latest</a>
+<a class="text-secondary hover:text-primary transition-colors duration-150 font-display text-display-mobile uppercase tracking-tighter" href="#" style="font-size: 14px;">Popular</a>
+<a class="text-primary border-b border-primary font-bold transition-colors duration-150 font-display text-display-mobile uppercase tracking-tighter" href="#" style="font-size: 14px;">Communities</a>
+<a class="text-secondary hover:text-primary transition-colors duration-150 font-display text-display-mobile uppercase tracking-tighter" href="#" style="font-size: 14px;">Journalists</a>
+</div>
+<!-- Trailing Actions -->
+<div class="flex items-center space-x-4">
+<button class="hidden md:flex px-4 py-2 bg-carbon-ink text-paper-white font-mono-metadata text-mono-metadata hover:bg-surface-tint hover:-translate-y-[0.5px] transition-all">Create Post</button>
+<div class="flex items-center space-x-3 text-steel-subdued">
+<button class="hover:text-primary transition-colors"><span class="material-symbols-outlined">notifications</span></button>
+<button class="hover:text-primary transition-colors"><span class="material-symbols-outlined">mail</span></button>
+<button class="hover:text-primary transition-colors"><span class="material-symbols-outlined">account_circle</span></button>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Layout -->
+<div class="flex-grow flex max-w-max-width-container mx-auto w-full px-padding-desktop mt-16 pt-8">
+<!-- SideNavBar (Left Rail) -->
+<aside class="hidden xl:flex sticky top-24 h-[calc(100vh-6rem)] w-rail-left flex-col py-6 pr-8 border-r border-fog-hairline shrink-0">
+<div class="mb-8">
+<h2 class="font-display text-h2 text-primary mb-1">Navigation</h2>
+<p class="font-mono-metadata text-mono-metadata text-steel-subdued">Explore the Newsroom</p>
+</div>
+<nav class="space-y-1 flex-1">
+<a class="flex items-center px-3 py-2 text-secondary hover:bg-surface-container-low hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined mr-3 text-steel-subdued group-hover:text-primary">home</span>
+<span class="font-body-standard text-body-standard">Home</span>
+</a>
+<a class="flex items-center px-3 py-2 text-secondary hover:bg-surface-container-low hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined mr-3 text-steel-subdued group-hover:text-primary">language</span>
+<span class="font-body-standard text-body-standard">All</span>
+</a>
+<a class="flex items-center px-3 py-2 text-secondary hover:bg-surface-container-low hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined mr-3 text-steel-subdued group-hover:text-primary">trending_up</span>
+<span class="font-body-standard text-body-standard">Top</span>
+</a>
+<a class="flex items-center px-3 py-2 text-primary font-bold border-r-2 border-primary bg-surface-container-low transition-colors group" href="#">
+<span class="material-symbols-outlined mr-3 text-primary">groups</span>
+<span class="font-body-standard text-body-standard">Communities</span>
+</a>
+<a class="flex items-center px-3 py-2 text-secondary hover:bg-surface-container-low hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined mr-3 text-steel-subdued group-hover:text-primary">security</span>
+<span class="font-body-standard text-body-standard">Moderation</span>
+</a>
+<a class="flex items-center px-3 py-2 text-secondary hover:bg-surface-container-low hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined mr-3 text-steel-subdued group-hover:text-primary">settings</span>
+<span class="font-body-standard text-body-standard">Settings</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-fog-hairline flex space-x-4">
+<a aria-label="Privacy" class="text-steel-subdued hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-size: 18px;">description</span>
+</a>
+<a aria-label="Terms" class="text-steel-subdued hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-size: 18px;">policy</span>
+</a>
+<a aria-label="Contact" class="text-steel-subdued hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-size: 18px;">mail</span>
+</a>
+</div>
+</aside>
+<!-- Center Content (Feed) -->
+<main class="flex-grow w-full max-w-max-width-feed xl:pl-8 xl:pr-8 mx-auto">
+<!-- Topics Header & Search -->
+<div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end border-b border-fog-hairline pb-4 gap-4">
+<div class="flex space-x-6">
+<a class="font-mono-metadata text-mono-metadata text-secondary hover:text-carbon-ink pb-2" href="#">Following</a>
+<a class="font-mono-metadata text-mono-metadata text-primary border-b-2 border-primary pb-2 font-bold" href="#">All</a>
+<a class="font-mono-metadata text-mono-metadata text-secondary hover:text-carbon-ink pb-2" href="#">Trending</a>
+</div>
+<div class="relative w-full md:w-64">
+<span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-steel-subdued" style="font-size: 18px;">search</span>
+<input class="w-full h-9 pl-8 pr-3 bg-surface-container-lowest border border-fog-hairline text-mono-metadata font-mono-metadata text-carbon-ink focus:outline-none focus:border-signal-red focus:ring-1 focus:ring-signal-red/25 transition-colors" placeholder="Find topics..." type="text"/>
+</div>
+</div>
+<!-- TECHNOLOGY Section -->
+<section class="mb-12">
+<h3 class="font-micro-label text-micro-label text-steel-subdued mb-4 uppercase tracking-widest border-b border-fog-hairline pb-2">Technology</h3>
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+<!-- Tile 1 -->
+<div class="border border-fog-hairline p-3 hover:border-carbon-ink/20 transition-colors cursor-pointer group">
+<div class="flex items-center space-x-2 mb-2">
+<div class="w-6 h-6 bg-surface-container-high rounded-full overflow-hidden flex-shrink-0">
+<img alt="Tech" class="w-full h-full object-cover" data-alt="A macro shot of a complex computer microchip with glowing blue and orange circuits. The image uses a stark, high-contrast flat paper style with minimal depth. The lighting is artificial and precise, highlighting the geometric patterns of the technology against a pristine white background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVSVpTQg6Kir9MCJBC-28R6UhEmPy3__DFwAu7y2JMc9gf5BTzDFZmzG8tqWtfm2D1LDoFJpk9oHcKMiZglWBIujdE1ckLy76nTCAhONYGq5SvD73uHyLhPrdfng3PPZTWUP5Jp9EJpt9ZEJBJz3GmHwUZe72EWba4XLALPKvGxvmd0MNJ3dIADFBn57xLiqQDAK7a39bqXgAiBg_hpg2pN1BbZHEjdDURYbZ81ghx3-jRIABSmUqrerDzbA7-QZske8svPny8lA"/>
+</div>
+<span class="font-body-standard text-body-standard font-bold truncate group-hover:text-primary transition-colors">c/Hardware</span>
+</div>
+<p class="font-mono-metadata text-mono-metadata text-steel-subdued">1.2m members</p>
+</div>
+<!-- Tile 2 -->
+<div class="border border-fog-hairline p-3 hover:border-carbon-ink/20 transition-colors cursor-pointer group">
+<div class="flex items-center space-x-2 mb-2">
+<div class="w-6 h-6 bg-surface-container-high rounded-full overflow-hidden flex-shrink-0">
+<img alt="Code" class="w-full h-full object-cover" data-alt="Lines of glowing green code on a stark black terminal screen. The aesthetic is strictly two-dimensional, emphasizing the grid-like structure of the text. There are no soft shadows or gradients, just raw data presented in a minimal, professional layout." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCef-Qu8hBgPXet4Rxq-XdRRlfv7COerNh2Nz1xdrxUg_CeY0pXSl3Km6B8Ua2MjKKZG0D5s4ZMvbLu0bklcd7N16xLMB3wPBYLyhZzJyq-i5vrOwXNYTbnqyGLtN8TFyBwCzqTJXpe6PQDLYUgHDELhCRSJt_zJF2T5wIiCHDQ6p4ce_F0Y_Yf6iFsUBBcbgn-cgXKRpmnPbKsEg1XCOMmPaCQBb1yIORcIGX2o3SNq60vXVK5OFpXmiVkYvRHvY9ZB0NJmVIy9A"/>
+</div>
+<span class="font-body-standard text-body-standard font-bold truncate group-hover:text-primary transition-colors">c/Programming</span>
+</div>
+<p class="font-mono-metadata text-mono-metadata text-steel-subdued">840k members</p>
+</div>
+<!-- Tile 3 -->
+<div class="border border-fog-hairline p-3 hover:border-carbon-ink/20 transition-colors cursor-pointer group">
+<div class="flex items-center space-x-2 mb-2">
+<div class="w-6 h-6 bg-surface-container-high rounded-full overflow-hidden flex-shrink-0">
+<img alt="AI" class="w-full h-full object-cover" data-alt="A stylized, flat vector illustration of an artificial intelligence neural network node. It features sharp, geometric lines connecting stark white dots on a light gray background. A single line glows with a signal red accent. The overall mood is clinical, objective, and information-dense." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBer5mUw9Y1k2C_xSqnnFqm8jhlJIsA25Im6dqGUvMGjNHrHxVi_t5cA1uzWcyTdYFphKPObTmw2dns3E4tw8OcW0U6C2Z-pt2eYRwjnKl8ZemedvWYW2WYrY1bTpcFPYSB5EkDlPkJsG_k1Ij3T8aJ8_21hkGOhj-wSaUBcXpCH4d5cOAqp9o_iuOAVJnxhCITLTlu4M46HCqXdDrZVqqI6inskhCMXXcLOa-s8f7KmB9SWRSbrKWiPTLvBroeFE2ccJQuH7zkQA"/>
+</div>
+<span class="font-body-standard text-body-standard font-bold truncate group-hover:text-primary transition-colors">c/MachineLearning</span>
+</div>
+<p class="font-mono-metadata text-mono-metadata text-steel-subdued">512k members</p>
+</div>
+<!-- Tile 4 -->
+<div class="border border-fog-hairline p-3 hover:border-carbon-ink/20 transition-colors cursor-pointer group">
+<div class="flex items-center space-x-2 mb-2">
+<div class="w-6 h-6 bg-surface-container-high rounded-full overflow-hidden flex-shrink-0">
+<img alt="Crypto" class="w-full h-full object-cover" data-alt="A high-contrast, black and white photograph of a physical cryptocurrency coin resting on a flat, matte surface. The lighting is harsh and direct, creating a sharp drop shadow that emphasizes the object's physical form. A subtle red hairline divider runs across the background to separate the visual space." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCT9jjmd_rety8s-joadTjzBpV-YTBt8gi1HCm-IwwSyqn5IdPDRIuYMBlO_G947uR1pFJrwHrhSgK5hGCqYirozpLKV0O3FJ_WKtznLw5tITX43i39ewHUWFBEcAItEkKdemYcRpZlEomXndK3biO7HNfi26tjUwilkHd1xsWqO-V7qP9cmdspOqkNVnw7stQQtTYAvPCRDZr2BD2V11PTC7ME45T8uRU8VweVyvF6tfjAJqzmtAdlsgWLoSooTy1sRoNFzYB0cw"/>
+</div>
+<span class="font-body-standard text-body-standard font-bold truncate group-hover:text-primary transition-colors">c/CryptoNews</span>
+</div>
+<p class="font-mono-metadata text-mono-metadata text-steel-subdued">2.1m members</p>
+</div>
+<!-- Row 2 -->
+<!-- Tile 5 -->
+<div class="border border-fog-hairline p-3 hover:border-carbon-ink/20 transition-colors cursor-pointer group">
+<div class="flex items-center space-x-2 mb-2">
+<div class="w-6 h-6 bg-surface-container-high rounded-full flex items-center justify-center flex-shrink-0 text-steel-subdued">
+<span class="material-symbols-outlined" style="font-size: 14px;">smartphone</span>
+</div>
+<span class="font-body-standard text-body-standard font-bold truncate group-hover:text-primary transition-colors">c/Mobile</span>
+</div>
+<p class="font-mono-metadata text-mono-metadata text-steel-subdued">320k members</p>
+</div>
+<!-- Tile 6 -->
+<div class="border border-fog-hairline p-3 hover:border-carbon-ink/20 transition-colors cursor-pointer group">
+<div class="flex items-center space-x-2 mb-2">
+<div class="w-6 h-6 bg-surface-container-high rounded-full flex items-center justify-center flex-shrink-0 text-steel-subdued">
+<span class="material-symbols-outlined" style="font-size: 14px;">cloud</span>
+</div>
+<span class="font-body-standard text-body-standard font-bold truncate group-hover:text-primary transition-colors">c/SaaS</span>
+</div>
+<p class="font-mono-metadata text-mono-metadata text-steel-subdued">150k members</p>
+</div>
+<!-- Tile 7 -->
+<div class="border border-fog-hairline p-3 hover:border-carbon-ink/20 transition-colors cursor-pointer group">
+<div class="flex items-center space-x-2 mb-2">
+<div class="w-6 h-6 bg-surface-container-high rounded-full flex items-center justify-center flex-shrink-0 text-steel-subdued">
+<span class="material-symbols-outlined" style="font-size: 14px;">sports_esports</span>
+</div>
+<span class="font-body-standard text-body-standard font-bold truncate group-hover:text-primary transition-colors">c/GamingTech</span>
+</div>
+<p class="font-mono-metadata text-mono-metadata text-steel-subdued">89k members</p>
+</div>
+<!-- Tile 8 -->
+<div class="border border-fog-hairline p-3 hover:border-carbon-ink/20 transition-colors cursor-pointer group">
+<div class="flex items-center space-x-2 mb-2">
+<div class="w-6 h-6 bg-surface-container-high rounded-full flex items-center justify-center flex-shrink-0 text-steel-subdued">
+<span class="material-symbols-outlined" style="font-size: 14px;">lock</span>
+</div>
+<span class="font-body-standard text-body-standard font-bold truncate group-hover:text-primary transition-colors">c/CyberSec</span>
+</div>
+<p class="font-mono-metadata text-mono-metadata text-steel-subdued">420k members</p>
+</div>
+</div>
+<div class="text-right mt-2">
+<a class="font-mono-metadata text-mono-metadata text-signal-red hover:underline transition-all" href="#">See all 23 →</a>
+</div>
+</section>
+<!-- FEATURED Section (Wider Cards) -->
+<section class="mb-12">
+<h3 class="font-micro-label text-micro-label text-steel-subdued mb-4 uppercase tracking-widest border-b border-fog-hairline pb-2">Featured</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Featured Card 1 -->
+<div class="border border-fog-hairline p-4 flex space-x-4 hover:border-carbon-ink/20 transition-colors cursor-pointer group">
+<div class="w-12 h-12 bg-surface-container-high overflow-hidden flex-shrink-0">
+<img alt="Data" class="w-full h-full object-cover grayscale" data-alt="A highly structured arrangement of data visualization charts printed on crisp white paper. The charts are minimalist, utilizing only black ink and precise, 1px hairlines to convey information density. A single red line graph highlights a critical data point, embodying the restrained Swiss-grid aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDH9-wl0KmyD-kEM-_7D4qHDEweJr3ObMmOsud3scZ1Z8g1EK0QRHUBk4PbxbvQA8kfmR-yeBMfEzsI8czEuC91pBzYGBURKi_BSYVpdO550K07nNDTpQ7c2LlDaZvhp8DaVtjTjeeNdQz_hR4LJDTZkP8xaDPPBP_l5Lq1IbkpS6-0flIiuC0DTGFVSV5KhBDMYIHpL4UWVXPSMFeE3DLxCl9iq2hl5FA1soZPx2DeKdiXLOgcknD_8-EzbjFzwfsO1WyaeRGjoA"/>
+</div>
+<div>
+<h4 class="font-body-standard text-body-standard font-bold group-hover:text-primary transition-colors mb-1">c/DataScience</h4>
+<p class="font-mono-metadata text-mono-metadata text-steel-subdued mb-2 line-clamp-2">Rigorous discussion on statistical models, data engineering, and visualization techniques. Strict moderation policies apply.</p>
+<span class="font-mono-metadata text-micro-label bg-surface-container-low px-2 py-1 text-carbon-ink">950k members</span>
+</div>
+</div>
+<!-- Featured Card 2 -->
+<div class="border border-fog-hairline p-4 flex space-x-4 hover:border-carbon-ink/20 transition-colors cursor-pointer group">
+<div class="w-12 h-12 bg-surface-container-high overflow-hidden flex-shrink-0">
+<img alt="Web" class="w-full h-full object-cover grayscale" data-alt="A minimalist workspace showing a laptop screen displaying a pristine, grid-based website layout. The environment is devoid of clutter, lit by a cool, even light. The focus is entirely on the structural integrity of the digital interface, rendered in high contrast black and white." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdMP27QI7ExYfQ7nVKHwx1MAFxmzuWAAc7tvN7jJ3p09Qgksm5Ihm7bqJkfgK0Ca5DEVQdi4XSay8DTd44UNXp5DeOJmiDHKfKi_cRcWL5mdjLmUU7pcEcItaZm2HDkdTy_We2c0oyJkxuHa_hs-dYy1TXRFhQDDrAlrsx0lxHp_bCOqSI85VJZys4pS1HpIvtgEnbhCJP6E2rMpGfU0NH5GH3lVehFDECevgpNbUmaTdenO-FwcO47TM7zHJ-T93Gi82JEKGB9A"/>
+</div>
+<div>
+<h4 class="font-body-standard text-body-standard font-bold group-hover:text-primary transition-colors mb-1">c/WebDevelopment</h4>
+<p class="font-mono-metadata text-mono-metadata text-steel-subdued mb-2 line-clamp-2">Front-end architectures, server-side frameworks, and the evolution of the open web. Focus on performant systems.</p>
+<span class="font-mono-metadata text-micro-label bg-surface-container-low px-2 py-1 text-carbon-ink">1.8m members</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Right Rail (Contextual Data) -->
+<aside class="hidden xl:block w-rail-right shrink-0 sticky top-24 h-[calc(100vh-6rem)] pl-8 border-l border-fog-hairline">
+<div class="mb-8">
+<h3 class="font-micro-label text-micro-label text-steel-subdued mb-4 uppercase tracking-widest border-b border-fog-hairline pb-2">Your Followed Communities</h3>
+<ul class="space-y-0">
+<!-- List Item 1 -->
+<li class="flex justify-between items-center py-2 border-b border-fog-hairline group cursor-pointer hover:bg-surface-container-lowest transition-colors">
+<span class="font-body-standard text-body-standard font-bold truncate pr-2 group-hover:text-primary">c/WorldNews</span>
+<div class="flex items-center space-x-3 text-right shrink-0">
+<span class="font-mono-metadata text-mono-metadata text-carbon-ink">14.2m</span>
+<span class="font-mono-metadata text-mono-metadata text-approved-green flex items-center w-12 justify-end">
+<span class="material-symbols-outlined" style="font-size: 14px;">arrow_drop_up</span>
+                                120
+                            </span>
+</div>
+</li>
+<!-- List Item 2 -->
+<li class="flex justify-between items-center py-2 border-b border-fog-hairline group cursor-pointer hover:bg-surface-container-lowest transition-colors">
+<span class="font-body-standard text-body-standard font-bold truncate pr-2 group-hover:text-primary">c/Economics</span>
+<div class="flex items-center space-x-3 text-right shrink-0">
+<span class="font-mono-metadata text-mono-metadata text-carbon-ink">2.1m</span>
+<span class="font-mono-metadata text-mono-metadata text-signal-red flex items-center w-12 justify-end">
+<span class="material-symbols-outlined" style="font-size: 14px;">arrow_drop_down</span>
+                                45
+                            </span>
+</div>
+</li>
+<!-- List Item 3 -->
+<li class="flex justify-between items-center py-2 border-b border-fog-hairline group cursor-pointer hover:bg-surface-container-lowest transition-colors">
+<span class="font-body-standard text-body-standard font-bold truncate pr-2 group-hover:text-primary">c/Architecture</span>
+<div class="flex items-center space-x-3 text-right shrink-0">
+<span class="font-mono-metadata text-mono-metadata text-carbon-ink">850k</span>
+<span class="font-mono-metadata text-mono-metadata text-approved-green flex items-center w-12 justify-end">
+<span class="material-symbols-outlined" style="font-size: 14px;">arrow_drop_up</span>
+                                12
+                            </span>
+</div>
+</li>
+<!-- List Item 4 -->
+<li class="flex justify-between items-center py-2 border-b border-fog-hairline group cursor-pointer hover:bg-surface-container-lowest transition-colors">
+<span class="font-body-standard text-body-standard font-bold truncate pr-2 group-hover:text-primary">c/Typography</span>
+<div class="flex items-center space-x-3 text-right shrink-0">
+<span class="font-mono-metadata text-mono-metadata text-carbon-ink">112k</span>
+<span class="font-mono-metadata text-mono-metadata text-steel-subdued flex items-center w-12 justify-end">
+                                --
+                            </span>
+</div>
+</li>
+</ul>
+</div>
+<div class="mt-8 border border-fog-hairline p-4 bg-surface-container-lowest">
+<p class="font-body-standard text-body-standard text-carbon-ink mb-3">Can't find what you're looking for?</p>
+<a class="font-mono-metadata text-[12px] text-signal-red hover:text-primary hover:underline transition-colors block uppercase tracking-widest font-bold" href="#">Start a new community →</a>
+</div>
+</aside>
+</div>
+<!-- Footer -->
+<footer class="w-full py-8 mt-gap-section border-t border-fog-hairline bg-surface-container-lowest">
+<div class="max-w-max-width-container mx-auto px-padding-desktop flex flex-col md:flex-row justify-between items-center">
+<span class="font-display text-body-standard font-bold text-primary mb-4 md:mb-0">Tourane News</span>
+<div class="flex space-x-6 text-center md:text-left mb-4 md:mb-0">
+<a class="font-mono-metadata text-mono-metadata uppercase text-steel-subdued hover:text-primary transition-colors" href="#">Editorial Guidelines</a>
+<a class="font-mono-metadata text-mono-metadata uppercase text-steel-subdued hover:text-primary transition-colors" href="#">Masthead</a>
+<a class="font-mono-metadata text-mono-metadata uppercase text-steel-subdued hover:text-primary transition-colors" href="#">Archive</a>
+<a class="font-mono-metadata text-mono-metadata uppercase text-steel-subdued hover:text-primary transition-colors" href="#">RSS Feed</a>
+</div>
+<span class="font-mono-metadata text-mono-metadata text-steel-subdued opacity-80 uppercase">© 2024 Tourane News. Independent. Swiss-Grid.</span>
+</div>
+</footer>
+</body></html>

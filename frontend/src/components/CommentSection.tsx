@@ -6,8 +6,7 @@ import type { Comment } from '../types';
 import { backendApi } from '../lib/api';
 import { backendCommentToComment } from '../lib/backendAdapters';
 import { Alert } from './ui/Alert';
-
-type SortType = 'best' | 'top' | 'new';
+import { TextArea } from './ui/Input';
 
 interface CommentSectionProps {
   postId: string;
@@ -23,21 +22,22 @@ const countThread = (comments: Comment[]): number =>
 const addReplyToThread = (comments: Comment[], parentId: string, reply: Comment): Comment[] =>
   comments.map((comment) => {
     if (comment.id === parentId) {
-      return {
-        ...comment,
-        replies: [...comment.replies, reply],
-      };
+      return { ...comment, replies: [...comment.replies, reply] };
     }
-
     return {
       ...comment,
       replies: addReplyToThread(comment.replies, parentId, reply),
     };
   });
 
-export const CommentSection: React.FC<CommentSectionProps> = ({ postId, backendArticleId, postAuthorId, quoteDraft, onQuoteDraftClear }) => {
-  const [comments, setComments] = useState<Comment[]>(() => MOCK_COMMENTS.filter(c => c.postId === postId));
-  const [sortBy, setSortBy] = useState<SortType>('best');
+export const CommentSection: React.FC<CommentSectionProps> = ({
+  postId,
+  backendArticleId,
+  postAuthorId,
+  quoteDraft,
+  onQuoteDraftClear,
+}) => {
+  const [comments, setComments] = useState<Comment[]>(() => MOCK_COMMENTS.filter((c) => c.postId === postId));
   const [commentText, setCommentText] = useState('');
   const [commentNotice, setCommentNotice] = useState('');
   const hasCommentContent = Boolean(commentText.trim() || quoteDraft?.trim());
@@ -51,14 +51,14 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ postId, backendA
       try {
         const response = await backendApi.getCommentsByPost(postId);
         if (!isMounted) return;
-        setComments(response.content.map(comment => backendCommentToComment(comment, postId)));
+        setComments(response.content.map((comment) => backendCommentToComment(comment, postId)));
       } catch (error) {
         if (!isMounted) return;
         if (backendArticleId) {
           try {
             const response = await backendApi.getCommentsByArticle(Number(backendArticleId));
             if (!isMounted) return;
-            setComments(response.content.map(comment => backendCommentToComment(comment, postId)));
+            setComments(response.content.map((comment) => backendCommentToComment(comment, postId)));
             setCommentNotice('Showing article-linked discussion for this post.');
           } catch {
             setComments([]);
@@ -81,14 +81,12 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ postId, backendA
   const handleAddComment = async () => {
     const body = commentText.trim();
     const quote = quoteDraft?.trim();
-    const content = quote
-      ? `> ${quote.replace(/\n+/g, '\n> ')}${body ? `\n\n${body}` : ''}`
-      : body;
+    const content = quote ? `> ${quote.replace(/\n+/g, '\n> ')}${body ? `\n\n${body}` : ''}` : body;
     if (!content) return;
 
     try {
       const createdComment = await backendApi.createPostComment(postId, { content });
-      setComments(prev => [backendCommentToComment(createdComment, postId), ...prev]);
+      setComments((prev) => [backendCommentToComment(createdComment, postId), ...prev]);
       setCommentText('');
       onQuoteDraftClear?.();
       toast.success('Comment posted.');
@@ -104,23 +102,12 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ postId, backendA
         parentId: Number(parentId),
       });
       const reply = backendCommentToComment(createdReply, postId);
-      setComments(prev => addReplyToThread(prev, parentId, reply));
+      setComments((prev) => addReplyToThread(prev, parentId, reply));
       toast.success('Reply posted.');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Reply failed.');
     }
   };
-
-  const sortedComments = [...comments].sort((a, b) => {
-    switch (sortBy) {
-      case 'top':
-        return (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes);
-      case 'new':
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      default:
-        return 0;
-    }
-  });
 
   const totalComments = countThread(comments);
   const composerId = `comment-composer-${postId}`;
@@ -137,82 +124,69 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ postId, backendA
   };
 
   return (
-    <div className="mt-14 border-t-4 border-[var(--color-app-heading)] pb-4 pt-10 sm:mt-20 sm:pb-10 sm:pt-12">
-      <div className="mb-8 flex items-center gap-6">
-        <h3 className="editorial-h2 !text-2xl">
-          {totalComments} Responses
+    <section id="comments" aria-labelledby="responses-heading" className="mt-10 border-t border-app-border pt-8">
+      <div className="mb-5 flex flex-wrap items-end gap-x-6 gap-y-2">
+        <h3 id="responses-heading" className="mono-label text-app-muted">
+          {totalComments} comments
         </h3>
-        <div className="ml-auto flex gap-2">
-          {(['best', 'top', 'new'] as SortType[]).map(sort => (
-            <button
-              type="button"
-              key={sort}
-              onClick={() => setSortBy(sort)}
-              aria-pressed={sortBy === sort}
-              className={`h-9 px-4 text-xs font-bold uppercase tracking-widest transition-all ${
-                sortBy === sort
-                  ? 'bg-[var(--color-app-heading)] text-white'
-                  : 'text-[var(--color-app-muted)] hover:text-[var(--color-app-action)]'
-              }`}
-            >
-              {sort}
-            </button>
-          ))}
-        </div>
       </div>
 
       {commentNotice && (
-        <Alert tone="warning" className="mb-8">
+        <Alert tone="warning" className="mb-6">
           {commentNotice}
         </Alert>
       )}
 
-      <div className={sortedComments.length ? 'mb-8 sm:mb-10' : 'mb-0'}>
+      <div className={comments.length ? 'mb-10' : 'mb-0'}>
         {quoteDraft && (
-          <div className="mb-6 border border-[var(--color-app-border)] bg-[var(--color-app-surface-alt)] p-6">
+          <aside className="mb-4 border-l-2 border-app-action px-4 py-3">
             <div className="mb-2 flex items-center justify-between gap-4">
-              <span className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-action)]">
-                Referencing Dispatch
-              </span>
+              <span className="mono-label text-app-action">Quote</span>
               <button
                 type="button"
                 onClick={onQuoteDraftClear}
-                className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)] hover:text-[var(--color-app-action)]"
+                className="font-mono text-[11px] uppercase tracking-wider text-app-muted transition-colors hover:text-app-action"
               >
-                Remove Quote
+                Remove quote
               </button>
             </div>
-            <p className="editorial-label !text-base italic leading-relaxed text-[var(--color-app-muted)]">
-              "{quoteDraft}"
-            </p>
-          </div>
+            <p className="text-sm italic leading-relaxed text-app-text">&ldquo;{quoteDraft}&rdquo;</p>
+          </aside>
         )}
         <label htmlFor={composerId} className="sr-only">
           Add a response
         </label>
-        <textarea
+        <TextArea
           id={composerId}
           value={commentText}
           onChange={(e) => setCommentText(e.target.value)}
-          placeholder="Enter your response..."
+          placeholder="Add to the discussion. Cite sources, ask questions, disagree with evidence."
           disabled={!canUseBackendComments}
-          className="bulwark-input min-h-[120px] w-full !p-4 !text-base leading-relaxed"
+          className="min-h-[120px] w-full max-w-[68ch] text-[15px] leading-relaxed"
         />
-        <div className="mt-4 flex justify-end">
+        <div className="mt-3 flex items-center justify-between gap-4">
+          <p className="font-mono text-[11px] text-app-muted">
+            Markdown supported. Be specific. Back claims with evidence.
+          </p>
           <button
             type="button"
             onClick={handleAddComment}
             disabled={!hasCommentContent || !canUseBackendComments}
-            className="bulwark-button-primary !h-12 !px-8 uppercase tracking-widest"
+            className="inline-flex h-10 items-center justify-center border border-app-action bg-app-action px-6 font-mono text-[11px] uppercase tracking-wider text-app-on-action transition-colors hover:bg-app-action-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Post Response
+            Post response
           </button>
         </div>
       </div>
 
-      {sortedComments.length > 0 && (
-        <CommentTree comments={sortedComments} postAuthorId={postAuthorId} onReply={handleAddReply} onLike={handleCommentLike} />
+      {comments.length > 0 && (
+        <CommentTree
+          comments={comments}
+          postAuthorId={postAuthorId}
+          onReply={handleAddReply}
+          onLike={handleCommentLike}
+        />
       )}
-    </div>
+    </section>
   );
 };

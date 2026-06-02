@@ -36,7 +36,7 @@ export const subscribeReaderSettings = (callback: (settings: ReaderSettings) => 
   if (typeof window === 'undefined') return () => undefined;
 
   const handleChange = (event: Event) => {
-    callback(event instanceof CustomEvent && event.detail ? event.detail as ReaderSettings : readReaderSettings());
+    callback(event instanceof CustomEvent && event.detail ? (event.detail as ReaderSettings) : readReaderSettings());
   };
 
   const handleStorage = (event: StorageEvent) => {

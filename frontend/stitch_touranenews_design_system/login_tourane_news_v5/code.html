@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login - Tourane News</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400&amp;family=Geist:wght@400;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#eeeeee",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed": "#1c1b1b",
+                        "secondary": "#5f5e5e",
+                        "on-tertiary-fixed": "#001e30",
+                        "primary": "#b70011",
+                        "outline": "#916f6b",
+                        "on-primary-fixed": "#410002",
+                        "on-error-container": "#93000a",
+                        "background": "#f9f9f9",
+                        "inverse-primary": "#ffb4ab",
+                        "primary-fixed-dim": "#ffb4ab",
+                        "surface-tint": "#bf0715",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#90cdff",
+                        "on-primary-container": "#fff6f5",
+                        "secondary-fixed-dim": "#c9c6c5",
+                        "primary-fixed": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#004b71",
+                        "on-surface": "#1a1c1c",
+                        "surface-container-highest": "#e2e2e2",
+                        "secondary-container": "#e5e2e1",
+                        "carbon-ink": "#0A0A0A",
+                        "on-secondary-container": "#656464",
+                        "on-primary-fixed-variant": "#93000b",
+                        "surface-container-high": "#e8e8e8",
+                        "paper-white": "#FAFAFA",
+                        "on-surface-variant": "#5c403c",
+                        "warn-amber": "#D97706",
+                        "steel-subdued": "#71717A",
+                        "tertiary-fixed": "#cbe6ff",
+                        "on-primary": "#ffffff",
+                        "on-background": "#1a1c1c",
+                        "on-secondary-fixed-variant": "#474646",
+                        "error": "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        "inverse-surface": "#2f3131",
+                        "surface-container-low": "#f3f3f3",
+                        "on-tertiary-container": "#f3f8ff",
+                        "inverse-on-surface": "#f0f1f1",
+                        "approved-green": "#16A34A",
+                        "signal-red": "#DC2626",
+                        "surface-bright": "#f9f9f9",
+                        "surface-dim": "#dadada",
+                        "surface-lift": "#FFFFFF",
+                        "tertiary": "#005e8d",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-container": "#0078b2",
+                        "surface": "#f9f9f9",
+                        "primary-container": "#dc2626",
+                        "outline-variant": "#e6bdb8",
+                        "on-secondary": "#ffffff",
+                        "slate-body": "#3F3F46",
+                        "fog-hairline": "#E4E4E7",
+                        "surface-variant": "#e2e2e2",
+                        "secondary-fixed": "#e5e2e1"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "rail-left": "12rem",
+                        "padding-desktop": "2.5rem",
+                        "padding-tablet": "1.5rem",
+                        "gap-section": "3rem",
+                        "rail-right": "16rem",
+                        "unit": "4px",
+                        "max-width-container": "1320px",
+                        "max-width-feed": "720px",
+                        "padding-mobile": "1rem",
+                        "gap-feed": "2rem",
+                        "admin-row-height": "36px"
+                    },
+                    "fontFamily": {
+                        "display": ["Geist"],
+                        "body-standard": ["Geist"],
+                        "body-article": ["Geist"],
+                        "h1-admin": ["Geist"],
+                        "display-mobile": ["Geist"],
+                        "mono-metadata": ["Geist Mono"],
+                        "micro-label": ["Geist"],
+                        "h2": ["Geist"]
+                    },
+                    "fontSize": {
+                        "display": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-standard": ["15px", { "lineHeight": "1.55", "fontWeight": "400" }],
+                        "body-article": ["17px", { "lineHeight": "1.7", "fontWeight": "400" }],
+                        "h1-admin": ["24px", { "lineHeight": "1.3", "fontWeight": "700" }],
+                        "display-mobile": ["24px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "mono-metadata": ["12px", { "lineHeight": "1", "fontWeight": "400" }],
+                        "micro-label": ["11px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "h2": ["20px", { "lineHeight": "1.4", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface-container-lowest text-on-surface font-body-standard min-h-screen flex flex-col md:flex-row antialiased">
+<!-- Left Column: Branding & Specs (40%) -->
+<div class="w-full md:w-2/5 border-b md:border-b-0 md:border-r border-fog-hairline bg-paper-white flex flex-col justify-between p-padding-mobile md:p-padding-desktop">
+<div>
+<div class="font-display text-h2 text-primary font-bold tracking-tighter mb-12">
+                TOURANE NEWS
+            </div>
+<h1 class="font-display text-display mb-8">
+                Sign in to the newsroom
+            </h1>
+<div class="mb-12">
+<img alt="Minimalist wireframe globe illustration representing global news coverage." class="w-full max-w-[280px] h-auto object-contain opacity-80 mix-blend-multiply" src="https://lh3.googleusercontent.com/aida/AP1WRLt_G2u2lGsQ2s8gFxIYfCaMQBvOy4PWLBHgnBN3E0sUcZbmvmVxuEnKgMPW__X6F7gplZpBrSYubpiPnZrknQCRA0t3WTv8XhtYSMgJGK08GU4M0qvaR2uJh08TwN1-CTghjenP0SdVLiWK9j08QUiE5VVyKmnJmWrL5yLhT_dDpnm71YcX-xqjStEKyUDd8hp63vTuyKiN7gDYivlua0IXPklwFAh0QkGCzgHc-SRn7iLSHJZpEmM0oA"/>
+</div>
+</div>
+<!-- Spec Rows -->
+<div class="flex flex-col gap-0 border-t border-fog-hairline pt-6">
+<div class="flex justify-between items-center py-2 border-b border-fog-hairline">
+<span class="font-micro-label text-micro-label text-secondary uppercase">Backend Status</span>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-approved-green"></span>
+<span class="font-mono-metadata text-mono-metadata text-on-surface">Operational</span>
+</div>
+</div>
+<div class="flex justify-between items-center py-2 border-b border-fog-hairline">
+<span class="font-micro-label text-micro-label text-secondary uppercase">Access Model</span>
+<span class="font-mono-metadata text-mono-metadata text-on-surface">Swiss-Grid Auth V2</span>
+</div>
+<div class="flex justify-between items-center py-2">
+<span class="font-micro-label text-micro-label text-secondary uppercase">Current Role</span>
+<span class="font-mono-metadata text-mono-metadata text-on-surface">Unauthenticated</span>
+</div>
+</div>
+</div>
+<!-- Right Column: Login Form (60%) -->
+<div class="w-full md:w-3/5 flex flex-col justify-center items-center p-padding-mobile md:p-padding-desktop bg-surface-container-lowest">
+<div class="w-full max-w-[400px]">
+<form action="/dashboard" class="flex flex-col gap-6" method="POST">
+<div class="flex flex-col gap-2">
+<label class="font-micro-label text-micro-label text-secondary uppercase tracking-widest" for="email">Email Address</label>
+<input class="w-full h-12 bg-transparent border border-carbon-ink/20 text-on-surface font-body-standard px-4 rounded-none focus:outline-none focus:border-signal-red focus:ring-1 focus:ring-signal-red/25 transition-colors" id="email" name="email" placeholder="name@touranenews.ch" required="" type="email"/>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<label class="font-micro-label text-micro-label text-secondary uppercase tracking-widest" for="password">Password</label>
+<a class="font-mono-metadata text-mono-metadata text-secondary hover:text-primary transition-colors underline" href="/forgot-password">Reset?</a>
+</div>
+<input class="w-full h-12 bg-transparent border border-carbon-ink/20 text-on-surface font-body-standard px-4 rounded-none focus:outline-none focus:border-signal-red focus:ring-1 focus:ring-signal-red/25 transition-colors" id="password" name="password" placeholder="••••••••" required="" type="password"/>
+</div>
+<button class="w-full h-12 mt-4 bg-signal-red text-paper-white font-micro-label text-micro-label uppercase tracking-widest rounded-none hover:bg-primary transition-colors flex items-center justify-center gap-2 group" type="submit">
+                    Log In
+                    <span class="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</form>
+<div class="mt-8 pt-6 border-t border-fog-hairline text-center">
+<span class="font-body-standard text-body-standard text-secondary">No credentials?</span>
+<a class="font-body-standard text-body-standard text-primary hover:underline ml-1 font-semibold" href="/register">Request access</a>
+</div>
+</div>
+</div>
+</body></html>

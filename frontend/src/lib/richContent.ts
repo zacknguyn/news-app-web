@@ -13,10 +13,10 @@ export const sanitizeRichHtml = (content: string) => {
   const template = document.createElement('template');
   template.innerHTML = content;
 
-  template.content.querySelectorAll('script, style, iframe, object, embed').forEach(node => node.remove());
+  template.content.querySelectorAll('script, style, iframe, object, embed').forEach((node) => node.remove());
 
-  template.content.querySelectorAll<HTMLElement>('*').forEach(element => {
-    [...element.attributes].forEach(attribute => {
+  template.content.querySelectorAll<HTMLElement>('*').forEach((element) => {
+    [...element.attributes].forEach((attribute) => {
       const name = attribute.name.toLowerCase();
       const value = attribute.value.trim().toLowerCase();
       if (name.startsWith('on') || value.startsWith('javascript:')) {
@@ -40,7 +40,7 @@ export const addImageCaptions = (content: string) => {
   const template = document.createElement('template');
   template.innerHTML = sanitized;
 
-  template.content.querySelectorAll<HTMLImageElement>('img[title]').forEach(image => {
+  template.content.querySelectorAll<HTMLImageElement>('img[title]').forEach((image) => {
     const caption = image.getAttribute('title')?.trim();
     if (!caption || image.parentElement?.tagName === 'FIGURE') return;
 

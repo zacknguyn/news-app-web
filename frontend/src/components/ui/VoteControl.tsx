@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowBigDown, ArrowBigUp } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Tooltip } from './Tooltip';
 
@@ -12,6 +12,13 @@ type VoteControlProps = {
   onVote?: (vote: 'up' | 'down') => void;
 };
 
+const upActive = 'text-app-action';
+const downActive = 'text-app-muted';
+const idle = 'text-app-faint hover:text-app-action';
+const downIdle = 'text-app-faint hover:text-app-muted';
+
+const arrowClass = 'inline-flex items-center justify-center transition-colors duration-150 active:translate-y-px';
+
 export const VoteControl: React.FC<VoteControlProps> = ({
   label,
   score,
@@ -21,51 +28,77 @@ export const VoteControl: React.FC<VoteControlProps> = ({
   onVote,
 }) => {
   const isHorizontal = orientation === 'horizontal';
-  const buttonClass = cn(
-    'coarse-touch-target inline-flex items-center justify-center rounded transition-colors',
-    compact ? 'min-h-11 min-w-11 p-0.5 sm:min-h-6 sm:min-w-6' : 'min-h-11 min-w-11 p-1 sm:min-h-7 sm:min-w-7'
-  );
+  const size = compact ? 'h-7 w-7' : 'h-8 w-8';
+  const iconSize = compact ? 'h-3.5 w-3.5' : 'h-4 w-4';
+
+  if (isHorizontal) {
+    return (
+      <div className={cn('inline-flex items-center font-mono', compact ? 'h-7 gap-0' : 'h-9 gap-0.5')}>
+        <Tooltip label="Upvote" side="top">
+          <button
+            type="button"
+            aria-label={`Upvote ${label}`}
+            aria-pressed={vote === 'up'}
+            onClick={() => onVote?.('up')}
+            className={cn(arrowClass, size, vote === 'up' ? upActive : idle)}
+          >
+            <ChevronUp className={iconSize} strokeWidth={2.25} />
+          </button>
+        </Tooltip>
+        <span
+          className={cn(
+            'min-w-7 text-center font-bold tabular-nums transition-colors duration-150',
+            compact ? 'text-[13px]' : 'text-sm',
+            vote === 'up' ? 'text-app-action' : vote === 'down' ? 'text-app-muted' : 'text-app-heading',
+          )}
+        >
+          {score}
+        </span>
+        <Tooltip label="Downvote" side="top">
+          <button
+            type="button"
+            aria-label={`Downvote ${label}`}
+            aria-pressed={vote === 'down'}
+            onClick={() => onVote?.('down')}
+            className={cn(arrowClass, size, vote === 'down' ? downActive : downIdle)}
+          >
+            <ChevronDown className={iconSize} strokeWidth={2.25} />
+          </button>
+        </Tooltip>
+      </div>
+    );
+  }
 
   return (
-    <div
-      className={cn(
-        'flex items-center gap-1',
-        isHorizontal ? 'border border-[var(--color-app-border)] bg-[var(--color-app-surface-alt)] px-2 py-1' : 'min-w-[34px] flex-col gap-0.5'
-      )}
-    >
-      <Tooltip label="Upvote" side={isHorizontal ? 'top' : 'bottom'}>
+    <div className="flex w-11 flex-col items-center gap-1" aria-label={`${score} votes`}>
+      <Tooltip label="Upvote" side="right">
         <button
           type="button"
           aria-label={`Upvote ${label}`}
           aria-pressed={vote === 'up'}
           onClick={() => onVote?.('up')}
-          className={cn(
-            buttonClass, 
-            vote === 'up' 
-              ? 'text-[var(--color-app-action)] bg-[var(--color-brand-red-faint)]' 
-              : 'text-[var(--color-app-faint)] hover:text-[var(--color-app-action)] hover:bg-[var(--color-app-surface-alt)]'
-          )}
+          className={cn(arrowClass, 'h-7 w-7', vote === 'up' ? upActive : idle)}
         >
-          <ArrowBigUp className="h-5 w-5" />
+          <ChevronUp className="h-4 w-4" strokeWidth={2.25} />
         </button>
       </Tooltip>
-      <span className={cn('text-center font-bold font-mono', isHorizontal ? 'min-w-8 text-sm' : 'text-xs text-[var(--color-app-heading)]')}>
+      <span
+        className={cn(
+          'grid h-7 min-w-7 place-items-center border border-app-border px-1 font-mono text-[13px] font-semibold tabular-nums transition-colors duration-150',
+          vote === 'up' ? 'text-app-action' : vote === 'down' ? 'text-app-muted' : 'text-app-heading',
+        )}
+      >
         {score}
       </span>
-      <Tooltip label="Downvote" side={isHorizontal ? 'top' : 'bottom'}>
+      <Tooltip label="Downvote" side="right">
         <button
           type="button"
           aria-label={`Downvote ${label}`}
           aria-pressed={vote === 'down'}
           onClick={() => onVote?.('down')}
-          className={cn(
-            buttonClass, 
-            vote === 'down' 
-              ? 'text-blue-600 bg-blue-50' 
-              : 'text-[var(--color-app-faint)] hover:text-blue-600 hover:bg-blue-50'
-          )}
+          className={cn(arrowClass, 'h-7 w-7', vote === 'down' ? downActive : downIdle)}
         >
-          <ArrowBigDown className="h-5 w-5" />
+          <ChevronDown className="h-4 w-4" strokeWidth={2.25} />
         </button>
       </Tooltip>
     </div>

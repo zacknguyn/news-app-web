@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Hash, Send } from 'lucide-react';
 import { backendApi } from '../lib/api';
 import { backendTopicToChannel } from '../lib/backendAdapters';
-import { usePageMotion } from '../hooks/usePageMotion';
+import { Field, Input, TextArea } from '../components/ui/Input';
 
 export const CreateChannelScreen: React.FC = () => {
-  const pageRef = usePageMotion<HTMLDivElement>();
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -16,12 +14,17 @@ export const CreateChannelScreen: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const canSubmit = name.trim().length >= 3 && description.trim().length >= 20;
+  const requirements = [
+    ['Name, 3 to 100 characters', name.trim().length >= 3 && name.trim().length <= 100],
+    ['Description, 20 to 500 characters', description.trim().length >= 20 && description.trim().length <= 500],
+    ['Owner joins automatically', true],
+  ] as const;
+  const canSubmit = requirements.every(([, ready]) => ready);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!canSubmit) {
-      setError('Add a channel name and a clear description first.');
+      setError('Complete the requirements before creating a community.');
       return;
     }
 
@@ -35,122 +38,120 @@ export const CreateChannelScreen: React.FC = () => {
         avatar: avatar.trim() || undefined,
         banner: banner.trim() || undefined,
       });
-      const channel = backendTopicToChannel(created);
-      navigate(`/app/c/${channel.slug}`);
+      navigate(`/app/c/${backendTopicToChannel(created).slug}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to create channel.');
+      setError(err instanceof Error ? err.message : 'Unable to create community.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div ref={pageRef} className="app-page-narrow">
-      <button
-        type="button"
-        data-motion="page"
-        onClick={() => navigate(-1)}
-        className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-app-muted)] transition-colors hover:text-[var(--color-app-ink)]"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back
-      </button>
-
-      <div data-motion="page" className="mb-8 border-b border-[var(--color-app-border)] pb-5">
-        <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-[8px] border border-[var(--color-app-border)] bg-[var(--color-app-surface)] text-[var(--color-app-action)]">
-          <Hash className="h-5 w-5" />
-        </div>
-        <h1 className="text-3xl font-serif font-medium text-[var(--color-app-ink)]">
-          Create channel
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-app-muted)]">
-          Start a focused community for reporting, discussion, and source-backed updates.
+    <div className="app-page grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <main>
+        <p className="mono-label mb-3 text-app-action">New community</p>
+        <h1 className="text-[32px] font-semibold leading-tight text-app-heading">Start a community</h1>
+        <p className="mt-3 max-w-[65ch] text-sm leading-6 text-app-muted">
+          Create a focused place for reporting, discussion, and source-backed updates.
         </p>
-      </div>
 
-      <form data-motion="page" className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]" onSubmit={handleSubmit}>
-        <div className="space-y-5">
+        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           {error && (
-            <div className="rounded-[6px] border border-[var(--color-state-error-border)] bg-[var(--color-state-error-bg)] px-4 py-3 text-sm font-semibold text-[var(--color-state-error)]">
-              {error}
-            </div>
+            <p className="border border-state-error-border px-3 py-2 font-mono text-[11px] text-state-error">{error}</p>
           )}
-
-          <label className="block">
-            <span className="mb-2 block text-sm font-bold text-[var(--color-app-ink)]">Channel name</span>
-            <input
+          <Field id="channel-name" label="Channel name" hint="3 to 100 characters">
+            <Input
+              id="channel-name"
               value={name}
               onChange={(event) => setName(event.target.value)}
               maxLength={100}
-              placeholder="Investigations, Da Nang Watch, Open Source Intel..."
-              className="hex-input min-h-12 w-full px-4 text-base"
+              placeholder="Da Nang Watch"
             />
-          </label>
-
-          <label className="block">
-            <span className="mb-2 block text-sm font-bold text-[var(--color-app-ink)]">Description</span>
-            <textarea
+          </Field>
+          <Field id="channel-description" label="Description" hint="20 to 500 characters">
+            <TextArea
+              id="channel-description"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               maxLength={500}
-              placeholder="What belongs here? Who is this channel for?"
-              className="hex-input min-h-32 w-full resize-y px-4 py-3 text-base leading-7"
+              placeholder="What belongs here? Who is this community for?"
+              className="min-h-32"
             />
-          </label>
-
-          <label className="block">
-            <span className="mb-2 block text-sm font-bold text-[var(--color-app-ink)]">Rules</span>
-            <textarea
+          </Field>
+          <Field id="channel-rules" label="Rules" optional hint="Up to 2,000 characters">
+            <TextArea
+              id="channel-rules"
               value={rules}
               onChange={(event) => setRules(event.target.value)}
               maxLength={2000}
               placeholder="Source expectations, civility, moderation boundaries..."
-              className="hex-input min-h-36 w-full resize-y px-4 py-3 text-base leading-7"
+              className="min-h-40"
             />
-          </label>
-
+          </Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className="mb-2 block text-sm font-bold text-[var(--color-app-ink)]">Avatar URL</span>
-              <input
+            <Field id="channel-avatar" label="Avatar URL" optional>
+              <Input
+                id="channel-avatar"
+                type="url"
                 value={avatar}
                 onChange={(event) => setAvatar(event.target.value)}
-                placeholder="Optional"
-                className="hex-input min-h-11 w-full px-4 text-sm"
+                placeholder="https://"
               />
-            </label>
-            <label className="block">
-              <span className="mb-2 block text-sm font-bold text-[var(--color-app-ink)]">Banner URL</span>
-              <input
+            </Field>
+            <Field id="channel-banner" label="Banner URL" optional>
+              <Input
+                id="channel-banner"
+                type="url"
                 value={banner}
                 onChange={(event) => setBanner(event.target.value)}
-                placeholder="Optional"
-                className="hex-input min-h-11 w-full px-4 text-sm"
+                placeholder="https://"
               />
-            </label>
+            </Field>
           </div>
-        </div>
-
-        <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-          <section className="rounded-[8px] border border-[var(--color-app-border-clean)] bg-[var(--color-app-surface)] p-4">
-            <h2 className="text-sm font-bold text-[var(--color-app-ink)]">Requirements</h2>
-            <div className="mt-3 space-y-2 text-sm font-semibold text-[var(--color-app-muted)]">
-              <p className={name.trim().length >= 3 ? 'text-[var(--color-app-ink)]' : ''}>Name, 3+ characters</p>
-              <p className={description.trim().length >= 20 ? 'text-[var(--color-app-ink)]' : ''}>Description, 20+ characters</p>
-              <p>Owner joins automatically</p>
-            </div>
-          </section>
-
           <button
             type="submit"
             disabled={!canSubmit || isSubmitting}
-            className="hex-button-primary inline-flex min-h-11 w-full items-center justify-center gap-2 px-5 text-sm font-semibold disabled:opacity-60"
+            className="h-12 bg-app-action px-5 font-mono text-[12px] uppercase tracking-wider text-app-on-action hover:bg-app-action-hover disabled:opacity-40"
           >
-            <Send className="h-4 w-4" />
-            {isSubmitting ? 'Creating...' : 'Create channel'}
+            {isSubmitting ? 'Creating' : 'Create community'}
           </button>
-        </aside>
-      </form>
+        </form>
+      </main>
+
+      <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+        <section className="border-t border-app-border pt-4">
+          <h2 className="mono-label mb-4 text-app-muted">Requirements</h2>
+          <div className="space-y-3">
+            {requirements.map(([label, ready]) => (
+              <div
+                key={label}
+                className="flex items-center justify-between gap-3 border-b border-app-border pb-3 font-mono text-[11px]"
+              >
+                <span className="text-app-muted">{label}</span>
+                <span className={ready ? 'text-app-action' : 'text-app-faint'}>{ready ? 'Ready' : 'Missing'}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className="border border-app-border p-4">
+          <h2 className="mono-label mb-4 text-app-muted">Preview</h2>
+          <div className="flex gap-3">
+            <img
+              src={
+                avatar || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(name || 'Community')}`
+              }
+              alt=""
+              className="h-12 w-12 border border-app-border object-cover"
+            />
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-app-heading">{name || 'Community name'}</p>
+              <p className="mt-1 line-clamp-2 text-sm leading-5 text-app-muted">
+                {description || 'Description preview appears here.'}
+              </p>
+            </div>
+          </div>
+        </section>
+      </aside>
     </div>
   );
 };

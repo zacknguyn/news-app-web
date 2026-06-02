@@ -12,6 +12,6 @@ if (rootElement) {
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>
-    </React.StrictMode>
+    </React.StrictMode>,
   );
 }

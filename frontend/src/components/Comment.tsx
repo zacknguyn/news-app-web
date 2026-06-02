@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import type { Comment as CommentType } from '../types';
 import { Link } from 'react-router-dom';
-import { ThumbsUp } from 'lucide-react';
+import { Heart } from 'lucide-react';
+import { TextArea } from './ui/Input';
+import { PostActionButton } from './ui/PostActionButton';
 
 interface CommentProps {
   comment: CommentType;
@@ -20,10 +22,10 @@ function timeAgo(date: string): string {
   if (hours < 24) return `${hours}h`;
   const days = Math.floor(hours / 24);
   if (days < 30) return `${days}d`;
-  return new Date(date).toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric', 
-    year: days > 365 ? 'numeric' : undefined 
+  return new Date(date).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: days > 365 ? 'numeric' : undefined,
   });
 }
 
@@ -31,32 +33,29 @@ function countReplies(comment: CommentType): number {
   return comment.replies.reduce((total, reply) => total + 1 + countReplies(reply), 0);
 }
 
-export const Comment: React.FC<CommentProps> = ({ 
-  comment, 
-  depth = 0, 
-  postAuthorId,
-  onReply,
-  onLike
-}) => {
+const TREE_INDENT = 24;
+
+const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId, onReply, onLike }) => {
   const [showReplies, setShowReplies] = useState(true);
   const [isReplying, setIsReplying] = useState(false);
   const [replyDraft, setReplyDraft] = useState('');
   const [displayLikes, setDisplayLikes] = useState(comment.upvotes);
+  const [hasLiked, setHasLiked] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
 
   const handleLike = async () => {
     if (isLiking) return;
-
     setIsLiking(true);
+    const nextLiked = !hasLiked;
+    setHasLiked(nextLiked);
+    setDisplayLikes((prev) => Math.max(prev + (nextLiked ? 1 : -1), 0));
     try {
       if (onLike) {
         const nextLikes = await onLike(comment.id);
-        if (nextLikes === null) return;
-        setDisplayLikes(nextLikes);
-        return;
+        if (nextLikes !== null) {
+          setDisplayLikes(Math.max(nextLikes, 0));
+        }
       }
-
-      setDisplayLikes(prev => prev + 1);
     } finally {
       setIsLiking(false);
     }
@@ -76,78 +75,95 @@ export const Comment: React.FC<CommentProps> = ({
   };
 
   return (
-    <article className={depth > 0 ? 'ml-6 border-l-2 border-[var(--color-app-border)] pl-6' : 'border-b border-[var(--color-app-border)] pb-8 last:border-0'}>
-      <div className="flex gap-4">
-        <Link to={`/app/u/${comment.author.username}`} className="shrink-0 pt-1">
-          <img 
-            src={comment.author.avatarUrl || `https://api.dicebear.com/8.x/initials/svg?seed=${comment.author.username}`}
-            alt=""
-            className="h-10 w-10 rounded-full border border-[var(--color-app-border)] grayscale"
-          />
-        </Link>
-        
+    <div
+      className={
+        depth > 0 ? 'relative border-l border-app-border pl-6' : 'border-t border-app-border py-5 first:border-t-0'
+      }
+      style={depth > 0 ? { marginLeft: TREE_INDENT } : undefined}
+    >
+      <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <div className="mb-2 flex items-center gap-3 text-xs font-bold uppercase tracking-widest">
-            <Link to={`/app/u/${comment.author.username}`} className={`hover:underline ${isOP ? 'text-[var(--color-app-action)]' : 'text-[var(--color-app-heading)]'}`}>
+          <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[11px] leading-5 text-app-muted">
+            <Link
+              to={`/app/u/${comment.author.username}`}
+              className={cn('hover:text-app-action hover:underline', isOP ? 'text-app-action' : 'text-app-heading')}
+            >
               @{comment.author.username}
             </Link>
-            {isOP && (
-              <span className="bg-[var(--color-app-action)] px-1.5 py-0.5 text-[10px] text-white">OP</span>
-            )}
-            <span className="text-[var(--color-app-muted)]">|</span>
-            <span className="text-[var(--color-app-muted)]">{timeAgo(comment.createdAt)}</span>
+            {isOP && <span className="text-app-action">OP</span>}
+            <span>{timeAgo(comment.createdAt)}</span>
+            <span className="tabular-nums">{displayLikes}</span>
+            <button type="button" onClick={() => setIsReplying(true)} className="hover:text-app-action">
+              Reply
+            </button>
+            <button type="button" className="hover:text-app-action">
+              Share
+            </button>
+            <button type="button" className="hover:text-app-action">
+              Save
+            </button>
+            <button type="button" className="hover:text-app-action">
+              Report
+            </button>
           </div>
 
           {comment.quote && (
-            <div className="mb-4 border-l-2 border-[var(--color-app-action)] bg-[var(--color-app-surface-alt)] p-4 italic text-sm text-[var(--color-app-muted)]">
-              "{comment.quote}"
-            </div>
+            <blockquote className="my-2 max-w-[68ch] border-l-2 border-app-action px-3 py-2 text-sm italic text-app-text">
+              {comment.quote}
+            </blockquote>
           )}
 
           {comment.content && (
-            <p className="editorial-label !text-base leading-relaxed text-[var(--color-app-text)] mb-4">
-              {comment.content}
-            </p>
+            <p className="mb-2 max-w-[68ch] text-[15px] leading-relaxed text-app-text">{comment.content}</p>
           )}
 
-          <div className="flex items-center gap-6">
-            <button
-              type="button"
-              onClick={handleLike}
+          <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-app-muted">
+            <PostActionButton
+              icon={<Heart strokeWidth={2.25} className={hasLiked ? 'fill-current' : undefined} />}
+              label={
+                <span className="inline-flex items-baseline gap-1.5">
+                  <span>{hasLiked ? 'Liked' : 'Like'}</span>
+                  <span className="tabular-nums">{displayLikes}</span>
+                </span>
+              }
+              active={hasLiked}
               disabled={isLiking}
-              className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)] hover:text-[var(--color-app-action)] transition-colors"
-            >
-              <ThumbsUp className="h-4 w-4" />
-              <span>{displayLikes} Authority</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsReplying(true)}
-              className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)] hover:text-[var(--color-app-action)] transition-colors"
-            >
-              Reply
-            </button>
-            <button type="button" className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)] hover:text-[var(--color-app-action)] transition-colors">Share</button>
+              onClick={handleLike}
+              ariaLabel={
+                hasLiked
+                  ? `Liked (${displayLikes} total). Tap to remove your like.`
+                  : `Like this comment (${displayLikes} total)`
+              }
+              title={hasLiked ? 'Liked' : 'Like'}
+            />
+            {hasReplies && (
+              <button
+                type="button"
+                onClick={() => setShowReplies(!showReplies)}
+                className="inline-flex min-h-10 items-center px-2 font-mono text-[11px] uppercase tracking-wider text-app-muted transition-colors hover:text-app-heading"
+              >
+                {showReplies ? 'Collapse' : 'Expand'} {replyCount}
+              </button>
+            )}
           </div>
 
           {isReplying && (
-            <div className="mt-6 border border-[var(--color-app-border)] bg-[var(--color-app-surface-alt)] p-4">
-              <textarea
-                id={`reply-${comment.id}`}
+            <div className="mt-3 border-t border-app-border pt-3">
+              <TextArea
                 value={replyDraft}
                 onChange={(event) => setReplyDraft(event.target.value)}
-                placeholder={`Enter your response to @${comment.author.username}...`}
-                className="bulwark-input min-h-[100px] w-full !p-4"
+                placeholder={`Reply to @${comment.author.username}...`}
+                className="min-h-[72px] w-full max-w-[68ch] text-[15px] leading-relaxed"
                 autoFocus
               />
-              <div className="mt-3 flex justify-end gap-4">
+              <div className="mt-2 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     setReplyDraft('');
                     setIsReplying(false);
                   }}
-                  className="bulwark-button-ghost uppercase tracking-widest"
+                  className="font-mono text-[11px] uppercase tracking-wider text-app-muted transition-colors hover:text-app-heading"
                 >
                   Cancel
                 </button>
@@ -155,28 +171,18 @@ export const Comment: React.FC<CommentProps> = ({
                   type="button"
                   onClick={handleSubmitReply}
                   disabled={!trimmedReply}
-                  className="bulwark-button-primary uppercase tracking-widest"
+                  className="inline-flex h-8 items-center justify-center border border-app-action bg-app-action px-4 font-mono text-[11px] uppercase tracking-wider text-app-on-action transition-colors hover:bg-app-action-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  Post Reply
+                  Post reply
                 </button>
               </div>
             </div>
           )}
 
-          {hasReplies && !showReplies && (
-              <button
-                type="button"
-                onClick={() => setShowReplies(true)}
-                className="mt-6 text-xs font-bold uppercase tracking-widest text-[var(--color-app-action)] hover:underline"
-              >
-                Show {replyCount} Responses
-              </button>
-          )}
-
           {hasReplies && showReplies && (
-            <div className="mt-8 space-y-8">
+            <div className="mt-5 space-y-5">
               {comment.replies.map((reply) => (
-                <Comment
+                <CommentNode
                   key={reply.id}
                   comment={reply}
                   depth={depth + 1}
@@ -185,22 +191,17 @@ export const Comment: React.FC<CommentProps> = ({
                   onLike={onLike}
                 />
               ))}
-              {depth === 0 && (
-                <button
-                  type="button"
-                  onClick={() => setShowReplies(false)}
-                  className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)] hover:text-[var(--color-app-action)] transition-colors"
-                >
-                  Collapse Thread
-                </button>
-              )}
             </div>
           )}
         </div>
       </div>
-    </article>
+    </div>
   );
 };
+
+function cn(...inputs: Array<string | false | null | undefined>): string {
+  return inputs.filter(Boolean).join(' ');
+}
 
 interface CommentTreeProps {
   comments: CommentType[];
@@ -213,14 +214,10 @@ export const CommentTree: React.FC<CommentTreeProps> = ({ comments, postAuthorId
   return (
     <div className="space-y-6">
       {comments.map((comment) => (
-        <Comment
-          key={comment.id}
-          comment={comment}
-          postAuthorId={postAuthorId}
-          onReply={onReply}
-          onLike={onLike}
-        />
+        <CommentNode key={comment.id} comment={comment} postAuthorId={postAuthorId} onReply={onReply} onLike={onLike} />
       ))}
     </div>
   );
 };
+
+export const Comment = CommentNode;

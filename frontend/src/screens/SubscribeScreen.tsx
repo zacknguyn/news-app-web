@@ -1,141 +1,142 @@
 import React, { useEffect, useState } from 'react';
-import { Check, Mail } from 'lucide-react';
 import { toast } from 'sonner';
-import { usePageMotion } from '../hooks/usePageMotion';
-import { readAppPreferences, saveAppPreferences, subscribeAppPreferences, type AppPreferences } from '../lib/appPreferences';
+import {
+  readAppPreferences,
+  saveAppPreferences,
+  subscribeAppPreferences,
+  type AppPreferences,
+} from '../lib/appPreferences';
 
-const plans: Array<{
-  id: AppPreferences['subscriptionPlan'];
-  name: string;
-  price: string;
-  copy: string;
-  features: string[];
-}> = [
-  {
-    id: 'reader',
-    name: 'Reader',
-    price: 'Free',
-    copy: 'Follow reporting, save highlights, and join discussion.',
-    features: ['Front page access', 'Reader highlights', 'Discussion voting'],
-  },
-  {
-    id: 'supporter',
-    name: 'Supporter',
-    price: '$5/mo',
-    copy: 'Back independent reporting and receive a tighter reading digest.',
-    features: ['Weekly briefing', 'Supporter badge', 'Priority newsletter'],
-  },
-  {
-    id: 'newsroom',
-    name: 'Newsroom',
-    price: '$15/mo',
-    copy: 'For teams that review, archive, and share reports together.',
-    features: ['Team digest', 'Shared archive', 'Editorial workflow'],
-  },
+const frequencies: Array<{ value: AppPreferences['newsletter']; title: string; copy: string }> = [
+  { value: 'daily', title: 'Daily briefing', copy: 'Delivered at 7 a.m. local time.' },
+  { value: 'weekly', title: 'Weekly briefing', copy: 'A slower digest for weekend reading.' },
+  { value: 'none', title: 'No digest', copy: 'Keep updates inside the app only.' },
+];
+
+const themes: Array<{ value: AppPreferences['theme']; title: string; copy: string }> = [
+  { value: 'light', title: 'Light', copy: 'Paper white reading surface.' },
+  { value: 'dark', title: 'Dark', copy: 'Ink black surface for low light.' },
+  { value: 'system', title: 'System', copy: 'Follow this device preference.' },
 ];
 
 export const SubscribeScreen: React.FC = () => {
-  const pageRef = usePageMotion<HTMLDivElement>();
   const [preferences, setPreferences] = useState<AppPreferences>(() => readAppPreferences());
 
-  useEffect(() => {
-    saveAppPreferences(preferences);
-  }, [preferences]);
-
+  useEffect(() => saveAppPreferences(preferences), [preferences]);
   useEffect(() => subscribeAppPreferences(setPreferences), []);
 
-  const selectPlan = (subscriptionPlan: AppPreferences['subscriptionPlan']) => {
-    setPreferences(current => ({ ...current, subscriptionPlan }));
-    toast.success('Subscription preference saved.');
+  const updatePreferences = (next: Partial<AppPreferences>) => {
+    setPreferences((current) => ({ ...current, ...next }));
+    toast.success('Preference saved.');
   };
 
   return (
-    <div ref={pageRef} className="app-page">
-      <header data-motion="page" className="grid gap-6 border-b-4 border-[var(--color-app-heading)] pb-7 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-end">
-        <div>
-          <p className="hex-kicker">Subscribe</p>
-          <h1 className="mt-3 font-[var(--font-display)] text-4xl font-bold leading-none text-[var(--color-app-heading)] sm:text-5xl">
-            Fund the reporting, tune the digest.
-          </h1>
-        </div>
-        <div className="border border-[var(--color-app-border)] p-4">
-          <div className="text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)]">Current plan</div>
-          <div className="mt-2 font-[var(--font-display)] text-2xl font-bold text-[var(--color-app-heading)]">
-            {plans.find(plan => plan.id === preferences.subscriptionPlan)?.name || 'Reader'}
-          </div>
-          <p className="mt-2 text-sm leading-6 text-[var(--color-app-muted)]">
-            Frontend preferences are active. Billing can connect when the API exists.
-          </p>
-        </div>
-      </header>
+    <div className="app-page grid gap-8 lg:grid-cols-[minmax(0,1fr)_16rem]">
+      <main>
+        <p className="mono-label mb-3 text-app-action">Newsletter</p>
+        <h1 className="text-[32px] font-semibold leading-tight text-app-heading">Reading preferences</h1>
+        <p className="mt-3 max-w-[65ch] text-sm leading-6 text-app-muted">
+          Tune digest cadence and reader defaults for this device.
+        </p>
 
-      <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_1.15fr_1fr]">
-        {plans.map(plan => {
-          const selected = preferences.subscriptionPlan === plan.id;
-          return (
-            <article
-              data-motion="list"
-              key={plan.id}
-              className={`border p-5 ${selected ? 'border-[var(--color-app-action)] bg-[var(--color-news-red-wash)] shadow-[var(--shadow-focus)] lg:-mt-4 lg:pb-9 lg:pt-7' : 'border-[var(--color-app-border)]'}`}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="font-[var(--font-display)] text-2xl font-bold text-[var(--color-app-heading)]">{plan.name}</h2>
-                  <p className="mt-1 text-sm font-bold text-[var(--color-app-action)]">{plan.price}</p>
-                </div>
-                {selected && <Check className="h-5 w-5 text-[var(--color-app-action)]" />}
-              </div>
-              <p className="mt-4 min-h-16 text-sm leading-6 text-[var(--color-app-muted)]">{plan.copy}</p>
-              <ul className="mt-5 space-y-2 border-t border-[var(--color-app-border)] pt-4">
-                {plan.features.map(feature => (
-                  <li key={feature} className="flex items-center gap-2 text-sm text-[var(--color-app-heading)]">
-                    <Check className="h-4 w-4 text-[var(--color-app-action)]" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                onClick={() => selectPlan(plan.id)}
-                className={`mt-6 inline-flex min-h-10 w-full items-center justify-center px-4 text-sm font-bold ${
-                  selected
-                    ? 'border border-[var(--color-app-action)] text-[var(--color-app-action)]'
-                    : 'bg-[var(--color-app-heading)] text-[var(--color-app-bg)] hover:bg-[var(--color-app-action)]'
-                }`}
-              >
-                {selected ? 'Selected' : 'Choose plan'}
-              </button>
-            </article>
-          );
-        })}
-      </section>
-
-      <section data-motion="page" className="mt-8 grid gap-5 border-t border-[var(--color-app-border-clean)] pt-6 lg:grid-cols-[1fr_18rem] lg:items-center">
-        <div>
-          <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--color-app-action)]">
-            <Mail className="h-4 w-4" />
-            Newsletter
+        <section className="mt-8">
+          <h2 className="mono-label mb-3 text-app-muted">Frequency</h2>
+          <div className="border-y border-app-border">
+            {frequencies.map((option) => (
+              <PreferenceRow
+                key={option.value}
+                checked={preferences.newsletter === option.value}
+                title={option.title}
+                copy={option.copy}
+                onClick={() => updatePreferences({ newsletter: option.value })}
+              />
+            ))}
           </div>
-          <h2 className="font-[var(--font-display)] text-2xl font-bold text-[var(--color-app-heading)]">Digest frequency</h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--color-app-muted)]">
-            Choose how often the app should prepare a reading digest for your account.
+        </section>
+
+        <section className="mt-10">
+          <h2 className="mono-label mb-3 text-app-muted">Theme</h2>
+          <div className="border-y border-app-border">
+            {themes.map((option) => (
+              <PreferenceRow
+                key={option.value}
+                checked={preferences.theme === option.value}
+                title={option.title}
+                copy={option.copy}
+                onClick={() => updatePreferences({ theme: option.value })}
+              />
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-10">
+          <h2 className="mono-label mb-3 text-app-muted">Feed behavior</h2>
+          <div className="border-y border-app-border">
+            <ToggleRow
+              title="Show verified first"
+              copy="Surface verified reports ahead of unresolved posts."
+              checked={preferences.trustAlerts}
+              onClick={() => updatePreferences({ trustAlerts: !preferences.trustAlerts })}
+            />
+            <ToggleRow
+              title="Compact post rows"
+              copy="Reduce feed spacing for denser scanning."
+              checked={preferences.density === 'compact'}
+              onClick={() =>
+                updatePreferences({ density: preferences.density === 'compact' ? 'comfortable' : 'compact' })
+              }
+            />
+            <ToggleRow
+              title="Reduced motion"
+              copy="Use instant state changes with minimal animation."
+              checked={preferences.motion === 'reduced'}
+              onClick={() => updatePreferences({ motion: preferences.motion === 'reduced' ? 'system' : 'reduced' })}
+            />
+          </div>
+        </section>
+      </main>
+
+      <aside className="space-y-8 lg:sticky lg:top-24 lg:self-start">
+        <section>
+          <h2 className="mono-label mb-4 text-app-muted">Account</h2>
+          <p className="text-sm leading-6 text-app-muted">
+            Preferences sync through local app settings today. Backend account sync can attach to the same controls
+            later.
           </p>
-        </div>
-        <select
-          value={preferences.newsletter}
-          onChange={(event) => {
-            setPreferences(current => ({ ...current, newsletter: event.target.value as AppPreferences['newsletter'] }));
-            toast.success('Newsletter preference saved.');
-          }}
-          className="hex-input min-h-11 w-full px-3 text-sm"
-        >
-          <option value="daily">Daily briefing</option>
-          <option value="weekly">Weekly briefing</option>
-          <option value="none">No digest</option>
-        </select>
-      </section>
+        </section>
+        <section>
+          <h2 className="mono-label mb-4 text-app-muted">Back</h2>
+          <a href="/app" className="font-mono text-[11px] uppercase tracking-wider text-app-action hover:underline">
+            Back to home
+          </a>
+        </section>
+      </aside>
     </div>
   );
 };
+
+const PreferenceRow: React.FC<{ checked: boolean; title: string; copy: string; onClick: () => void }> = ({
+  checked,
+  title,
+  copy,
+  onClick,
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="grid w-full grid-cols-[24px_minmax(0,1fr)] gap-3 border-b border-app-border py-4 text-left last:border-b-0"
+  >
+    <span
+      className={`mt-1 h-[18px] w-[18px] border ${checked ? 'border-app-action bg-app-action' : 'border-app-border'}`}
+      aria-hidden="true"
+    />
+    <span>
+      <span className="block text-sm font-semibold text-app-heading">{title}</span>
+      <span className="mt-1 block font-mono text-[11px] text-app-muted">{copy}</span>
+    </span>
+  </button>
+);
+
+const ToggleRow = PreferenceRow;
 
 export default SubscribeScreen;

@@ -13,14 +13,14 @@ export const BrandMark: React.FC<BrandMarkProps> = ({ size = 'md', showText = tr
     <div className={`inline-flex items-center ${stacked ? 'gap-3' : 'gap-2.5'}`}>
       <span
         aria-hidden="true"
-        className={`${markSize} grid shrink-0 place-items-center rounded-[8px] border border-[var(--color-app-action)] bg-[var(--color-app-action)] font-serif font-bold leading-none text-white shadow-[0_10px_22px_-16px_rgb(49_38_59/0.9)]`}
+        className={`${markSize} grid shrink-0 place-items-center border border-app-action bg-app-action font-sans font-bold tracking-tight text-app-on-action`}
       >
         TN
       </span>
       {showText && (
         <span className={stacked ? 'flex flex-col leading-none' : 'flex items-baseline gap-1.5 leading-none'}>
-          <span className="font-serif text-lg font-semibold text-[var(--color-app-ink)]">Tourane</span>
-          <span className="text-sm font-semibold text-[var(--color-app-action)]">News</span>
+          <span className="text-lg font-bold tracking-tight text-app-ink">Tourane</span>
+          <span className="text-sm font-bold text-app-action">News</span>
         </span>
       )}
     </div>

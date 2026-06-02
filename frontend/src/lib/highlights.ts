@@ -27,8 +27,7 @@ export const backendHighlightToSavedHighlight = (highlight: BackendReaderHighlig
   createdAt: highlight.createdAt,
 });
 
-export const getHighlights = async () =>
-  (await backendApi.getReaderHighlights()).map(backendHighlightToSavedHighlight);
+export const getHighlights = async () => (await backendApi.getReaderHighlights()).map(backendHighlightToSavedHighlight);
 
 export const getHighlightsForPost = async (postId: string, articleId?: string) => {
   if (articleId) {
@@ -41,7 +40,7 @@ export const getHighlightsForPost = async (postId: string, articleId?: string) =
 export const saveHighlight = async (
   post: Post,
   text: string,
-  range?: { start: number; end: number }
+  range?: { start: number; end: number },
 ): Promise<SavedHighlight> => {
   const numericPostId = Number(post.id);
   const numericArticleId = post.backendArticleId ? Number(post.backendArticleId) : NaN;
@@ -68,4 +67,5 @@ export const deleteHighlight = (id: string) => backendApi.deleteReaderHighlight(
 export const updateHighlightNote = (id: string, note: string) =>
   backendApi.updateReaderHighlight(id, { note: note.trim() });
 
-export const countHighlightsForPost = async (postId: string, articleId?: string) => (await getHighlightsForPost(postId, articleId)).length;
+export const countHighlightsForPost = async (postId: string, articleId?: string) =>
+  (await getHighlightsForPost(postId, articleId)).length;

@@ -61,10 +61,11 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
   const handleToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    setIsOpen(current => !current);
+    setIsOpen((current) => !current);
   };
 
-  const optionClass = 'flex min-h-11 w-full items-center gap-3 px-3 text-left text-sm font-semibold text-[var(--color-app-heading)] hover:bg-[var(--color-app-surface-alt)]';
+  const optionClass =
+    'flex min-h-11 w-full items-center gap-3 px-3 text-left text-sm font-semibold text-[var(--color-app-heading)] hover:bg-[var(--color-app-surface-alt)]';
   const isQuote = kind === 'quote';
   const isSection = kind === 'section';
 
@@ -94,7 +95,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
         >
           <span className="mb-2 flex items-start justify-between gap-3 border-b border-[var(--color-app-border-clean)] px-2 pb-2">
             <span className="min-w-0">
-              <span className="block text-xs font-bold uppercase tracking-widest text-[var(--color-app-muted)]">Share</span>
+              <span className="block text-xs font-bold text-[var(--color-app-muted)]">Share</span>
               <span className="mt-1 block truncate text-sm font-bold text-[var(--color-app-heading)]">{title}</span>
             </span>
             <button
@@ -110,7 +111,9 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
           <button
             type="button"
             className={optionClass}
-            onClick={() => runAction(() => copyShareText(shareUrl, successMessage || `${isSection ? 'Section' : 'Link'} copied.`))}
+            onClick={() =>
+              runAction(() => copyShareText(shareUrl, successMessage || `${isSection ? 'Section' : 'Link'} copied.`))
+            }
           >
             <Link2 className="h-4 w-4 text-[var(--color-app-action)]" />
             Copy link
@@ -129,7 +132,9 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
               <button
                 type="button"
                 className={optionClass}
-                onClick={() => runAction(() => copyShareText(`${quoteText}\n\n${title}\n${shareUrl}`, 'Quote copied with link.'))}
+                onClick={() =>
+                  runAction(() => copyShareText(`${quoteText}\n\n${title}\n${shareUrl}`, 'Quote copied with link.'))
+                }
               >
                 <Copy className="h-4 w-4 text-[var(--color-app-action)]" />
                 Copy quote + link
@@ -149,7 +154,14 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
                 <button
                   type="button"
                   className={optionClass}
-                  onClick={() => runAction(() => copyShareText(`${title}\n\n${text}\n\n${shareUrl}`, successMessage || 'Summary copied with link.'))}
+                  onClick={() =>
+                    runAction(() =>
+                      copyShareText(
+                        `${title}\n\n${text}\n\n${shareUrl}`,
+                        successMessage || 'Summary copied with link.',
+                      ),
+                    )
+                  }
                 >
                   <Quote className="h-4 w-4 text-[var(--color-app-action)]" />
                   Copy {isSection ? 'description' : 'summary'} + link
@@ -177,11 +189,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
           </button>
 
           {isQuote && onDiscuss && (
-            <button
-              type="button"
-              className={optionClass}
-              onClick={() => runAction(onDiscuss)}
-            >
+            <button type="button" className={optionClass} onClick={() => runAction(onDiscuss)}>
               <Quote className="h-4 w-4 text-[var(--color-app-action)]" />
               Discuss quote
             </button>

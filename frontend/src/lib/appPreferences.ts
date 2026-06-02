@@ -40,7 +40,7 @@ export const subscribeAppPreferences = (callback: (preferences: AppPreferences) 
   if (typeof window === 'undefined') return () => undefined;
 
   const handleChange = (event: Event) => {
-    callback(event instanceof CustomEvent && event.detail ? event.detail as AppPreferences : readAppPreferences());
+    callback(event instanceof CustomEvent && event.detail ? (event.detail as AppPreferences) : readAppPreferences());
   };
 
   const handleStorage = (event: StorageEvent) => {

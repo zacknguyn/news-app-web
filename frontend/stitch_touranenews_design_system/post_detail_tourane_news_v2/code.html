@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tourane News - Post Detail</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400&amp;family=Geist:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container": "#eeeeee",
+                      "surface-container-lowest": "#ffffff",
+                      "on-secondary-fixed": "#1c1b1b",
+                      "secondary": "#5f5e5e",
+                      "on-tertiary-fixed": "#001e30",
+                      "primary": "#b70011",
+                      "outline": "#916f6b",
+                      "on-primary-fixed": "#410002",
+                      "on-error-container": "#93000a",
+                      "background": "#f9f9f9",
+                      "inverse-primary": "#ffb4ab",
+                      "primary-fixed-dim": "#ffb4ab",
+                      "surface-tint": "#bf0715",
+                      "on-error": "#ffffff",
+                      "tertiary-fixed-dim": "#90cdff",
+                      "on-primary-container": "#fff6f5",
+                      "secondary-fixed-dim": "#c9c6c5",
+                      "primary-fixed": "#ffdad6",
+                      "on-tertiary-fixed-variant": "#004b71",
+                      "on-surface": "#1a1c1c",
+                      "surface-container-highest": "#e2e2e2",
+                      "secondary-container": "#e5e2e1",
+                      "carbon-ink": "#0A0A0A",
+                      "on-secondary-container": "#656464",
+                      "on-primary-fixed-variant": "#93000b",
+                      "surface-container-high": "#e8e8e8",
+                      "paper-white": "#FAFAFA",
+                      "on-surface-variant": "#5c403c",
+                      "warn-amber": "#D97706",
+                      "steel-subdued": "#71717A",
+                      "tertiary-fixed": "#cbe6ff",
+                      "on-primary": "#ffffff",
+                      "on-background": "#1a1c1c",
+                      "on-secondary-fixed-variant": "#474646",
+                      "error": "#ba1a1a",
+                      "error-container": "#ffdad6",
+                      "inverse-surface": "#2f3131",
+                      "surface-container-low": "#f3f3f3",
+                      "on-tertiary-container": "#f3f8ff",
+                      "inverse-on-surface": "#f0f1f1",
+                      "approved-green": "#16A34A",
+                      "signal-red": "#DC2626",
+                      "surface-bright": "#f9f9f9",
+                      "surface-dim": "#dadada",
+                      "surface-lift": "#FFFFFF",
+                      "tertiary": "#005e8d",
+                      "on-tertiary": "#ffffff",
+                      "tertiary-container": "#0078b2",
+                      "surface": "#f9f9f9",
+                      "primary-container": "#dc2626",
+                      "outline-variant": "#e6bdb8",
+                      "on-secondary": "#ffffff",
+                      "slate-body": "#3F3F46",
+                      "fog-hairline": "#E4E4E7",
+                      "surface-variant": "#e2e2e2",
+                      "secondary-fixed": "#e5e2e1"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "rail-left": "12rem",
+                      "padding-desktop": "2.5rem",
+                      "padding-tablet": "1.5rem",
+                      "gap-section": "3rem",
+                      "rail-right": "16rem",
+                      "unit": "4px",
+                      "max-width-container": "1320px",
+                      "max-width-feed": "720px",
+                      "padding-mobile": "1rem",
+                      "gap-feed": "2rem",
+                      "admin-row-height": "36px"
+              },
+              "fontFamily": {
+                      "display": [
+                              "Geist"
+                      ],
+                      "body-standard": [
+                              "Geist"
+                      ],
+                      "body-article": [
+                              "Geist"
+                      ],
+                      "h1-admin": [
+                              "Geist"
+                      ],
+                      "display-mobile": [
+                              "Geist"
+                      ],
+                      "mono-metadata": [
+                              "Geist Mono"
+                      ],
+                      "micro-label": [
+                              "Geist"
+                      ],
+                      "h2": [
+                              "Geist"
+                      ]
+              },
+              "fontSize": {
+                      "display": [
+                              "32px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-standard": [
+                              "15px",
+                              {
+                                      "lineHeight": "1.55",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-article": [
+                              "17px",
+                              {
+                                      "lineHeight": "1.7",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "h1-admin": [
+                              "24px",
+                              {
+                                      "lineHeight": "1.3",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "display-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "mono-metadata": [
+                              "12px",
+                              {
+                                      "lineHeight": "1",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "micro-label": [
+                              "11px",
+                              {
+                                      "lineHeight": "1",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "h2": [
+                              "20px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        body {
+            background-color: #FAFAFA; /* paper-white */
+            color: #1a1c1c; /* on-surface */
+        }
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FAFAFA;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e2e2e2;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #c9c6c5;
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col font-body-standard text-body-standard">
+<!-- TopNavBar -->
+<header class="bg-surface-container-lowest fixed top-0 w-full z-50 border-b border-fog-hairline flex justify-between items-center h-16 px-padding-desktop w-full max-w-max-width-container mx-auto">
+<div class="flex items-center gap-6">
+<a class="font-display text-display-mobile font-bold text-primary border-t-4 border-primary pt-1 uppercase tracking-tighter" href="#">Tourane News</a>
+<div class="hidden md:flex relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-steel-subdued" style="font-size: 18px;">search</span>
+<input class="pl-9 pr-4 py-1.5 border border-fog-hairline bg-surface-container-lowest focus:border-primary focus:ring-1 focus:ring-primary/25 outline-none rounded-none text-mono-metadata font-mono-metadata w-48 transition-all" placeholder="Search..." type="text"/>
+</div>
+</div>
+<nav class="hidden md:flex items-center space-x-6">
+<a class="text-secondary hover:text-primary hover:bg-surface-container-low transition-colors duration-150 py-1 px-2" href="#">Latest</a>
+<a class="text-secondary hover:text-primary hover:bg-surface-container-low transition-colors duration-150 py-1 px-2" href="#">Popular</a>
+<a class="text-secondary hover:text-primary hover:bg-surface-container-low transition-colors duration-150 py-1 px-2" href="#">Communities</a>
+<a class="text-secondary hover:text-primary hover:bg-surface-container-low transition-colors duration-150 py-1 px-2" href="#">Journalists</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="bg-carbon-ink text-paper-white px-4 py-1.5 font-micro-label text-micro-label uppercase hover:bg-surface-tint hover:text-paper-white transition-colors duration-150 rounded-none hidden md:block">Create Post</button>
+<button class="text-secondary hover:text-primary transition-colors"><span class="material-symbols-outlined">notifications</span></button>
+<button class="text-secondary hover:text-primary transition-colors"><span class="material-symbols-outlined">mail</span></button>
+<button class="text-secondary hover:text-primary transition-colors"><span class="material-symbols-outlined">account_circle</span></button>
+</div>
+</header>
+<div class="flex-1 max-w-max-width-container mx-auto w-full flex mt-16 px-padding-mobile md:px-padding-desktop">
+<!-- SideNavBar -->
+<aside class="hidden lg:flex flex-col py-6 pr-4 space-y-2 bg-surface-container-lowest sticky top-16 h-[calc(100vh-4rem)] w-rail-left border-r border-fog-hairline">
+<div class="mb-6 px-2">
+<h2 class="font-micro-label text-micro-label text-secondary uppercase tracking-widest mb-1">Navigation</h2>
+<p class="font-mono-metadata text-mono-metadata text-steel-subdued">Explore the Newsroom</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-2 py-2 text-secondary hover:bg-surface-container-low hover:text-primary translate-x-[1px] transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">home</span>
+<span class="font-body-standard text-body-standard">Home</span>
+</a>
+<a class="flex items-center gap-3 px-2 py-2 text-secondary hover:bg-surface-container-low hover:text-primary translate-x-[1px] transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">language</span>
+<span class="font-body-standard text-body-standard">All</span>
+</a>
+<a class="flex items-center gap-3 px-2 py-2 text-secondary hover:bg-surface-container-low hover:text-primary translate-x-[1px] transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">trending_up</span>
+<span class="font-body-standard text-body-standard">Top</span>
+</a>
+<a class="flex items-center gap-3 px-2 py-2 text-primary font-bold border-r-2 border-primary bg-surface-container-low translate-x-[1px] transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">groups</span>
+<span class="font-body-standard text-body-standard">Communities</span>
+</a>
+<a class="flex items-center gap-3 px-2 py-2 text-secondary hover:bg-surface-container-low hover:text-primary translate-x-[1px] transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">security</span>
+<span class="font-body-standard text-body-standard">Moderation</span>
+</a>
+<a class="flex items-center gap-3 px-2 py-2 text-secondary hover:bg-surface-container-low hover:text-primary translate-x-[1px] transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">settings</span>
+<span class="font-body-standard text-body-standard">Settings</span>
+</a>
+</nav>
+<div class="mt-auto border-t border-fog-hairline pt-4 flex gap-4 px-2">
+<a class="text-steel-subdued hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined" style="font-size: 16px;">description</span></a>
+<a class="text-steel-subdued hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined" style="font-size: 16px;">policy</span></a>
+<a class="text-steel-subdued hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined" style="font-size: 16px;">mail</span></a>
+</div>
+</aside>
+<!-- Main Content Area (2-column 2:1) -->
+<main class="flex-1 flex flex-col lg:flex-row gap-gap-feed py-6 min-w-0">
+<!-- Center: Expanded Post -->
+<article class="flex-1 max-w-max-width-feed">
+<!-- Post Header & Voting -->
+<div class="flex gap-4 mb-6">
+<!-- Voting Column -->
+<div class="flex flex-col items-center justify-start w-16 pt-1">
+<button class="text-secondary hover:text-signal-red transition-colors p-1 group">
+<span class="material-symbols-outlined font-bold group-hover:-translate-y-0.5 transition-transform" style="font-size: 24px;">expand_less</span>
+</button>
+<span class="font-mono-metadata text-mono-metadata font-bold text-on-surface my-2">12.4k</span>
+<button class="text-secondary hover:text-secondary-fixed-dim transition-colors p-1 group">
+<span class="material-symbols-outlined font-bold group-hover:translate-y-0.5 transition-transform" style="font-size: 24px;">expand_more</span>
+</button>
+</div>
+<!-- Title and Meta -->
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-3">
+<span class="font-micro-label text-micro-label text-primary uppercase border border-primary px-1.5 py-0.5">Technology</span>
+<span class="font-mono-metadata text-mono-metadata text-steel-subdued">•</span>
+<span class="font-mono-metadata text-mono-metadata text-steel-subdued">Posted by <a class="hover:underline text-on-surface" href="#">u/cyber_journalist</a> 4h ago</span>
+</div>
+<h1 class="font-display text-display text-on-surface mb-4">The Silent Grid: How Decentralized Networks are Reshaping Information Distribution in Europe.</h1>
+</div>
+</div>
+<!-- Hero Image -->
+<figure class="w-full mb-8 border-y border-fog-hairline">
+<img alt="Abstract rendering of a decentralized digital network." class="w-full h-auto object-cover max-h-[500px]" data-alt="A striking digital illustration of a decentralized data network stretching across a vast, minimalist digital landscape. The scene is illuminated by high-key, soft white lighting that creates a bright, modern light-mode aesthetic. The artwork relies on a sophisticated palette of deep blacks and pristine whites, punctuated by intense accents of vibrant red representing data nodes. The mood is serene yet technologically advanced, emphasizing structural integrity and high information density." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWlH7bKgn3A-A8G8oGhmwARVWbjx_jBLwpY9VYRIvbnM4uRF8b6idb2lRy8igq1bk238kpzRG4IZnENj2b_nSPlz8-Bl4dzWn9XAUqct9PWcJWjX-XdiEusI6QjzLKaRQ_IxkWqcSw6Arah_bKaVZlPtpzMd1eIb7lKvFrZejAwUBbGRlKxSBy0GUgIV_IY7IbtQxWo95SThZDK4ttyoQppdvohKLlbdBYHmBPtmXauES4axPi1U2lFvMXtgQCdN_IjWU5fXsJlg"/>
+<figcaption class="font-mono-metadata text-mono-metadata text-steel-subdued mt-2 pb-2 px-1 text-right">Illustration via Unsplash / Network Topologies</figcaption>
+</figure>
+<!-- Body Text -->
+<div class="font-body-article text-body-article text-on-surface space-y-6 px-1 lg:px-4 mb-12">
+<p>In a shift that emphasizes structural integrity over centralized control, a new wave of decentralized communication protocols is quietly taking root across major European hubs. Rejecting the modern clichés of vibrant, gamified platforms, these networks prioritize high information density and absolute sobriety.</p>
+<p>The architecture is restrained, grid-faithful, and intentionally flat. By utilizing a monochromatic base with a single, urgent accent—often a stark signal red—the interface recedes, allowing the raw data to remain the primary focus. This "flat paper" philosophy treats digital surfaces as physical sheets where hierarchy is established through precise typography and 1px hairline dividers, rather than perceived distance or elevation.</p>
+<blockquote class="border-l-2 border-primary pl-4 py-1 my-6 font-display text-h2 text-carbon-ink italic">
+                        "We are moving away from soft shadows and rounded corners. The emotional response we aim for is one of unbiased professionalism and clarity."
+                    </blockquote>
+<p>This minimalist Swiss movement in network design represents a significant departure from contemporary SaaS norms. Shadows are strictly forbidden for all standard UI components. The focus is entirely on editorial authority and the unadulterated flow of information, evoking the intellectual rigor of a legacy broadsheet through a digital lens.</p>
+</div>
+<!-- Action Bar -->
+<div class="flex items-center gap-4 border-y border-fog-hairline py-3 px-1 lg:px-4 mb-8">
+<button class="flex items-center gap-2 text-secondary hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined" style="font-size: 18px;">chat_bubble</span>
+<span class="font-mono-metadata text-mono-metadata">482 Comments</span>
+</button>
+<button class="flex items-center gap-2 text-secondary hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined" style="font-size: 18px;">share</span>
+<span class="font-mono-metadata text-mono-metadata">Share</span>
+</button>
+<button class="flex items-center gap-2 text-secondary hover:text-on-surface transition-colors ml-auto">
+<span class="material-symbols-outlined" style="font-size: 18px;">bookmark</span>
+<span class="font-mono-metadata text-mono-metadata">Save</span>
+</button>
+</div>
+<!-- Comments Section -->
+<section class="px-1 lg:px-4">
+<h3 class="font-display text-h2 text-on-surface mb-6 flex items-center gap-2">
+                        Discussion
+                        <span class="bg-surface-container-low px-2 py-0.5 text-mono-metadata font-mono-metadata text-secondary border border-fog-hairline">482</span>
+</h3>
+<!-- Comment Input -->
+<div class="mb-8 flex gap-4">
+<div class="w-8 h-8 bg-carbon-ink text-paper-white flex items-center justify-center font-mono-metadata uppercase shrink-0">U</div>
+<div class="flex-1">
+<textarea class="w-full bg-surface-container-lowest border border-fog-hairline p-3 font-body-standard text-body-standard focus:border-primary focus:ring-1 focus:ring-primary/25 outline-none rounded-none min-h-[100px] resize-y" placeholder="Add to the discussion..."></textarea>
+<div class="flex justify-end mt-2">
+<button class="bg-carbon-ink text-paper-white px-4 py-1.5 font-micro-label text-micro-label uppercase hover:bg-surface-tint transition-colors duration-150 rounded-none">Post Comment</button>
+</div>
+</div>
+</div>
+<!-- Comment Thread -->
+<div class="space-y-6">
+<!-- Top Level Comment -->
+<div class="flex gap-4">
+<div class="flex flex-col items-center">
+<div class="w-8 h-8 bg-surface-container-highest text-on-surface flex items-center justify-center font-mono-metadata uppercase shrink-0 border border-fog-hairline">A</div>
+<div class="w-px h-full bg-fog-hairline my-2"></div>
+</div>
+<div class="flex-1 pb-6">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-micro-label text-micro-label font-bold text-on-surface">u/archivist_01</span>
+<span class="font-mono-metadata text-mono-metadata text-steel-subdued">2h ago</span>
+</div>
+<p class="font-body-standard text-body-standard text-on-surface mb-2">The return to high-density layouts is refreshing. The past decade of web design focused too much on whitespace at the expense of utility.</p>
+<div class="flex items-center gap-4 text-secondary">
+<div class="flex items-center gap-1">
+<button class="hover:text-signal-red"><span class="material-symbols-outlined" style="font-size: 16px;">expand_less</span></button>
+<span class="font-mono-metadata text-mono-metadata font-bold">142</span>
+<button class="hover:text-secondary-fixed-dim"><span class="material-symbols-outlined" style="font-size: 16px;">expand_more</span></button>
+</div>
+<button class="flex items-center gap-1 hover:text-on-surface font-mono-metadata text-mono-metadata"><span class="material-symbols-outlined" style="font-size: 14px;">reply</span> Reply</button>
+</div>
+<!-- Nested Comment -->
+<div class="mt-4 flex gap-4">
+<div class="flex flex-col items-center">
+<div class="w-8 h-8 bg-surface-container-highest text-on-surface flex items-center justify-center font-mono-metadata uppercase shrink-0 border border-fog-hairline">N</div>
+<div class="w-px h-full bg-fog-hairline my-2"></div>
+</div>
+<div class="flex-1 pb-2">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-micro-label text-micro-label font-bold text-on-surface text-primary">u/cyber_journalist</span>
+<span class="font-mono-metadata text-mono-metadata text-surface-tint border border-surface-tint px-1" style="font-size: 9px;">OP</span>
+<span class="font-mono-metadata text-mono-metadata text-steel-subdued">1h ago</span>
+</div>
+<p class="font-body-standard text-body-standard text-on-surface mb-2">Agreed. It's about respecting the reader's time and treating the interface as a tool rather than an entertainment venue.</p>
+<div class="flex items-center gap-4 text-secondary">
+<div class="flex items-center gap-1">
+<button class="hover:text-signal-red"><span class="material-symbols-outlined" style="font-size: 16px;">expand_less</span></button>
+<span class="font-mono-metadata text-mono-metadata font-bold">89</span>
+<button class="hover:text-secondary-fixed-dim"><span class="material-symbols-outlined" style="font-size: 16px;">expand_more</span></button>
+</div>
+<button class="flex items-center gap-1 hover:text-on-surface font-mono-metadata text-mono-metadata"><span class="material-symbols-outlined" style="font-size: 14px;">reply</span> Reply</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Top Level Comment 2 -->
+<div class="flex gap-4">
+<div class="flex flex-col items-center">
+<div class="w-8 h-8 bg-surface-container-highest text-on-surface flex items-center justify-center font-mono-metadata uppercase shrink-0 border border-fog-hairline">D</div>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-micro-label text-micro-label font-bold text-on-surface">u/data_skeptic</span>
+<span class="font-mono-metadata text-mono-metadata text-steel-subdued">30m ago</span>
+</div>
+<p class="font-body-standard text-body-standard text-on-surface mb-2">While I appreciate the aesthetic, are we sacrificing accessibility by removing clear container boundaries?</p>
+<div class="flex items-center gap-4 text-secondary">
+<div class="flex items-center gap-1">
+<button class="hover:text-signal-red"><span class="material-symbols-outlined" style="font-size: 16px;">expand_less</span></button>
+<span class="font-mono-metadata text-mono-metadata font-bold">12</span>
+<button class="hover:text-secondary-fixed-dim"><span class="material-symbols-outlined" style="font-size: 16px;">expand_more</span></button>
+</div>
+<button class="flex items-center gap-1 hover:text-on-surface font-mono-metadata text-mono-metadata"><span class="material-symbols-outlined" style="font-size: 14px;">reply</span> Reply</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</article>
+<!-- Right Rail: Contextual Data -->
+<aside class="w-full lg:w-rail-right shrink-0 space-y-6">
+<!-- Author Card (Grid-Faithful Flat Design) -->
+<div class="border border-fog-hairline bg-surface-container-lowest p-4">
+<h3 class="font-micro-label text-micro-label text-secondary uppercase tracking-widest mb-4 border-b border-fog-hairline pb-2">About the Author</h3>
+<div class="flex items-center gap-3 mb-4">
+<div class="w-12 h-12 bg-carbon-ink text-paper-white flex items-center justify-center font-display text-h2 uppercase shrink-0">C</div>
+<div>
+<div class="font-body-standard text-body-standard font-bold text-on-surface">u/cyber_journalist</div>
+<div class="font-mono-metadata text-mono-metadata text-steel-subdued">Senior Tech Editor</div>
+</div>
+</div>
+<div class="flex justify-between items-center mb-4 font-mono-metadata text-mono-metadata border-y border-fog-hairline py-2">
+<div class="flex flex-col">
+<span class="text-steel-subdued uppercase">Karma</span>
+<span class="text-on-surface font-bold">124.5k</span>
+</div>
+<div class="flex flex-col text-right">
+<span class="text-steel-subdued uppercase">Cake Day</span>
+<span class="text-on-surface font-bold">Oct 12, 2018</span>
+</div>
+</div>
+<button class="w-full border border-carbon-ink text-carbon-ink py-1.5 font-micro-label text-micro-label uppercase hover:bg-carbon-ink hover:text-paper-white transition-colors duration-150 rounded-none text-center">Follow</button>
+</div>
+<!-- Related Communities -->
+<div class="border border-fog-hairline bg-surface-container-lowest p-4">
+<h3 class="font-micro-label text-micro-label text-secondary uppercase tracking-widest mb-4 border-b border-fog-hairline pb-2">Related Communities</h3>
+<ul class="space-y-3">
+<li class="flex items-center justify-between group cursor-pointer">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary group-hover:text-primary transition-colors" style="font-size: 18px;">terminal</span>
+<span class="font-body-standard text-body-standard group-hover:underline">r/technology</span>
+</div>
+<span class="font-mono-metadata text-mono-metadata text-steel-subdued">14.2m</span>
+</li>
+<li class="flex items-center justify-between group cursor-pointer">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary group-hover:text-primary transition-colors" style="font-size: 18px;">code</span>
+<span class="font-body-standard text-body-standard group-hover:underline">r/programming</span>
+</div>
+<span class="font-mono-metadata text-mono-metadata text-steel-subdued">5.1m</span>
+</li>
+<li class="flex items-center justify-between group cursor-pointer">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary group-hover:text-primary transition-colors" style="font-size: 18px;">newspaper</span>
+<span class="font-body-standard text-body-standard group-hover:underline">r/techjournalism</span>
+</div>
+<span class="font-mono-metadata text-mono-metadata text-steel-subdued">890k</span>
+</li>
+</ul>
+</div>
+<!-- Ad/Context Slot -->
+<div class="border border-fog-hairline bg-surface-container-low p-4 h-64 flex flex-col items-center justify-center text-center">
+<span class="font-mono-metadata text-mono-metadata text-steel-subdued uppercase tracking-widest mb-2">Advertisement</span>
+<div class="font-display text-h2 text-secondary opacity-50">Support Independent Grid-Faithful News</div>
+</div>
+</aside>
+</main>
+</div>
+<!-- Footer -->
+<footer class="bg-surface-container-lowest w-full py-8 mt-gap-section border-t border-fog-hairline font-mono-metadata text-mono-metadata uppercase max-w-max-width-container mx-auto px-padding-desktop flex flex-col md:flex-row justify-between items-center gap-4">
+<div class="font-display text-body-standard font-bold text-primary opacity-80 hover:opacity-100 transition-opacity">Tourane News</div>
+<div class="text-steel-subdued">© 2024 Tourane News. Independent. Swiss-Grid.</div>
+<nav class="flex gap-4">
+<a class="text-steel-subdued hover:text-primary transition-colors" href="#">Editorial Guidelines</a>
+<a class="text-steel-subdued hover:text-primary transition-colors" href="#">Masthead</a>
+<a class="text-steel-subdued hover:text-primary transition-colors" href="#">Archive</a>
+<a class="text-steel-subdued hover:text-primary transition-colors" href="#">RSS Feed</a>
+</nav>
+</footer>
+</body></html>

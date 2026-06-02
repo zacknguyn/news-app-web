@@ -8,7 +8,5 @@ type TrustLabelProps = {
 };
 
 export const TrustLabel: React.FC<TrustLabelProps> = ({ trust, className }) => (
-  <span className={cn('font-semibold', trust.className, className)}>
-    {trust.label}
-  </span>
+  <span className={cn('font-semibold', trust.className, className)}>{trust.label}</span>
 );

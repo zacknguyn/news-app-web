@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tourane News - Request Access</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&amp;family=Geist+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container": "#eeeeee",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-fixed": "#1c1b1b",
+                    "secondary": "#5f5e5e",
+                    "on-tertiary-fixed": "#001e30",
+                    "primary": "#b70011",
+                    "outline": "#916f6b",
+                    "on-primary-fixed": "#410002",
+                    "on-error-container": "#93000a",
+                    "background": "#f9f9f9",
+                    "inverse-primary": "#ffb4ab",
+                    "primary-fixed-dim": "#ffb4ab",
+                    "surface-tint": "#bf0715",
+                    "on-error": "#ffffff",
+                    "tertiary-fixed-dim": "#90cdff",
+                    "on-primary-container": "#fff6f5",
+                    "secondary-fixed-dim": "#c9c6c5",
+                    "primary-fixed": "#ffdad6",
+                    "on-tertiary-fixed-variant": "#004b71",
+                    "on-surface": "#1a1c1c",
+                    "surface-container-highest": "#e2e2e2",
+                    "secondary-container": "#e5e2e1",
+                    "carbon-ink": "#0A0A0A",
+                    "on-secondary-container": "#656464",
+                    "on-primary-fixed-variant": "#93000b",
+                    "surface-container-high": "#e8e8e8",
+                    "paper-white": "#FAFAFA",
+                    "on-surface-variant": "#5c403c",
+                    "warn-amber": "#D97706",
+                    "steel-subdued": "#71717A",
+                    "tertiary-fixed": "#cbe6ff",
+                    "on-primary": "#ffffff",
+                    "on-background": "#1a1c1c",
+                    "on-secondary-fixed-variant": "#474646",
+                    "error": "#ba1a1a",
+                    "error-container": "#ffdad6",
+                    "inverse-surface": "#2f3131",
+                    "surface-container-low": "#f3f3f3",
+                    "on-tertiary-container": "#f3f8ff",
+                    "inverse-on-surface": "#f0f1f1",
+                    "approved-green": "#16A34A",
+                    "signal-red": "#DC2626",
+                    "surface-bright": "#f9f9f9",
+                    "surface-dim": "#dadada",
+                    "surface-lift": "#FFFFFF",
+                    "tertiary": "#005e8d",
+                    "on-tertiary": "#ffffff",
+                    "tertiary-container": "#0078b2",
+                    "surface": "#f9f9f9",
+                    "primary-container": "#dc2626",
+                    "outline-variant": "#e6bdb8",
+                    "on-secondary": "#ffffff",
+                    "slate-body": "#3F3F46",
+                    "fog-hairline": "#E4E4E7",
+                    "surface-variant": "#e2e2e2",
+                    "secondary-fixed": "#e5e2e1"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0px",
+                    "lg": "0px",
+                    "xl": "0px",
+                    "full": "0px"
+            },
+            "spacing": {
+                    "rail-left": "12rem",
+                    "padding-desktop": "2.5rem",
+                    "padding-tablet": "1.5rem",
+                    "gap-section": "3rem",
+                    "rail-right": "16rem",
+                    "unit": "4px",
+                    "max-width-container": "1320px",
+                    "max-width-feed": "720px",
+                    "padding-mobile": "1rem",
+                    "gap-feed": "2rem",
+                    "admin-row-height": "36px"
+            },
+            "fontFamily": {
+                    "display": [
+                            "Geist"
+                    ],
+                    "body-standard": [
+                            "Geist"
+                    ],
+                    "body-article": [
+                            "Geist"
+                    ],
+                    "h1-admin": [
+                            "Geist"
+                    ],
+                    "display-mobile": [
+                            "Geist"
+                    ],
+                    "mono-metadata": [
+                            "Geist Mono"
+                    ],
+                    "micro-label": [
+                            "Geist"
+                    ],
+                    "h2": [
+                            "Geist"
+                    ]
+            },
+            "fontSize": {
+                    "display": [
+                            "32px",
+                            {
+                                    "lineHeight": "1.2",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-standard": [
+                            "15px",
+                            {
+                                    "lineHeight": "1.55",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "body-article": [
+                            "17px",
+                            {
+                                    "lineHeight": "1.7",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "h1-admin": [
+                            "24px",
+                            {
+                                    "lineHeight": "1.3",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "display-mobile": [
+                            "24px",
+                            {
+                                    "lineHeight": "1.2",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "mono-metadata": [
+                            "12px",
+                            {
+                                    "lineHeight": "1",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "micro-label": [
+                            "11px",
+                            {
+                                    "lineHeight": "1",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "h2": [
+                            "20px",
+                            {
+                                    "lineHeight": "1.4",
+                                    "fontWeight": "600"
+                            }
+                    ]
+            }
+        },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.paper-white');
+            color: theme('colors.on-surface');
+        }
+        
+        .flat-input {
+            border: 1px solid rgba(10, 10, 10, 0.2);
+            border-radius: 0;
+            background-color: theme('colors.surface-container-lowest');
+        }
+        
+        .flat-input:focus {
+            border-color: theme('colors.signal-red');
+            box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.25);
+            outline: none;
+        }
+
+        .flat-button {
+            border-radius: 0;
+            transition: all 150ms ease;
+        }
+
+        .flat-button:hover {
+            transform: translateY(0.5px);
+        }
+        
+        .flat-button-primary {
+            background-color: theme('colors.carbon-ink');
+            color: theme('colors.paper-white');
+        }
+        
+        .flat-button-primary:hover {
+            background-color: theme('colors.signal-red');
+        }
+        
+        .hairline-b {
+            border-bottom: 1px solid theme('colors.fog-hairline');
+        }
+        
+        .hairline-r {
+            border-right: 1px solid theme('colors.fog-hairline');
+        }
+        
+        .hairline-l {
+            border-left: 1px solid theme('colors.fog-hairline');
+        }
+        
+        .hairline-t {
+            border-top: 1px solid theme('colors.fog-hairline');
+        }
+        
+        .hairline-all {
+            border: 1px solid theme('colors.fog-hairline');
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col md:flex-row antialiased font-body-standard text-body-standard">
+<main class="flex-1 flex flex-col md:flex-row w-full min-h-screen">
+<section class="w-full md:w-1/2 flex flex-col p-padding-mobile md:p-padding-desktop lg:p-12 xl:p-16 hairline-b md:hairline-b-0 md:hairline-r bg-surface-container-lowest relative overflow-hidden">
+<div class="mb-12 relative z-10">
+<a class="inline-block font-display text-h2 font-bold text-primary border-t-4 border-primary pt-1" href="/">
+                    Tourane News
+                </a>
+</div>
+<div class="max-w-md w-full mx-auto flex-1 flex flex-col justify-center relative z-10">
+<h1 class="font-display text-display mb-8">Request newsroom access.</h1>
+<div class="space-y-6">
+<div class="flex items-start">
+<div class="font-mono-metadata text-mono-metadata text-secondary w-8 pt-1">01</div>
+<div>
+<h3 class="font-display text-h2 mb-1">Verify Credentials</h3>
+<p class="text-secondary text-body-standard">Submit your journalistic credentials for review by our editorial board. Independent verification required.</p>
+</div>
+</div>
+<div class="hairline-t pt-6 flex items-start">
+<div class="font-mono-metadata text-mono-metadata text-secondary w-8 pt-1">02</div>
+<div>
+<h3 class="font-display text-h2 mb-1">Select Jurisdiction</h3>
+<p class="text-secondary text-body-standard">Define your primary reporting area and relevant sources to streamline your feed and alert settings.</p>
+</div>
+</div>
+<div class="hairline-t pt-6 flex items-start">
+<div class="font-mono-metadata text-mono-metadata text-secondary w-8 pt-1">03</div>
+<div>
+<h3 class="font-display text-h2 mb-1">Access Granted</h3>
+<p class="text-secondary text-body-standard">Upon approval, gain full access to the wire, source materials, and encrypted communication channels.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="absolute inset-0 z-0 pointer-events-none opacity-20 flex items-center justify-center">
+<img alt="Minimalist globe representing global news coverage" class="w-[150%] h-[150%] object-cover object-center max-w-none grayscale" src="https://lh3.googleusercontent.com/aida/AP1WRLt_G2u2lGsQ2s8gFxIYfCaMQBvOy4PWLBHgnBN3E0sUcZbmvmVxuEnKgMPW__X6F7gplZpBrSYubpiPnZrknQCRA0t3WTv8XhtYSMgJGK08GU4M0qvaR2uJh08TwN1-CTghjenP0SdVLiWK9j08QUiE5VVyKmnJmWrL5yLhT_dDpnm71YcX-xqjStEKyUDd8hp63vTuyKiN7gDYivlua0IXPklwFAh0QkGCzgHc-SRn7iLSHJZpEmM0oA"/>
+</div>
+</section>
+<section class="w-full md:w-1/2 flex flex-col justify-center p-padding-mobile md:p-padding-desktop lg:p-12 xl:p-16 bg-paper-white relative">
+<div class="max-w-md w-full mx-auto">
+<form action="#" class="space-y-6" method="POST">
+<div>
+<label class="block font-micro-label text-micro-label uppercase text-slate-body mb-2" for="full_name">Full Name</label>
+<input class="w-full h-12 px-4 flat-input font-body-standard text-body-standard text-on-surface" id="full_name" name="full_name" placeholder="e.g., John Doe" required="" type="text"/>
+</div>
+<div>
+<label class="block font-micro-label text-micro-label uppercase text-slate-body mb-2" for="email">Email Address</label>
+<input class="w-full h-12 px-4 flat-input font-body-standard text-body-standard text-on-surface" id="email" name="email" placeholder="name@publication.com" required="" type="email"/>
+</div>
+<div>
+<label class="block font-micro-label text-micro-label uppercase text-slate-body mb-2" for="password">Password</label>
+<input class="w-full h-12 px-4 flat-input font-body-standard text-body-standard text-on-surface" id="password" name="password" placeholder="••••••••" required="" type="password"/>
+</div>
+<div>
+<label class="block font-micro-label text-micro-label uppercase text-slate-body mb-2" for="reporting_focus">Primary Reporting Focus</label>
+<div class="relative">
+<select class="w-full h-12 px-4 flat-input font-body-standard text-body-standard text-on-surface appearance-none bg-surface-container-lowest" id="reporting_focus" name="reporting_focus">
+<option disabled="" selected="" value="">Select an area</option>
+<option value="politics">Politics &amp; Policy</option>
+<option value="business">Business &amp; Economics</option>
+<option value="technology">Technology &amp; Science</option>
+<option value="international">International Affairs</option>
+<option value="culture">Culture &amp; Society</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-secondary">
+<span class="material-symbols-outlined text-body-standard">expand_more</span>
+</div>
+</div>
+</div>
+<div class="pt-4">
+<button class="w-full h-12 flex justify-center items-center flat-button flat-button-primary font-body-standard text-body-standard font-bold uppercase tracking-wider" type="submit">
+                            Request Access
+                        </button>
+</div>
+</form>
+<div class="mt-8 pt-8 hairline-t text-center">
+<p class="font-body-standard text-body-standard text-secondary">
+                        Already have access? 
+                        <a class="text-primary hover:underline font-bold transition-all duration-150 ml-1" href="/login">Sign in here</a>
+</p>
+</div>
+</div>
+</section>
+</main>
+</body></html>

@@ -1,60 +1,66 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, FileCheck2, MessageSquareText, ShieldCheck } from 'lucide-react';
-import { usePageMotion } from '../hooks/usePageMotion';
+import React, { useState } from 'react';
 
-const mechanics = [
-  {
-    title: 'Source trail',
-    copy: 'Claims gain weight when documents, witnesses, or metadata stay attached.',
-    icon: FileCheck2,
-  },
-  {
-    title: 'Reader review',
-    copy: 'Votes and replies matter most when they add verification context.',
-    icon: MessageSquareText,
-  },
-  {
-    title: 'Author trust',
-    copy: 'Reliable contributors accumulate visible reputation over time.',
-    icon: ShieldCheck,
-  },
-];
+const breakdown = [
+  ['Source quality', 82],
+  ['Accuracy', 91],
+  ['Civility', 76],
+  ['Longevity', 68],
+] as const;
 
 export const TrustScreen: React.FC = () => {
-  const pageRef = usePageMotion<HTMLDivElement>();
+  const [expanded, setExpanded] = useState(false);
+  const score = 847;
 
   return (
-    <div ref={pageRef} className="hex-page">
-      <section data-motion="page" className="grid gap-8 border-b-4 border-[var(--color-app-heading)] pb-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-end">
-        <div>
-          <p className="hex-kicker">Trust mechanics</p>
-          <h1 className="mt-3 max-w-3xl font-[var(--font-display)] text-4xl font-bold leading-[0.95] text-[var(--color-app-heading)] sm:text-5xl">
-            Evidence should be visible before confidence is asked for.
-          </h1>
-        </div>
-        <p className="max-w-sm text-sm font-medium leading-6 text-[var(--color-app-muted)]">
-          Trust signals are not decorative badges. They are a compact audit trail for readers deciding what deserves attention.
-        </p>
-      </section>
+    <div className="app-page">
+      <p className="mono-label mb-3 text-app-action">Your standing</p>
+      <h1 className="text-[32px] font-semibold leading-tight text-app-heading">Your trust score</h1>
+      <div className="mt-8 font-mono text-[64px] font-semibold leading-none tabular-nums text-app-action">
+        {score}
+        <span className="text-[24px] text-app-muted"> / 1000</span>
+      </div>
+      <p className="mt-5 max-w-[65ch] text-base leading-7 text-app-text">
+        Trust is calculated from source quality, accuracy, civility, and account longevity. It helps readers understand
+        contribution history without turning reputation into decoration.
+      </p>
 
-      <section className="grid border-b border-[var(--color-app-border-clean)] lg:grid-cols-3">
-        {mechanics.map(({ title, copy, icon: Icon }, index) => (
-          <article data-motion="list" key={title} className="border-t border-[var(--color-app-border-clean)] py-6 lg:border-t-0 lg:border-l lg:px-6 lg:first:border-l-0">
-            <div className="mb-8 flex items-center justify-between">
-              <span className="font-mono text-xs font-bold text-[var(--color-app-muted)]">{String(index + 1).padStart(2, '0')}</span>
-              <Icon className="h-5 w-5 text-[var(--color-app-action)]" />
+      <section className="mt-10">
+        <h2 className="mono-label mb-4 text-app-muted">Breakdown</h2>
+        <div className="space-y-5">
+          {breakdown.map(([label, value]) => (
+            <div key={label}>
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <span className="text-app-heading">{label}</span>
+                <span className="font-mono tabular-nums text-app-muted">{value}</span>
+              </div>
+              <div className="h-1 bg-app-border">
+                <div className="h-full bg-app-action" style={{ width: `${value}%` }} />
+              </div>
             </div>
-            <h2 className="font-[var(--font-display)] text-2xl font-bold text-[var(--color-app-heading)]">{title}</h2>
-            <p className="mt-3 text-sm leading-6 text-[var(--color-app-muted)]">{copy}</p>
-          </article>
-        ))}
+          ))}
+        </div>
       </section>
 
-      <Link data-motion="page" to="/app" className="mt-6 inline-flex min-h-11 items-center gap-2 bg-[var(--color-app-heading)] px-5 text-sm font-bold text-[var(--color-app-bg)] hover:bg-[var(--color-app-action)]">
-        Return to front page
-        <ArrowRight className="h-4 w-4" />
-      </Link>
+      <section className="mt-10 border-t border-app-border pt-6">
+        <h2 className="mono-label mb-4 text-app-muted">Recent deductions</h2>
+        <p className="text-sm italic text-app-muted">No recent deductions.</p>
+      </section>
+
+      <section className="mt-8 border-t border-app-border pt-6">
+        <button
+          type="button"
+          onClick={() => setExpanded((prev) => !prev)}
+          className="mono-label text-app-action hover:underline"
+        >
+          How scores are calculated
+        </button>
+        {expanded && (
+          <p className="mt-4 text-sm leading-6 text-app-muted">
+            Scores reward verified sourcing, accurate corrections, useful replies, and sustained account history.
+            Moderation events can reduce the score when they point to recurring quality issues.
+          </p>
+        )}
+      </section>
     </div>
   );
 };
