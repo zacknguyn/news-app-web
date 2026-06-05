@@ -7,7 +7,8 @@ export type AppPreferences = {
   motion: 'system' | 'reduced';
   trustAlerts: boolean;
   newsletter: 'daily' | 'weekly' | 'none';
-  subscriptionPlan: 'reader' | 'supporter' | 'newsroom';
+  subscriptionPlan: 'free' | 'reader-plus' | 'backer' | 'newsroom-pro';
+  billingCadence: 'monthly' | 'annual';
 };
 
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
@@ -16,7 +17,25 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   motion: 'system',
   trustAlerts: true,
   newsletter: 'weekly',
-  subscriptionPlan: 'reader',
+  subscriptionPlan: 'free',
+  billingCadence: 'monthly',
+};
+
+const normalizeAppPreferences = (preferences: Partial<AppPreferences>): AppPreferences => {
+  const next = { ...DEFAULT_APP_PREFERENCES, ...preferences } as AppPreferences;
+  const legacyPlanMap: Record<string, AppPreferences['subscriptionPlan']> = {
+    reader: 'reader-plus',
+    supporter: 'backer',
+    newsroom: 'newsroom-pro',
+  };
+  const validPlans: AppPreferences['subscriptionPlan'][] = ['free', 'reader-plus', 'backer', 'newsroom-pro'];
+  const plan = legacyPlanMap[String(next.subscriptionPlan)] || next.subscriptionPlan;
+
+  return {
+    ...next,
+    subscriptionPlan: validPlans.includes(plan) ? plan : DEFAULT_APP_PREFERENCES.subscriptionPlan,
+    billingCadence: next.billingCadence === 'annual' ? 'annual' : 'monthly',
+  };
 };
 
 export const readAppPreferences = (): AppPreferences => {
@@ -24,7 +43,7 @@ export const readAppPreferences = (): AppPreferences => {
 
   try {
     const saved = window.localStorage.getItem(STORAGE_KEY);
-    return saved ? { ...DEFAULT_APP_PREFERENCES, ...JSON.parse(saved) } : DEFAULT_APP_PREFERENCES;
+    return saved ? normalizeAppPreferences(JSON.parse(saved) as Partial<AppPreferences>) : DEFAULT_APP_PREFERENCES;
   } catch {
     return DEFAULT_APP_PREFERENCES;
   }

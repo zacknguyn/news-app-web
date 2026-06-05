@@ -155,3 +155,5 @@ export const CreateChannelScreen: React.FC = () => {
     </div>
   );
 };
+
+export default CreateChannelScreen;

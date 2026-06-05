@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 import { TextArea } from './ui/Input';
 import { PostActionButton } from './ui/PostActionButton';
+import { getProfilePath } from '../lib/profileLinks';
 
 interface CommentProps {
   comment: CommentType;
@@ -11,6 +12,7 @@ interface CommentProps {
   postAuthorId?: string;
   onReply: (parentId: string, content: string) => void;
   onLike?: (commentId: string) => Promise<number | null> | number | null;
+  onUnlike?: (commentId: string) => Promise<number | null> | number | null;
 }
 
 function timeAgo(date: string): string {
@@ -35,25 +37,30 @@ function countReplies(comment: CommentType): number {
 
 const TREE_INDENT = 24;
 
-const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId, onReply, onLike }) => {
+const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId, onReply, onLike, onUnlike }) => {
   const [showReplies, setShowReplies] = useState(true);
   const [isReplying, setIsReplying] = useState(false);
   const [replyDraft, setReplyDraft] = useState('');
   const [displayLikes, setDisplayLikes] = useState(comment.upvotes);
-  const [hasLiked, setHasLiked] = useState(false);
+  const [hasLiked, setHasLiked] = useState(Boolean(comment.likedByMe || comment.userVote === 'up'));
   const [isLiking, setIsLiking] = useState(false);
 
-  const handleLike = async () => {
+  const handleToggleLike = async () => {
     if (isLiking) return;
     setIsLiking(true);
-    const nextLiked = !hasLiked;
-    setHasLiked(nextLiked);
-    setDisplayLikes((prev) => Math.max(prev + (nextLiked ? 1 : -1), 0));
+    const previousLikedState = hasLiked;
+    setHasLiked(!previousLikedState);
+    setDisplayLikes((prev) => Math.max(previousLikedState ? prev - 1 : prev + 1, 0));
+
     try {
-      if (onLike) {
-        const nextLikes = await onLike(comment.id);
+      const action = previousLikedState ? onUnlike : onLike;
+      if (action) {
+        const nextLikes = await action(comment.id);
         if (nextLikes !== null) {
           setDisplayLikes(Math.max(nextLikes, 0));
+        } else {
+          setHasLiked(previousLikedState);
+          setDisplayLikes((prev) => Math.max(previousLikedState ? prev + 1 : prev - 1, 0));
         }
       }
     } finally {
@@ -85,7 +92,7 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[11px] leading-5 text-app-muted">
             <Link
-              to={`/app/u/${comment.author.username}`}
+              to={getProfilePath(comment.author)}
               className={cn('hover:text-app-action hover:underline', isOP ? 'text-app-action' : 'text-app-heading')}
             >
               @{comment.author.username}
@@ -128,10 +135,10 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
               }
               active={hasLiked}
               disabled={isLiking}
-              onClick={handleLike}
+              onClick={handleToggleLike}
               ariaLabel={
                 hasLiked
-                  ? `Liked (${displayLikes} total). Tap to remove your like.`
+                  ? `You liked this comment (${displayLikes} total)`
                   : `Like this comment (${displayLikes} total)`
               }
               title={hasLiked ? 'Liked' : 'Like'}
@@ -189,6 +196,7 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
                   postAuthorId={postAuthorId}
                   onReply={onReply}
                   onLike={onLike}
+                  onUnlike={onUnlike}
                 />
               ))}
             </div>
@@ -208,13 +216,21 @@ interface CommentTreeProps {
   postAuthorId?: string;
   onReply: (parentId: string, content: string) => void;
   onLike?: (commentId: string) => Promise<number | null> | number | null;
+  onUnlike?: (commentId: string) => Promise<number | null> | number | null;
 }
 
-export const CommentTree: React.FC<CommentTreeProps> = ({ comments, postAuthorId, onReply, onLike }) => {
+export const CommentTree: React.FC<CommentTreeProps> = ({ comments, postAuthorId, onReply, onLike, onUnlike }) => {
   return (
     <div className="space-y-6">
       {comments.map((comment) => (
-        <CommentNode key={comment.id} comment={comment} postAuthorId={postAuthorId} onReply={onReply} onLike={onLike} />
+        <CommentNode
+          key={comment.id}
+          comment={comment}
+          postAuthorId={postAuthorId}
+          onReply={onReply}
+          onLike={onLike}
+          onUnlike={onUnlike}
+        />
       ))}
     </div>
   );

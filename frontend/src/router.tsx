@@ -5,32 +5,23 @@ import { RootLayout } from './layouts/RootLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Lazy load screens
-const HomeScreen = lazy(() => import('./screens/HomeScreen').then((m) => ({ default: m.HomeScreen })));
-const PostDetailScreen = lazy(() =>
-  import('./screens/PostDetailScreen').then((m) => ({ default: m.PostDetailScreen })),
-);
-const ProfileScreen = lazy(() => import('./screens/ProfileScreen').then((m) => ({ default: m.ProfileScreen })));
-const SubmitNewsScreen = lazy(() =>
-  import('./screens/SubmitNewsScreen').then((m) => ({ default: m.SubmitNewsScreen })),
-);
-const CreateChannelScreen = lazy(() =>
-  import('./screens/CreateChannelScreen').then((m) => ({ default: m.CreateChannelScreen })),
-);
-const HighlightsScreen = lazy(() =>
-  import('./screens/HighlightsScreen').then((m) => ({ default: m.HighlightsScreen })),
-);
-const TopicsScreen = lazy(() => import('./screens/TopicsScreen').then((m) => ({ default: m.TopicsScreen })));
-const SubscribeScreen = lazy(() => import('./screens/SubscribeScreen').then((m) => ({ default: m.SubscribeScreen })));
-const TrustScreen = lazy(() => import('./screens/TrustScreen').then((m) => ({ default: m.TrustScreen })));
-const AdminScreen = lazy(() => import('./screens/AdminScreen').then((m) => ({ default: m.AdminScreen })));
-const PublicLandingScreen = lazy(() =>
-  import('./screens/PublicLandingScreen').then((m) => ({ default: m.PublicLandingScreen })),
-);
-const AboutScreen = lazy(() => import('./screens/AboutScreen').then((m) => ({ default: m.AboutScreen })));
+const HomeScreen = lazy(() => import('./screens/HomeScreen'));
+const PostDetailScreen = lazy(() => import('./screens/PostDetailScreen'));
+const ProfileScreen = lazy(() => import('./screens/ProfileScreen'));
+const SubmitNewsScreen = lazy(() => import('./screens/SubmitNewsScreen'));
+const CreateChannelScreen = lazy(() => import('./screens/CreateChannelScreen'));
+const HighlightsScreen = lazy(() => import('./screens/HighlightsScreen'));
+const TopicsScreen = lazy(() => import('./screens/TopicsScreen'));
+const SubscribeScreen = lazy(() => import('./screens/SubscribeScreen'));
+const TrustScreen = lazy(() => import('./screens/TrustScreen'));
+const AdminScreen = lazy(() => import('./screens/AdminScreen'));
+const PartnerAdsScreen = lazy(() => import('./screens/PartnerAdsScreen'));
+const PublicLandingScreen = lazy(() => import('./screens/PublicLandingScreen'));
+const AboutScreen = lazy(() => import('./screens/AboutScreen'));
 const LoginScreen = lazy(() => import('./auth/LoginScreen'));
 const RegisterScreen = lazy(() => import('./auth/RegisterScreen'));
 
-const NotFoundScreen = lazy(() => import('./screens/NotFoundScreen').then((m) => ({ default: m.NotFoundScreen })));
+const NotFoundScreen = lazy(() => import('./screens/NotFoundScreen'));
 
 const LoadingScreen = () => (
   <div className="flex h-full w-full items-center justify-center bg-[var(--color-app-bg)] p-20">
@@ -160,6 +151,14 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: 'partner/ads',
+        element: (
+          <LazyLoad>
+            <PartnerAdsScreen />
+          </LazyLoad>
+        ),
+      },
+      {
         path: 'trust',
         element: (
           <LazyLoad>
@@ -169,13 +168,19 @@ export const router = createBrowserRouter([
       },
       {
         path: 'admin',
-        element: (
-          <LazyLoad>
-            <AdminScreen />
-          </LazyLoad>
-        ),
+        element: <Navigate to="/admin" replace />,
       },
     ],
+  },
+  {
+    path: '/admin',
+    element: (
+      <ProtectedRoute>
+        <LazyLoad>
+          <AdminScreen />
+        </LazyLoad>
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/p/:id',

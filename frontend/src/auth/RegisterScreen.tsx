@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Field, Input, TextArea } from '../components/ui/Input';
+import { executeRecaptcha, isRecaptchaConfigured } from '../lib/recaptcha';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
@@ -55,7 +56,14 @@ export const RegisterScreen: React.FC = () => {
     setFormError('');
     setIsSubmitting(true);
     try {
-      await register({ name: name.trim(), email, password, reportingFocus: focus.trim() || undefined });
+      const recaptchaToken = await executeRecaptcha('credential_request');
+      await register({
+        name: name.trim(),
+        email,
+        password,
+        reportingFocus: focus.trim() || undefined,
+        recaptchaToken,
+      });
       setRequestSubmitted(true);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Unable to register.');
@@ -186,6 +194,11 @@ export const RegisterScreen: React.FC = () => {
               </div>
 
               <div className="sm:col-span-2">
+                {isRecaptchaConfigured && (
+                  <p className="mb-3 text-xs leading-5 text-app-muted">
+                    Protected by reCAPTCHA. Google may assess this request for abuse prevention.
+                  </p>
+                )}
                 <button
                   type="submit"
                   disabled={isSubmitting}

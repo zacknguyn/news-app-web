@@ -4,9 +4,10 @@ import { toast } from 'sonner';
 import { deleteHighlight, getHighlights, updateHighlightNote, type SavedHighlight } from '../lib/highlights';
 import { Alert } from '../components/ui/Alert';
 import { TextArea } from '../components/ui/Input';
-import { backendApi, type BackendSavedArticleDTO } from '../lib/api';
+import { backendApi, type BackendSavedArticleDTO, type BackendSavedPostDTO } from '../lib/api';
 import { PostCard } from '../components/PostCard';
-import { backendArticleToPost } from '../lib/backendAdapters';
+import { backendArticleToPost, backendPostToPost } from '../lib/backendAdapters';
+import type { Post } from '../types';
 
 type NotebookTab = 'highlights' | 'posts';
 
@@ -18,17 +19,24 @@ const formatTime = (date: string) =>
 export const HighlightsScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<NotebookTab>('highlights');
   const [highlights, setHighlights] = useState<SavedHighlight[]>([]);
-  const [savedPosts, setSavedPosts] = useState<BackendSavedArticleDTO[]>([]);
+  const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState('');
 
   useEffect(() => {
     let isMounted = true;
-    Promise.all([getHighlights(), backendApi.getSavedArticles().catch(() => [])])
-      .then(([nextHighlights, nextSavedPosts]) => {
+    Promise.all([
+      getHighlights(),
+      backendApi.getSavedArticles().catch((): BackendSavedArticleDTO[] => []),
+      backendApi.getSavedPosts().catch((): BackendSavedPostDTO[] => []),
+    ])
+      .then(([nextHighlights, nextSavedArticles, nextSavedPosts]) => {
         if (!isMounted) return;
         setHighlights(nextHighlights);
-        setSavedPosts(nextSavedPosts);
+        setSavedPosts([
+          ...nextSavedPosts.map((saved) => backendPostToPost(saved.post)),
+          ...nextSavedArticles.map((saved) => backendArticleToPost(saved.article)),
+        ]);
         setNoteDrafts(
           nextHighlights.reduce<Record<string, string>>((drafts, highlight) => {
             drafts[highlight.id] = highlight.note || '';
@@ -79,8 +87,6 @@ export const HighlightsScreen: React.FC = () => {
       return next;
     });
   };
-
-  const savedPostRows = savedPosts.map((saved) => backendArticleToPost(saved.article));
 
   return (
     <div className="app-page">
@@ -166,13 +172,15 @@ export const HighlightsScreen: React.FC = () => {
         </div>
       ) : (
         <div className="mt-8 border-t border-app-border">
-          {savedPostRows.length === 0 ? (
+          {savedPosts.length === 0 ? (
             <p className="py-6 text-sm italic text-app-muted">No saved posts yet.</p>
           ) : (
-            savedPostRows.map((post) => <PostCard key={post.id} post={post} />)
+            savedPosts.map((post) => <PostCard key={post.id} post={post} />)
           )}
         </div>
       )}
     </div>
   );
 };
+
+export default HighlightsScreen;

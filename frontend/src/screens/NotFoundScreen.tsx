@@ -15,3 +15,5 @@ export const NotFoundScreen: React.FC = () => (
     </div>
   </main>
 );
+
+export default NotFoundScreen;

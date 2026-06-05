@@ -253,3 +253,5 @@ const CheckRow: React.FC<{ label: string; ready: boolean }> = ({ label, ready })
     <span className={ready ? 'text-app-action' : 'text-app-faint'}>{ready ? 'Ready' : 'Missing'}</span>
   </div>
 );
+
+export default SubmitNewsScreen;

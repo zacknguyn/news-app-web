@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getProfilePath } from '../lib/profileLinks';
 
 const bottomLinkClass = ({ isActive }: { isActive: boolean }) =>
   `flex h-14 min-w-0 flex-1 items-center justify-center border-t-2 px-1 font-mono text-[10px] font-semibold uppercase tracking-wider transition-colors ${
@@ -11,7 +12,7 @@ const bottomLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 export const BottomNav: React.FC = () => {
   const { user } = useAuth();
-  const profilePath = user ? `/app/u/${user.username}` : '/login';
+  const profilePath = user ? getProfilePath(user) : '/login';
 
   return (
     <nav

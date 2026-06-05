@@ -4,6 +4,7 @@ import { ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getPostTrust } from '../lib/trust';
 import { VoteControl } from './ui/VoteControl';
+import { getProfilePath } from '../lib/profileLinks';
 import { ShareButton } from './ui/ShareButton';
 import { stripHtml } from '../lib/richContent';
 
@@ -42,7 +43,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onVote }) => {
             ·
           </span>
           <Link
-            to={`/app/u/${post.author.username}`}
+            to={getProfilePath(post.author)}
             className="inline-flex items-center gap-1 transition-colors hover:text-app-action"
           >
             @{post.author.username}

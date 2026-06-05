@@ -242,3 +242,5 @@ export const TopicsScreen: React.FC = () => {
     </div>
   );
 };
+
+export default TopicsScreen;

@@ -29,6 +29,16 @@ export type BackendUserDTO = {
   bio?: string | null;
   createdAt?: string | null;
   status?: string | null;
+  profileHeadline?: string | null;
+  profileBio?: string | null;
+  profileAccent?: string | null;
+  profileTags?: string[] | null;
+  unlockedBadges?: string[] | null;
+  selectedBadge?: string | null;
+  subscriptionPlan?: string | null;
+  billingCadence?: string | null;
+  subscriptionStatus?: string | null;
+  entitlements?: string[] | null;
 };
 
 export type BackendAuthResponse = {
@@ -62,6 +72,7 @@ export type BackendPostDTO = {
   score: number;
   commentCount?: number | null;
   userVote?: number | null;
+  savedByMe?: boolean | null;
   userId: number;
   authorName: string;
   topicId: number;
@@ -81,6 +92,7 @@ export type BackendCommentDTO = {
   content: string;
   createdAt: string;
   likes: number;
+  likedByMe?: boolean | null;
   parentId?: number | null;
   replies?: BackendCommentDTO[];
 };
@@ -139,6 +151,17 @@ export type BackendSavedArticleDTO = {
   savedAt: string;
 };
 
+export type BackendSavedPostDTO = {
+  id: number;
+  post: BackendPostDTO;
+  savedAt: string;
+};
+
+export type BackendStripeCheckoutSessionDTO = {
+  sessionId: string;
+  url: string;
+};
+
 export type BackendCredentialRequestDTO = {
   id: number;
   name: string;
@@ -149,6 +172,31 @@ export type BackendCredentialRequestDTO = {
   createdAt: string;
   reviewedAt?: string | null;
   user?: BackendUserDTO | null;
+};
+
+export type BackendAdCampaignDTO = {
+  id: number;
+  partnerId?: number | null;
+  partnerName?: string | null;
+  partnerEmail?: string | null;
+  brandName: string;
+  headline: string;
+  body: string;
+  landingUrl: string;
+  imageUrl?: string | null;
+  placement?: string | null;
+  targetAudience?: string | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  budgetNote?: string | null;
+  status: string;
+  reviewNote?: string | null;
+  reviewedById?: number | null;
+  reviewedByName?: string | null;
+  submittedAt?: string | null;
+  reviewedAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 };
 
 export type BackendVoteResponseDTO = {
@@ -276,7 +324,13 @@ export const backendApi = {
       body: JSON.stringify({ email, password }),
     }),
 
-  register: (input: { name: string; email: string; password: string; reportingFocus?: string }) =>
+  register: (input: {
+    name: string;
+    email: string;
+    password: string;
+    reportingFocus?: string;
+    recaptchaToken?: string;
+  }) =>
     apiRequest<BackendCredentialRequestDTO>('/credential-requests', {
       method: 'POST',
       skipAuth: true,
@@ -344,7 +398,77 @@ export const backendApi = {
       body: JSON.stringify({ role }),
     }),
 
+  getAdminAdCampaigns: (status = '', page = 0, size = 20) =>
+    apiRequest<PaginatedResponse<BackendAdCampaignDTO>>(
+      `/admin/ads?status=${encodeURIComponent(status)}&page=${page}&size=${size}`,
+    ),
+
+  approveAdminAdCampaign: (id: number, reviewNote?: string) =>
+    apiRequest<BackendAdCampaignDTO>(`/admin/ads/${id}/approve`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reviewNote }),
+    }),
+
+  rejectAdminAdCampaign: (id: number, reviewNote?: string) =>
+    apiRequest<BackendAdCampaignDTO>(`/admin/ads/${id}/reject`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reviewNote }),
+    }),
+
+  getPartnerAdCampaigns: (page = 0, size = 20) =>
+    apiRequest<PaginatedResponse<BackendAdCampaignDTO>>(`/partner/ads?page=${page}&size=${size}`),
+
+  createPartnerAdCampaign: (input: Partial<BackendAdCampaignDTO>) =>
+    apiRequest<BackendAdCampaignDTO>('/partner/ads', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  updatePartnerAdCampaign: (id: number, input: Partial<BackendAdCampaignDTO>) =>
+    apiRequest<BackendAdCampaignDTO>(`/partner/ads/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
+
+  submitPartnerAdCampaign: (id: number) =>
+    apiRequest<BackendAdCampaignDTO>(`/partner/ads/${id}/submit`, {
+      method: 'PATCH',
+    }),
+
   getCurrentUser: () => apiRequest<BackendUserDTO>('/users/me'),
+
+  getUserProfile: (id: string | number) => apiRequest<BackendUserDTO>(`/users/${id}`),
+
+  getMySubscription: () => apiRequest<BackendUserDTO>('/users/me/subscription'),
+
+  updateMySubscription: (input: { plan?: string; billingCadence?: string }) =>
+    apiRequest<BackendUserDTO>('/users/me/subscription', {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
+
+  createSubscriptionCheckout: (input: { plan: string; billingCadence: string }) =>
+    apiRequest<BackendStripeCheckoutSessionDTO>('/users/me/subscription/checkout', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  completeSubscriptionCheckout: (sessionId: string) =>
+    apiRequest<BackendUserDTO>(`/users/me/subscription/checkout/complete?sessionId=${encodeURIComponent(sessionId)}`, {
+      method: 'POST',
+    }),
+
+  updateMyProfileCustomization: (input: {
+    profileHeadline?: string;
+    profileBio?: string;
+    profileAccent?: string;
+    profileTags?: string[];
+    selectedBadge?: string;
+  }) =>
+    apiRequest<BackendUserDTO>('/users/me/profile-customization', {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
 
   updateCurrentUser: (input: { name?: string; email?: string; avatar?: string; password?: string }) =>
     apiRequest<BackendUserDTO>('/users/me', {
@@ -361,6 +485,18 @@ export const backendApi = {
 
   unsaveArticle: (articleId: number) =>
     apiRequest<void>(`/users/me/saved-articles/${articleId}`, {
+      method: 'DELETE',
+    }),
+
+  getSavedPosts: () => apiRequest<BackendSavedPostDTO[]>('/users/me/saved-posts'),
+
+  savePost: (postId: string | number) =>
+    apiRequest<BackendSavedPostDTO>(`/users/me/saved-posts/${postId}`, {
+      method: 'POST',
+    }),
+
+  unsavePost: (postId: string | number) =>
+    apiRequest<void>(`/users/me/saved-posts/${postId}`, {
       method: 'DELETE',
     }),
 
@@ -503,9 +639,7 @@ export const backendApi = {
     }),
 
   getCommentsByArticle: (articleId: number, page = 0, size = 100) =>
-    apiRequest<PaginatedResponse<BackendCommentDTO>>(`/comments/article/${articleId}?page=${page}&size=${size}`, {
-      skipAuth: true,
-    }),
+    apiRequest<PaginatedResponse<BackendCommentDTO>>(`/comments/article/${articleId}?page=${page}&size=${size}`),
 
   createArticleComment: (articleId: number, input: { content: string; parentId?: number }) =>
     apiRequest<BackendCommentDTO>(`/comments/article/${articleId}`, {
@@ -514,9 +648,7 @@ export const backendApi = {
     }),
 
   getCommentsByPost: (postId: string, page = 0, size = 100) =>
-    apiRequest<PaginatedResponse<BackendCommentDTO>>(`/comments/post/${postId}?page=${page}&size=${size}`, {
-      skipAuth: true,
-    }),
+    apiRequest<PaginatedResponse<BackendCommentDTO>>(`/comments/post/${postId}?page=${page}&size=${size}`),
 
   createPostComment: (postId: string, input: { content: string; parentId?: number }) =>
     apiRequest<BackendCommentDTO>(`/comments/post/${postId}`, {
@@ -527,5 +659,10 @@ export const backendApi = {
   likeComment: (commentId: string) =>
     apiRequest<BackendCommentDTO>(`/comments/${commentId}/like`, {
       method: 'POST',
+    }),
+
+  unlikeComment: (commentId: string) =>
+    apiRequest<BackendCommentDTO>(`/comments/${commentId}/like`, {
+      method: 'DELETE',
     }),
 };

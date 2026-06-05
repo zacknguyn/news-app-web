@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getProfilePath } from '../lib/profileLinks';
 import { BrandMark } from './BrandMark';
 import { TopicRail } from './TopicRail';
 import { SearchInput } from './ui/SearchInput';
@@ -76,7 +77,8 @@ export const AppTopBar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isAdmin = user?.role === 'ADMIN';
-  const profilePath = user ? `/app/u/${user.username}` : '/login';
+  const isPartner = user?.role === 'PARTNER' || isAdmin;
+  const profilePath = user ? getProfilePath(user) : '/login';
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -219,8 +221,13 @@ export const AppTopBar: React.FC = () => {
                 {item.label}
               </NavLink>
             ))}
+            {isPartner && (
+              <NavLink to="/app/partner/ads" className={navLinkClass}>
+                Ads
+              </NavLink>
+            )}
             {isAdmin && (
-              <NavLink to="/app/admin" className={navLinkClass}>
+              <NavLink to="/admin" className={navLinkClass}>
                 Admin
               </NavLink>
             )}

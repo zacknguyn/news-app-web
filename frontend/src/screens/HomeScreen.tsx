@@ -11,3 +11,5 @@ export const HomeScreen: React.FC = () => {
     </div>
   );
 };
+
+export default HomeScreen;

@@ -10,6 +10,16 @@ export type User = {
   isVerified: boolean;
   bio?: string;
   joinedDate?: string;
+  profileHeadline?: string;
+  profileBio?: string;
+  profileAccent?: string;
+  profileTags?: string[];
+  unlockedBadges?: string[];
+  selectedBadge?: string;
+  subscriptionPlan?: string;
+  billingCadence?: string;
+  subscriptionStatus?: string;
+  entitlements?: string[];
 };
 
 export type Post = {
@@ -28,6 +38,7 @@ export type Post = {
   createdAt: string;
   userVote?: 'up' | 'down' | null;
   backendArticleId?: string;
+  savedByMe?: boolean;
 };
 
 export type Comment = {
@@ -43,6 +54,7 @@ export type Comment = {
   downvotes: number;
   userVote?: 'up' | 'down' | null;
   backendArticleId?: string;
+  likedByMe?: boolean;
 };
 
 export type Channel = {

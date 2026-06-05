@@ -13,6 +13,7 @@ import { backendArticleToPost, backendPostToPost } from '../lib/backendAdapters'
 import { addImageCaptions, isRichHtml, stripHtml } from '../lib/richContent';
 import { useAuth } from '../context/AuthContext';
 import { clearProgress } from '../lib/readingProgress';
+import { getProfilePath } from '../lib/profileLinks';
 import { getHighlightsForPost, saveHighlight, type SavedHighlight } from '../lib/highlights';
 import type { Post } from '../types';
 
@@ -20,7 +21,11 @@ type SelectionMenu = {
   text: string;
   start: number;
   end: number;
+  x: number;
+  y: number;
 };
+
+const SELECTION_MENU_WIDTH = 286;
 
 export const PostDetailScreen: React.FC = () => {
   const articleRef = useRef<HTMLDivElement>(null);
@@ -32,8 +37,8 @@ export const PostDetailScreen: React.FC = () => {
   const [isPostLoading, setIsPostLoading] = useState(true);
   const [postNotice, setPostNotice] = useState('');
   const [quoteDraft, setQuoteDraft] = useState<string | null>(null);
-  const [isArticleSaved, setIsArticleSaved] = useState(false);
-  const [isSavingArticle, setIsSavingArticle] = useState(false);
+  const [isPostSaved, setIsPostSaved] = useState(false);
+  const [isSavingPost, setIsSavingPost] = useState(false);
   const [isDeletingPost, setIsDeletingPost] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [savedHighlights, setSavedHighlights] = useState<SavedHighlight[]>([]);
@@ -94,23 +99,34 @@ export const PostDetailScreen: React.FC = () => {
 
   useEffect(() => {
     let isMounted = true;
-    const articleId = post?.backendArticleId ? Number(post.backendArticleId) : null;
-    if (!articleId || Number.isNaN(articleId)) {
-      setIsArticleSaved(false);
+    if (!post) {
+      setIsPostSaved(false);
       return;
     }
+
+    if (!post.id.startsWith('article-')) {
+      setIsPostSaved(Boolean(post.savedByMe));
+      return;
+    }
+
+    const articleId = post.backendArticleId ? Number(post.backendArticleId) : null;
+    if (!articleId || Number.isNaN(articleId)) {
+      setIsPostSaved(false);
+      return;
+    }
+
     backendApi
       .getSavedArticles()
       .then((savedArticles) => {
-        if (isMounted) setIsArticleSaved(savedArticles.some((saved) => saved.article.id === articleId));
+        if (isMounted) setIsPostSaved(savedArticles.some((saved) => saved.article.id === articleId));
       })
       .catch(() => {
-        if (isMounted) setIsArticleSaved(false);
+        if (isMounted) setIsPostSaved(false);
       });
     return () => {
       isMounted = false;
     };
-  }, [post?.backendArticleId]);
+  }, [post]);
 
   if (isPostLoading)
     return (
@@ -166,24 +182,42 @@ export const PostDetailScreen: React.FC = () => {
     }
   };
 
-  const handleToggleSavedArticle = async () => {
-    const articleId = post.backendArticleId ? Number(post.backendArticleId) : null;
-    if (!articleId || Number.isNaN(articleId)) {
-      toast.message('This post is not attached to a backend article yet.');
+  const handleToggleSavedPost = async () => {
+    if (post.id.startsWith('article-')) {
+      const articleId = post.backendArticleId ? Number(post.backendArticleId) : null;
+      if (!articleId || Number.isNaN(articleId)) {
+        toast.message('This article is not available for saving yet.');
+        return;
+      }
+      const previousSavedState = isPostSaved;
+      setIsPostSaved(!previousSavedState);
+      setIsSavingPost(true);
+      try {
+        if (previousSavedState) await backendApi.unsaveArticle(articleId);
+        else await backendApi.saveArticle(articleId);
+        toast.success(previousSavedState ? 'Removed from saved articles.' : 'Saved article.');
+      } catch (error) {
+        setIsPostSaved(previousSavedState);
+        toast.error(error instanceof Error ? error.message : 'Unable to update saved article.');
+      } finally {
+        setIsSavingPost(false);
+      }
       return;
     }
-    const previousSavedState = isArticleSaved;
-    setIsArticleSaved(!previousSavedState);
-    setIsSavingArticle(true);
+
+    const previousSavedState = isPostSaved;
+    setIsPostSaved(!previousSavedState);
+    setIsSavingPost(true);
     try {
-      if (previousSavedState) await backendApi.unsaveArticle(articleId);
-      else await backendApi.saveArticle(articleId);
-      toast.success(previousSavedState ? 'Removed from saved articles.' : 'Saved article.');
+      if (previousSavedState) await backendApi.unsavePost(post.id);
+      else await backendApi.savePost(post.id);
+      setPost((currentPost) => (currentPost ? { ...currentPost, savedByMe: !previousSavedState } : currentPost));
+      toast.success(previousSavedState ? 'Removed from saved posts.' : 'Saved post.');
     } catch (error) {
-      setIsArticleSaved(previousSavedState);
-      toast.error(error instanceof Error ? error.message : 'Unable to update saved article.');
+      setIsPostSaved(previousSavedState);
+      toast.error(error instanceof Error ? error.message : 'Unable to update saved post.');
     } finally {
-      setIsSavingArticle(false);
+      setIsSavingPost(false);
     }
   };
 
@@ -211,6 +245,11 @@ export const PostDetailScreen: React.FC = () => {
       return;
     }
     const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    if (!rect.width && !rect.height) {
+      setSelectionMenu(null);
+      return;
+    }
     const selectedNode =
       range.commonAncestorContainer.nodeType === Node.TEXT_NODE
         ? range.commonAncestorContainer.parentElement
@@ -223,7 +262,11 @@ export const PostDetailScreen: React.FC = () => {
     preSelectionRange.selectNodeContents(articleRef.current);
     preSelectionRange.setEnd(range.startContainer, range.startOffset);
     const start = preSelectionRange.toString().length;
-    setSelectionMenu({ text: selectedText.slice(0, 500), start, end: start + selectedText.length });
+    const maxX = Math.max(16, window.innerWidth - SELECTION_MENU_WIDTH - 16);
+    const x = Math.min(Math.max(16, rect.left + rect.width / 2 - SELECTION_MENU_WIDTH / 2), maxX);
+    const preferredY = rect.top > 72 ? rect.top - 56 : rect.bottom + 12;
+    const y = Math.min(Math.max(16, preferredY), window.innerHeight - 72);
+    setSelectionMenu({ text: selectedText.slice(0, 500), start, end: start + selectedText.length, x, y });
   };
 
   const handleSaveHighlight = async () => {
@@ -266,6 +309,7 @@ export const PostDetailScreen: React.FC = () => {
             onClick={() => navigate(-1)}
             ariaLabel="Back to previous page"
             title="Back"
+            className="border-app-heading bg-app-heading text-app-bg hover:border-app-action hover:bg-app-action hover:text-app-on-action"
           />
         </div>
 
@@ -305,7 +349,10 @@ export const PostDetailScreen: React.FC = () => {
                 )}
               </div>
               {selectionMenu && (
-                <div className="mt-4 flex gap-4 border border-app-border p-3 font-mono text-[11px] uppercase tracking-wider">
+                <div
+                  className="fixed z-50 flex w-[286px] gap-4 border border-app-border bg-app-surface p-3 font-mono text-[11px] uppercase tracking-wider shadow-modal"
+                  style={{ left: selectionMenu.x, top: selectionMenu.y }}
+                >
                   <button type="button" onClick={handleSaveHighlight} className="text-app-action hover:underline">
                     Highlight
                   </button>
@@ -322,17 +369,15 @@ export const PostDetailScreen: React.FC = () => {
                 </div>
               )}
               <div className="mt-8 flex flex-wrap items-center gap-2 font-mono text-[11px] uppercase tracking-wider">
-                {post.backendArticleId && (
-                  <PostActionButton
-                    icon={<Bookmark strokeWidth={2.25} className={isArticleSaved ? 'fill-current' : undefined} />}
-                    label={isArticleSaved ? 'Saved' : 'Save'}
-                    active={isArticleSaved}
-                    disabled={isSavingArticle}
-                    onClick={handleToggleSavedArticle}
-                    ariaLabel={isArticleSaved ? 'Remove from saved articles' : 'Save to your reading list'}
-                    title={isArticleSaved ? 'Saved' : 'Save'}
-                  />
-                )}
+                <PostActionButton
+                  icon={<Bookmark strokeWidth={2.25} className={isPostSaved ? 'fill-current' : undefined} />}
+                  label={isPostSaved ? 'Saved' : post.id.startsWith('article-') ? 'Save article' : 'Save post'}
+                  active={isPostSaved}
+                  disabled={isSavingPost}
+                  onClick={handleToggleSavedPost}
+                  ariaLabel={isPostSaved ? 'Remove from saved posts' : 'Save this post'}
+                  title={isPostSaved ? 'Saved' : 'Save post'}
+                />
                 <ShareButton
                   title={post.title}
                   text={stripHtml(post.content).slice(0, 220)}
@@ -389,7 +434,7 @@ export const PostDetailScreen: React.FC = () => {
       <aside className="space-y-8 border-t border-app-border py-6 lg:sticky lg:top-16 lg:h-[calc(100dvh-64px)] lg:overflow-y-auto lg:border-l lg:border-t-0 lg:px-4">
         <section>
           <h2 className="mono-label mb-4 text-app-muted">Author</h2>
-          <Link to={`/app/u/${post.author.username}`} className="flex gap-3">
+          <Link to={getProfilePath(post.author)} className="flex gap-3">
             <img
               src={
                 post.author.avatarUrl ||
@@ -431,3 +476,5 @@ export const PostDetailScreen: React.FC = () => {
     </div>
   );
 };
+
+export default PostDetailScreen;

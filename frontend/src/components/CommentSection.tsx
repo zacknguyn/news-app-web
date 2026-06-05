@@ -123,6 +123,16 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
     }
   };
 
+  const handleCommentUnlike = async (commentId: string) => {
+    try {
+      const updatedComment = await backendApi.unlikeComment(commentId);
+      return Math.max(updatedComment.likes || 0, 0);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Comment unlike failed.');
+      return null;
+    }
+  };
+
   return (
     <section id="comments" aria-labelledby="responses-heading" className="mt-10 border-t border-app-border pt-8">
       <div className="mb-5 flex flex-wrap items-end gap-x-6 gap-y-2">
@@ -185,6 +195,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
           postAuthorId={postAuthorId}
           onReply={handleAddReply}
           onLike={handleCommentLike}
+          onUnlike={handleCommentUnlike}
         />
       )}
     </section>

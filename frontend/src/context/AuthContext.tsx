@@ -9,7 +9,13 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (input: { name: string; email: string; password: string; reportingFocus?: string }) => Promise<void>;
+  register: (input: {
+    name: string;
+    email: string;
+    password: string;
+    reportingFocus?: string;
+    recaptchaToken?: string;
+  }) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -69,7 +75,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const register = async (input: { name: string; email: string; password: string; reportingFocus?: string }) => {
+  const register = async (input: {
+    name: string;
+    email: string;
+    password: string;
+    reportingFocus?: string;
+    recaptchaToken?: string;
+  }) => {
     setIsLoading(true);
     try {
       await backendApi.register(input);

@@ -35,6 +35,16 @@ export const backendUserToUser = (dto: BackendUserDTO): User => {
     isVerified: isAdmin,
     bio: dto.bio || undefined,
     joinedDate: dto.createdAt || undefined,
+    profileHeadline: dto.profileHeadline || undefined,
+    profileBio: dto.profileBio || undefined,
+    profileAccent: dto.profileAccent || undefined,
+    profileTags: dto.profileTags || [],
+    unlockedBadges: dto.unlockedBadges || [],
+    selectedBadge: dto.selectedBadge || undefined,
+    subscriptionPlan: dto.subscriptionPlan || undefined,
+    billingCadence: dto.billingCadence || undefined,
+    subscriptionStatus: dto.subscriptionStatus || undefined,
+    entitlements: dto.entitlements || [],
   };
 };
 
@@ -105,6 +115,7 @@ export const backendPostToPost = (dto: BackendPostDTO): Post => {
     createdAt: dto.createdAt,
     userVote: dto.userVote === 1 ? 'up' : dto.userVote === -1 ? 'down' : null,
     backendArticleId: dto.articleId ? String(dto.articleId) : undefined,
+    savedByMe: Boolean(dto.savedByMe),
   };
 };
 
@@ -137,6 +148,7 @@ export const backendArticleToPost = (dto: BackendArticleDTO): Post => {
     createdAt: dto.publishedAt || new Date().toISOString(),
     userVote: null,
     backendArticleId: String(dto.id),
+    savedByMe: false,
   };
 };
 
@@ -164,7 +176,8 @@ export const backendCommentToComment = (dto: BackendCommentDTO, postId: string):
     replies: (dto.replies || []).map((reply) => backendCommentToComment(reply, postId)),
     upvotes: Math.max(dto.likes || 0, 0),
     downvotes: 0,
-    userVote: null,
+    userVote: dto.likedByMe ? 'up' : null,
     backendArticleId: dto.articleId ? String(dto.articleId) : undefined,
+    likedByMe: Boolean(dto.likedByMe),
   };
 };
