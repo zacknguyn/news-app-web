@@ -33,6 +33,7 @@ import { useAuth } from '../context/AuthContext';
 import { backendApi } from '../lib/api';
 import { readAppPreferences, subscribeAppPreferences } from '../lib/appPreferences';
 import { Alert } from '../components/ui/Alert';
+import { HelperTip } from '../components/ui/Tooltip';
 import { SearchInput } from '../components/ui/SearchInput';
 import type { BackendAdCampaignDTO, BackendCredentialRequestDTO, BackendUserDTO } from '../lib/api';
 
@@ -1083,7 +1084,10 @@ const MetricStrip: React.FC<{ counts: AdminCounts }> = ({ counts }) => (
 
 const Metric: React.FC<{ label: string; value: number }> = ({ label, value }) => (
   <div className="border-b border-r border-app-border px-4 py-4 last:border-r-0 sm:border-b-0">
-    <p className="mono-label text-app-muted">{label}</p>
+    <div className="flex items-center gap-1.5">
+      <p className="mono-label text-app-muted">{label}</p>
+      <HelperTip label={metricHelperCopy(label)} side="bottom" />
+    </div>
     <p className="mt-2 font-mono text-2xl font-semibold tabular-nums text-app-heading">{value}</p>
   </div>
 );
@@ -1161,7 +1165,13 @@ const AnalyticsPanel: React.FC<{
   <section>
     <div className="flex flex-col gap-3 border-b border-app-border px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
       <div>
-        <h2 className="text-lg font-semibold text-app-heading">Custom analytics</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-app-heading">Custom analytics</h2>
+          <HelperTip
+            label="Widgets are configurable views over the records currently loaded into this admin screen. They are not yet full historical backend analytics."
+            side="right"
+          />
+        </div>
         <p className="mt-1 max-w-3xl text-sm leading-6 text-app-muted">
           Build the admin view you want by choosing metrics, chart types, and ranges. These widgets use loaded admin
           records until dedicated backend metrics are added.
@@ -1243,6 +1253,7 @@ const AnalyticsWidget: React.FC<{
         <div className="grid gap-2 md:grid-cols-3">
           <WidgetSelect
             label="Metric"
+            helper="Choose which loaded backend records this widget should count."
             value={widget.metric}
             onChange={(value) => onUpdate({ metric: value as AnalyticsMetric })}
           >
@@ -1254,6 +1265,7 @@ const AnalyticsWidget: React.FC<{
           </WidgetSelect>
           <WidgetSelect
             label="View"
+            helper="Switch the same data between time charts, segment charts, a KPI number, or a table."
             value={widget.chartType}
             onChange={(value) => onUpdate({ chartType: value as AnalyticsChartType })}
           >
@@ -1265,6 +1277,7 @@ const AnalyticsWidget: React.FC<{
           </WidgetSelect>
           <WidgetSelect
             label="Range"
+            helper="Date range only affects area, line, and bar charts. Donut, KPI, and table views show current loaded state."
             value={widget.range}
             onChange={(value) => onUpdate({ range: value as AnalyticsRange })}
           >
@@ -1294,20 +1307,25 @@ const AnalyticsWidget: React.FC<{
 
 const WidgetSelect: React.FC<{
   label: string;
+  helper?: string;
   value: string;
   onChange: (value: string) => void;
   children: React.ReactNode;
-}> = ({ label, value, onChange, children }) => (
-  <label className="grid gap-1">
-    <span className="font-mono text-[10px] uppercase tracking-wider text-app-muted">{label}</span>
+}> = ({ label, helper, value, onChange, children }) => (
+  <div className="grid gap-1">
+    <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-app-muted">
+      {label}
+      {helper && <HelperTip label={helper} side="top" />}
+    </span>
     <select
+      aria-label={label}
       value={value}
       onChange={(event) => onChange(event.target.value)}
       className="h-9 border border-app-border bg-app-bg px-2 font-mono text-[11px] uppercase tracking-wider text-app-heading outline-none focus:border-app-action"
     >
       {children}
     </select>
-  </label>
+  </div>
 );
 
 const AnalyticsWidgetBody: React.FC<{
@@ -1573,15 +1591,19 @@ const AdminCharts: React.FC<{
   );
 };
 
-const ChartShell: React.FC<{ title: string; total?: number; className?: string; children: React.ReactNode }> = ({
-  title,
-  total,
-  className = '',
-  children,
-}) => (
+const ChartShell: React.FC<{
+  title: string;
+  helper?: string;
+  total?: number;
+  className?: string;
+  children: React.ReactNode;
+}> = ({ title, helper, total, className = '', children }) => (
   <section className={`border-b border-r border-app-border px-5 py-5 last:border-r-0 xl:border-b-0 ${className}`}>
     <div className="mb-4 flex items-baseline justify-between gap-3">
-      <h2 className="mono-label text-app-muted">{title}</h2>
+      <div className="flex items-center gap-1.5">
+        <h2 className="mono-label text-app-muted">{title}</h2>
+        {helper && <HelperTip label={helper} side="bottom" />}
+      </div>
       {typeof total === 'number' && <span className="font-mono text-[11px] tabular-nums text-app-muted">{total}</span>}
     </div>
     {children}
@@ -1597,7 +1619,12 @@ const TrendChartPanel: React.FC<{
   const total = data.reduce((sum, item) => sum + item[metric], 0);
 
   return (
-    <ChartShell title={selectedMetric.label} className="xl:col-span-2" total={total}>
+    <ChartShell
+      title={selectedMetric.label}
+      helper={selectedMetric.description}
+      className="xl:col-span-2"
+      total={total}
+    >
       <div className="mb-4 grid gap-3 border-b border-app-border pb-4">
         <p className="text-sm leading-6 text-app-muted">{selectedMetric.description}</p>
         <div className="flex flex-wrap gap-2">
@@ -1657,7 +1684,11 @@ const DonutChartPanel: React.FC<{ title: string; data: Array<{ label: string; va
   title,
   data,
 }) => (
-  <ChartShell title={title} total={data.reduce((sum, item) => sum + item.value, 0)}>
+  <ChartShell
+    title={title}
+    helper="Breaks loaded users into subscription plans. This shows the current loaded page, not lifetime revenue."
+    total={data.reduce((sum, item) => sum + item.value, 0)}
+  >
     <div className="grid min-h-64 grid-rows-[1fr_auto] gap-4">
       <ResponsiveContainer width="100%" height={190}>
         <PieChart>
@@ -1675,7 +1706,15 @@ const DonutChartPanel: React.FC<{ title: string; data: Array<{ label: string; va
 );
 
 const BarChartPanel: React.FC<{ title: string; data: Array<{ label: string; value: number }> }> = ({ title, data }) => (
-  <ChartShell title={title} total={data.reduce((sum, item) => sum + item.value, 0)}>
+  <ChartShell
+    title={title}
+    helper={
+      title === 'Credential funnel'
+        ? 'Counts credential requests by review status in the loaded request page.'
+        : 'Counts users by account status in the loaded user page.'
+    }
+    total={data.reduce((sum, item) => sum + item.value, 0)}
+  >
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} layout="vertical" margin={{ top: 0, right: 8, left: 24, bottom: 0 }}>
@@ -1755,7 +1794,10 @@ const RequestToolbar: React.FC<{
 }> = ({ requestStatus, onStatusChange }) => (
   <div className="flex flex-col gap-3 border-b border-app-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
     <div>
-      <h2 className="text-lg font-semibold text-app-heading">Credential requests</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-app-heading">Credential requests</h2>
+        <HelperTip label="Credential requests are separate review records. Approving one can activate or grant access to the related user account." />
+      </div>
       <p className="mt-1 text-sm text-app-muted">Approve, reject, and inspect access requests.</p>
     </div>
     <div className="flex flex-wrap gap-3">
@@ -1786,7 +1828,10 @@ const UserToolbar: React.FC<{
 }> = ({ search, userStatus, onSearchChange, onStatusChange, onSubmit }) => (
   <div className="flex flex-col gap-3 border-b border-app-border px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
     <div>
-      <h2 className="text-lg font-semibold text-app-heading">Users</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-app-heading">Users</h2>
+        <HelperTip label="User status controls what the account can do. Pending/rejected/suspended users can read, but active-account actions are blocked by the backend." />
+      </div>
       <p className="mt-1 text-sm text-app-muted">Search, suspend, activate, and change roles.</p>
     </div>
     <div className="flex flex-col gap-2 sm:flex-row">
@@ -1835,7 +1880,10 @@ const AdToolbar: React.FC<{
 }> = ({ adStatus, onStatusChange }) => (
   <div className="flex flex-col gap-3 border-b border-app-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
     <div>
-      <h2 className="text-lg font-semibold text-app-heading">Ad proposals</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-app-heading">Ad proposals</h2>
+        <HelperTip label="Partners draft and submit campaigns here. Admin approval moves acceptable proposals forward; rejection should include a review note." />
+      </div>
       <p className="mt-1 text-sm text-app-muted">Review partner-submitted sponsored placements before they go live.</p>
     </div>
     <div className="flex flex-wrap gap-3">
@@ -1908,6 +1956,10 @@ const AdminDataTable = <TData,>({
           >
             Export {selectedRows.length > 0 ? 'selected' : 'view'}
           </button>
+          <HelperTip
+            label="Export uses selected rows when rows are checked. If nothing is selected, it exports the current sorted table view."
+            side="left"
+          />
           <div className="flex flex-wrap border border-app-border">
             {visibleColumns.map((column) => (
               <label
@@ -2224,7 +2276,10 @@ const UserInspector: React.FC<{
     <InspectorField label="Joined" value={formatDate(account.createdAt)} />
     <div className="grid gap-4 border-t border-app-border pt-4">
       <label className="grid gap-2">
-        <span className="mono-label text-app-muted">Set status</span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="mono-label text-app-muted">Set status</span>
+          <HelperTip label="ACTIVE can use interactive features. PENDING, SUSPENDED, and REJECTED are blocked from backend mutations." />
+        </span>
         <select
           value={account.status || 'ACTIVE'}
           disabled={isMutating}
@@ -2239,7 +2294,10 @@ const UserInspector: React.FC<{
         </select>
       </label>
       <label className="grid gap-2">
-        <span className="mono-label text-app-muted">Set role</span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="mono-label text-app-muted">Set role</span>
+          <HelperTip label="Role controls authorization level. Status still gates whether the account can perform write actions." />
+        </span>
         <select
           value={account.role || 'USER'}
           disabled={isMutating}
@@ -2279,6 +2337,21 @@ const LoadingLine: React.FC<{ label: string }> = ({ label }) => (
 );
 
 const EmptyLine: React.FC<{ text: string }> = ({ text }) => <p className="text-sm italic text-app-muted">{text}</p>;
+
+const metricHelperCopy = (label: string) => {
+  switch (label) {
+    case 'Pending requests':
+      return 'Credential requests waiting for admin approval or rejection in the loaded request page.';
+    case 'Loaded users':
+      return 'Users fetched into this dashboard page. This is not necessarily the total database count.';
+    case 'Paid subscribers':
+      return 'Loaded users whose subscription plan is not free.';
+    case 'Restricted users':
+      return 'Loaded users marked suspended or rejected. These accounts are blocked from interactive backend actions.';
+    default:
+      return 'Dashboard count based on the records currently loaded into this admin view.';
+  }
+};
 
 const sectionTitle = (section: AdminSection) => {
   switch (section) {

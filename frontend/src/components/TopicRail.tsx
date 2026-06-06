@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { PanelLeftClose, PanelLeftOpen, Pin, Search } from 'lucide-react';
 import type { Channel } from '../types';
+import { Tooltip } from './ui/Tooltip';
 
 interface TopicRailProps {
   channels: Channel[];
@@ -91,16 +92,18 @@ const TopicRail: React.FC<TopicRailProps> = ({
     return (
       <aside aria-label="Collapsed community navigation" className="flex h-full min-h-0 flex-col bg-app-bg">
         <div className="border-b border-app-border px-2 py-3">
-          <button
-            type="button"
-            onClick={onToggleCollapsed}
-            className="flex h-10 w-full items-center justify-center border border-app-border text-app-action hover:border-app-action"
-            aria-label="Expand communities sidebar"
-            aria-expanded={false}
-            title="Expand communities"
-          >
-            <PanelLeftOpen className="h-4 w-4" aria-hidden="true" />
-          </button>
+          <Tooltip label="Expand the community sidebar." side="right" className="w-full">
+            <button
+              type="button"
+              onClick={onToggleCollapsed}
+              className="flex h-10 w-full items-center justify-center border border-app-border text-app-action hover:border-app-action"
+              aria-label="Expand communities sidebar"
+              aria-expanded={false}
+              title="Expand communities"
+            >
+              <PanelLeftOpen className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </Tooltip>
         </div>
         <nav className="min-h-0 flex-1 overflow-y-auto py-2" aria-label="Compact community index">
           {compactChannels.map((channel) => (
@@ -139,16 +142,18 @@ const TopicRail: React.FC<TopicRailProps> = ({
             </p>
           </div>
           {onToggleCollapsed && (
-            <button
-              type="button"
-              onClick={onToggleCollapsed}
-              className="flex h-9 w-9 items-center justify-center border border-app-border text-app-muted hover:border-app-action hover:text-app-action"
-              aria-label="Collapse communities sidebar"
-              aria-expanded
-              title="Collapse communities"
-            >
-              <PanelLeftClose className="h-4 w-4" aria-hidden="true" />
-            </button>
+            <Tooltip label="Collapse the sidebar and keep quick community initials visible." side="left">
+              <button
+                type="button"
+                onClick={onToggleCollapsed}
+                className="flex h-9 w-9 items-center justify-center border border-app-border text-app-muted hover:border-app-action hover:text-app-action"
+                aria-label="Collapse communities sidebar"
+                aria-expanded
+                title="Collapse communities"
+              >
+                <PanelLeftClose className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </Tooltip>
           )}
         </div>
         <label
@@ -305,17 +310,19 @@ const ChannelRow: React.FC<{
         {formatCount(channel.memberCount || 0)} members / {formatCount(channel.postCount || 0)} reports
       </span>
     </Link>
-    <button
-      type="button"
-      onClick={() => onPinToggle(channel.id)}
-      className={`flex h-8 w-8 items-center justify-center border border-transparent transition-colors hover:border-app-border ${
-        pinned ? 'text-app-action' : 'text-app-faint hover:text-app-heading'
-      }`}
-      aria-label={pinned ? `Unpin ${channel.name}` : `Pin ${channel.name}`}
-      title={pinned ? 'Unpin community' : 'Pin community'}
-    >
-      <Pin className="h-3.5 w-3.5" aria-hidden="true" />
-    </button>
+    <Tooltip label={pinned ? 'Remove this community from pinned.' : 'Pin this community to the top.'} side="left">
+      <button
+        type="button"
+        onClick={() => onPinToggle(channel.id)}
+        className={`flex h-8 w-8 items-center justify-center border border-transparent transition-colors hover:border-app-border ${
+          pinned ? 'text-app-action' : 'text-app-faint hover:text-app-heading'
+        }`}
+        aria-label={pinned ? `Unpin ${channel.name}` : `Pin ${channel.name}`}
+        title={pinned ? 'Unpin community' : 'Pin community'}
+      >
+        <Pin className="h-3.5 w-3.5" aria-hidden="true" />
+      </button>
+    </Tooltip>
   </div>
 );
 

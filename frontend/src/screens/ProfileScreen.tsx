@@ -6,6 +6,7 @@ import { backendArticleToPost, backendAuthorToUser, backendUserToUser } from '..
 import { useAuth } from '../context/AuthContext';
 import { Alert } from '../components/ui/Alert';
 import { Field, Input, TextArea } from '../components/ui/Input';
+import { HelperTip } from '../components/ui/Tooltip';
 import { PostCard } from '../components/PostCard';
 import type { Post, User } from '../types';
 
@@ -478,6 +479,7 @@ export const ProfileScreen: React.FC = () => {
                 <UnlockRow
                   title="Selected badge"
                   copy={canUseBadges ? 'Badge near your name.' : 'Unlock with Reader Plus.'}
+                  helper="Badges are subscription-linked profile markers. Free accounts keep the default profile without a selected badge."
                   locked={!canUseBadges}
                 >
                   <select
@@ -499,6 +501,7 @@ export const ProfileScreen: React.FC = () => {
                 <UnlockRow
                   title="Profile accent"
                   copy={canUseAccent ? 'Restrained accent preset.' : 'Unlock with Backer or Newsroom Pro.'}
+                  helper="Profile accents change the visible framing, badge treatment, and avatar outline on your public profile."
                   locked={!canUseAccent}
                 >
                   <div className="grid gap-2">
@@ -602,12 +605,16 @@ const Stat: React.FC<{ label: string; value: number }> = ({ label, value }) => (
 const UnlockRow: React.FC<{
   title: string;
   copy: string;
+  helper?: string;
   locked: boolean;
   children: React.ReactNode;
-}> = ({ title, copy, locked, children }) => (
+}> = ({ title, copy, helper, locked, children }) => (
   <div className="grid gap-3 border-b border-app-border py-4 last:border-b-0">
     <div>
-      <p className="font-semibold text-app-heading">{title}</p>
+      <div className="flex items-center gap-2">
+        <p className="font-semibold text-app-heading">{title}</p>
+        {helper && <HelperTip label={helper} side="right" />}
+      </div>
       <p className="mt-1 text-sm leading-6 text-app-muted">{copy}</p>
       {locked && <p className="mt-2 font-mono text-[11px] uppercase tracking-wider text-app-action">Locked</p>}
     </div>

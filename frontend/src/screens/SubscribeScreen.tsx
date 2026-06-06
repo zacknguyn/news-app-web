@@ -32,8 +32,8 @@ const plans: Array<{
   {
     id: 'reader-plus',
     name: 'Reader Plus',
-    priceMonthly: 6,
-    priceAnnual: 60,
+    priceMonthly: 2,
+    priceAnnual: 20,
     position: 'Better signal, quieter reading',
     bestFor: 'Readers who want briefings, advanced saves, and contributor alerts.',
     features: [
@@ -46,8 +46,8 @@ const plans: Array<{
   {
     id: 'backer',
     name: 'Backer',
-    priceMonthly: 12,
-    priceAnnual: 120,
+    priceMonthly: 5,
+    priceAnnual: 50,
     position: 'Fund independent reporting',
     bestFor: 'Supporters who want deeper context and higher-signal discussion.',
     features: [
@@ -60,8 +60,8 @@ const plans: Array<{
   {
     id: 'newsroom-pro',
     name: 'Newsroom Pro',
-    priceMonthly: 29,
-    priceAnnual: 290,
+    priceMonthly: 10,
+    priceAnnual: 100,
     position: 'Research and archive tools',
     bestFor: 'Power readers, researchers, and small editorial teams.',
     features: [

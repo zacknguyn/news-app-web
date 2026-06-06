@@ -9,6 +9,8 @@ import { useGSAP } from '@gsap/react';
 
 gsap.registerPlugin(useGSAP);
 
+const registerImage = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=85';
+
 export const RegisterScreen: React.FC = () => {
   const rootRef = useRef<HTMLElement>(null);
   const [name, setName] = useState('');
@@ -74,23 +76,27 @@ export const RegisterScreen: React.FC = () => {
 
   return (
     <main ref={rootRef} className="grid min-h-dvh bg-app-bg text-app-heading lg:grid-cols-[0.88fr_1.12fr]">
-      <section className="flex min-h-[42dvh] flex-col justify-between border-b border-[var(--color-app-border)] bg-app-bg p-6 text-app-heading sm:p-10 lg:min-h-dvh lg:border-b-0 lg:border-r">
+      <section
+        className="relative flex min-h-[42dvh] flex-col justify-between overflow-hidden border-b border-[var(--color-app-border)] bg-app-heading p-6 text-app-bg sm:p-10 lg:min-h-dvh lg:border-b-0 lg:border-r"
+        style={{ backgroundImage: `url(${registerImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+      >
+        <div className="absolute inset-0 bg-app-heading/70" aria-hidden="true" />
         <Link
           to="/"
-          className="auth-reveal inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-[var(--color-app-muted)] hover:text-[var(--color-app-action)]"
+          className="auth-reveal relative z-10 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-app-bg/75 hover:text-app-bg"
         >
           <ArrowLeft className="h-4 w-4" />
           Public site
         </Link>
-        <div>
-          <p className="auth-reveal mono-label mb-5 text-app-action">Credential request</p>
-          <h1 className="auth-reveal max-w-xl text-[40px] font-semibold leading-[1.15] tracking-[-0.01em]">
+        <div className="relative z-10">
+          <p className="auth-reveal mono-label mb-5 text-app-bg/75">Credential request</p>
+          <h1 className="auth-reveal max-w-xl text-[40px] font-semibold leading-[1.15] tracking-[-0.01em] text-app-bg">
             Request newsroom access.
           </h1>
-          <p className="auth-reveal mt-6 max-w-md text-base leading-7 text-[var(--color-app-muted)]">
+          <p className="auth-reveal mt-6 max-w-md text-base leading-7 text-app-bg/80">
             Submit your details for the credential request workflow. Admin review happens in the operations surface.
           </p>
-          <div className="mt-10 border-y border-app-border">
+          <div className="mt-10 border-y border-app-bg/25">
             {[
               ['01', 'Share who you are.'],
               ['02', 'Create an account password.'],
@@ -98,10 +104,10 @@ export const RegisterScreen: React.FC = () => {
             ].map(([step, copy]) => (
               <div
                 key={step}
-                className="auth-card grid grid-cols-[36px_1fr] gap-3 border-b border-app-border py-3 last:border-b-0"
+                className="auth-card grid grid-cols-[36px_1fr] gap-3 border-b border-app-bg/20 py-3 last:border-b-0"
               >
-                <span className="font-mono text-[11px] text-[var(--color-app-muted)]">{step}</span>
-                <span className="text-sm leading-6 text-[var(--color-app-ink)]">{copy}</span>
+                <span className="font-mono text-[11px] text-app-bg/55">{step}</span>
+                <span className="text-sm leading-6 text-app-bg/80">{copy}</span>
               </div>
             ))}
           </div>

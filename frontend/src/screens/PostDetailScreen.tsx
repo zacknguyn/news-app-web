@@ -8,6 +8,7 @@ import { Alert } from '../components/ui/Alert';
 import { VoteControl } from '../components/ui/VoteControl';
 import { ShareButton } from '../components/ui/ShareButton';
 import { PostActionButton } from '../components/ui/PostActionButton';
+import { Tooltip } from '../components/ui/Tooltip';
 import { backendApi } from '../lib/api';
 import { backendArticleToPost, backendPostToPost } from '../lib/backendAdapters';
 import { addImageCaptions, isRichHtml, stripHtml } from '../lib/richContent';
@@ -303,14 +304,16 @@ export const PostDetailScreen: React.FC = () => {
         )}
 
         <div className="sticky top-16 z-30 -mx-4 mb-6 flex items-center border-b border-app-border bg-app-bg px-4 py-3 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
-          <PostActionButton
-            icon={<ArrowLeft strokeWidth={2.25} />}
-            label="Back"
-            onClick={() => navigate(-1)}
-            ariaLabel="Back to previous page"
-            title="Back"
-            className="border-app-heading bg-app-heading text-app-bg hover:border-app-action hover:bg-app-action hover:text-app-on-action"
-          />
+          <Tooltip label="Return to the previous feed or page." side="bottom">
+            <PostActionButton
+              icon={<ArrowLeft strokeWidth={2.25} />}
+              label="Back"
+              onClick={() => navigate(-1)}
+              ariaLabel="Back to previous page"
+              title="Back"
+              className="border-app-heading bg-app-heading text-app-bg hover:border-app-action hover:bg-app-action hover:text-app-on-action"
+            />
+          </Tooltip>
         </div>
 
         <article className="border-b border-app-border pb-8">
@@ -353,12 +356,16 @@ export const PostDetailScreen: React.FC = () => {
                   className="fixed z-50 flex w-[286px] gap-4 border border-app-border bg-app-surface p-3 font-mono text-[11px] uppercase tracking-wider shadow-modal"
                   style={{ left: selectionMenu.x, top: selectionMenu.y }}
                 >
-                  <button type="button" onClick={handleSaveHighlight} className="text-app-action hover:underline">
-                    Highlight
-                  </button>
-                  <button type="button" onClick={handleQuoteSelection} className="text-app-action hover:underline">
-                    Quote in comment
-                  </button>
+                  <Tooltip label="Save this selected text to your highlights." side="top">
+                    <button type="button" onClick={handleSaveHighlight} className="text-app-action hover:underline">
+                      Highlight
+                    </button>
+                  </Tooltip>
+                  <Tooltip label="Insert this selected text into a comment draft." side="top">
+                    <button type="button" onClick={handleQuoteSelection} className="text-app-action hover:underline">
+                      Quote in comment
+                    </button>
+                  </Tooltip>
                   <button
                     type="button"
                     onClick={() => setSelectionMenu(null)}
@@ -369,15 +376,20 @@ export const PostDetailScreen: React.FC = () => {
                 </div>
               )}
               <div className="mt-8 flex flex-wrap items-center gap-2 font-mono text-[11px] uppercase tracking-wider">
-                <PostActionButton
-                  icon={<Bookmark strokeWidth={2.25} className={isPostSaved ? 'fill-current' : undefined} />}
-                  label={isPostSaved ? 'Saved' : post.id.startsWith('article-') ? 'Save article' : 'Save post'}
-                  active={isPostSaved}
-                  disabled={isSavingPost}
-                  onClick={handleToggleSavedPost}
-                  ariaLabel={isPostSaved ? 'Remove from saved posts' : 'Save this post'}
-                  title={isPostSaved ? 'Saved' : 'Save post'}
-                />
+                <Tooltip
+                  label={isPostSaved ? 'Remove this item from your saved list.' : 'Add this item to your saved list.'}
+                  side="top"
+                >
+                  <PostActionButton
+                    icon={<Bookmark strokeWidth={2.25} className={isPostSaved ? 'fill-current' : undefined} />}
+                    label={isPostSaved ? 'Saved' : post.id.startsWith('article-') ? 'Save article' : 'Save post'}
+                    active={isPostSaved}
+                    disabled={isSavingPost}
+                    onClick={handleToggleSavedPost}
+                    ariaLabel={isPostSaved ? 'Remove from saved posts' : 'Save this post'}
+                    title={isPostSaved ? 'Saved' : 'Save post'}
+                  />
+                </Tooltip>
                 <ShareButton
                   title={post.title}
                   text={stripHtml(post.content).slice(0, 220)}

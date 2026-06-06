@@ -15,6 +15,8 @@ type RouterState = {
   };
 };
 
+const loginImage = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=85';
+
 export const LoginScreen: React.FC = () => {
   const rootRef = useRef<HTMLElement>(null);
   const [email, setEmail] = useState('');
@@ -77,37 +79,29 @@ export const LoginScreen: React.FC = () => {
       ref={rootRef}
       className="grid min-h-dvh bg-[var(--color-app-bg)] text-[var(--color-app-text)] lg:grid-cols-[0.92fr_1.08fr]"
     >
-      <section className="flex min-h-[42dvh] flex-col justify-between border-b border-[var(--color-app-border)] bg-app-bg p-6 sm:p-10 lg:min-h-dvh lg:border-b-0 lg:border-r">
+      <section
+        className="relative flex min-h-[42dvh] flex-col justify-between overflow-hidden border-b border-[var(--color-app-border)] bg-app-heading p-6 text-app-bg sm:p-10 lg:min-h-dvh lg:border-b-0 lg:border-r"
+        style={{ backgroundImage: `url(${loginImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+      >
+        <div className="absolute inset-0 bg-app-heading/68" aria-hidden="true" />
         <Link
           to="/"
-          className="auth-reveal inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-[var(--color-app-muted)] hover:text-[var(--color-app-action)]"
+          className="auth-reveal relative z-10 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-app-bg/75 hover:text-app-bg"
         >
           <ArrowLeft className="h-4 w-4" />
           Public site
         </Link>
-        <div>
-          <p className="auth-reveal mono-label mb-5 text-[var(--color-app-action)]">Account access</p>
-          <h1 className="auth-reveal max-w-xl text-[40px] font-semibold leading-[1.15] tracking-[-0.01em] text-app-heading">
+        <div className="relative z-10">
+          <p className="auth-reveal mono-label mb-5 text-app-bg/75">Account access</p>
+          <h1 className="auth-reveal max-w-xl text-[40px] font-semibold leading-[1.15] tracking-[-0.01em] text-app-bg">
             Sign in to the newsroom.
           </h1>
-          <p className="auth-reveal mt-6 max-w-md text-base leading-7 text-[var(--color-app-muted)]">
+          <p className="auth-reveal mt-6 max-w-md text-base leading-7 text-app-bg/80">
             Use your approved account to read, publish, vote, and join article discussions.
           </p>
-          <div className="mt-10 max-w-md border-y border-app-border">
-            {[
-              ['Backend status', 'Local / Live'],
-              ['Access model', 'Approved users'],
-              ['Current role', 'Reader / Admin'],
-            ].map(([label, value]) => (
-              <div
-                key={label}
-                className="auth-card flex items-center justify-between border-b border-app-border px-0 py-3 last:border-b-0"
-              >
-                <span className="mono-label text-[var(--color-app-muted)]">{label}</span>
-                <span className="font-mono text-[13px] text-[var(--color-app-heading)]">{value}</span>
-              </div>
-            ))}
-          </div>
+          <p className="auth-card mt-10 max-w-md border-y border-app-bg/25 py-4 font-mono text-[11px] uppercase tracking-wider text-app-bg/75">
+            Reader access · verified discussions · saved reporting
+          </p>
         </div>
       </section>
 

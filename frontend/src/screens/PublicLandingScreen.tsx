@@ -14,6 +14,9 @@ const trustNotes = [
   ['Editorial restraint', 'The interface stays quiet so the content remains inspectable.'],
 ];
 
+const heroImage = 'https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&w=1600&q=85';
+const newsroomImage = 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=1200&q=85';
+
 export const PublicLandingScreen: React.FC = () => (
   <main className="min-h-dvh bg-app-bg text-app-heading">
     <header className="border-b border-app-border">
@@ -35,21 +38,30 @@ export const PublicLandingScreen: React.FC = () => (
       </div>
     </header>
 
-    <section className="w-full border-b border-app-border px-4 py-16 sm:px-6 lg:px-10 lg:py-24">
-      <p className="mono-label mb-5 text-app-action">Independent newsroom</p>
-      <h1 className="max-w-4xl text-[44px] font-semibold leading-[1.08] tracking-[-0.01em] text-app-heading sm:text-[64px]">
-        Independent reporting, verified by readers.
-      </h1>
-      <p className="mt-6 max-w-[65ch] text-lg leading-8 text-app-text">
-        Tourane News is a newsroom for working journalists, freelance correspondents, and the readers who back them.
-        Every dispatch is voted on, every source is cited, every contributor is accountable.
-      </p>
-      <Link
-        to="/app"
-        className="mt-8 inline-flex h-12 items-center bg-app-action px-5 font-mono text-[12px] uppercase tracking-wider text-app-on-action hover:bg-app-action-hover"
-      >
-        Read today's edition
-      </Link>
+    <section className="grid w-full border-b border-app-border lg:min-h-[calc(100dvh-4rem)] lg:grid-cols-[minmax(0,1fr)_minmax(24rem,0.86fr)]">
+      <div className="px-4 py-16 sm:px-6 lg:px-10 lg:py-24">
+        <p className="mono-label mb-5 text-app-action">Independent newsroom</p>
+        <h1 className="max-w-4xl text-[44px] font-semibold leading-[1.08] tracking-[-0.01em] text-app-heading sm:text-[64px]">
+          Independent reporting, verified by readers.
+        </h1>
+        <p className="mt-6 max-w-[65ch] text-lg leading-8 text-app-text">
+          Tourane News is a newsroom for working journalists, freelance correspondents, and the readers who back them.
+          Every dispatch is voted on, every source is cited, every contributor is accountable.
+        </p>
+        <Link
+          to="/app"
+          className="mt-8 inline-flex h-12 items-center bg-app-action px-5 font-mono text-[12px] uppercase tracking-wider text-app-on-action hover:bg-app-action-hover"
+        >
+          Read today's edition
+        </Link>
+      </div>
+      <figure className="min-h-[22rem] border-t border-app-border lg:min-h-0 lg:border-l lg:border-t-0">
+        <img
+          src={heroImage}
+          alt="Printed newspapers stacked on a newsroom desk"
+          className="h-full w-full object-cover"
+        />
+      </figure>
     </section>
 
     <section className="grid w-full border-b border-app-border px-4 sm:px-6 md:grid-cols-3 lg:px-10">
@@ -74,6 +86,26 @@ export const PublicLandingScreen: React.FC = () => (
             <p className="mt-2 text-sm leading-6 text-app-muted">{copy}</p>
           </article>
         ))}
+      </div>
+    </section>
+
+    <section className="grid w-full border-b border-app-border lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1fr)]">
+      <figure className="min-h-[18rem] border-b border-app-border lg:border-b-0 lg:border-r">
+        <img
+          src={newsroomImage}
+          alt="News pages and notes arranged for editorial review"
+          className="h-full w-full object-cover"
+        />
+      </figure>
+      <div className="px-4 py-12 sm:px-6 lg:px-10">
+        <p className="mono-label text-app-muted">Visual verification</p>
+        <h2 className="mt-4 max-w-xl text-3xl font-semibold leading-tight text-app-heading">
+          Built for screenshots, reviews, and live editorial workflows.
+        </h2>
+        <p className="mt-4 max-w-[62ch] text-base leading-7 text-app-text">
+          The interface keeps article media, source context, profile identity, and admin review close to the action so
+          project evaluators can inspect the system without guessing what each workflow does.
+        </p>
       </div>
     </section>
 
