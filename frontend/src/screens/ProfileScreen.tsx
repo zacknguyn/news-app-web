@@ -347,7 +347,7 @@ export const ProfileScreen: React.FC = () => {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm italic text-app-muted">No beats yet.</p>
+                  <p className="text-sm italic text-app-muted">No beats yet. Beats appear when you contribute to specific topics.</p>
                 )}
               </section>
               <section>
@@ -355,7 +355,7 @@ export const ProfileScreen: React.FC = () => {
                 {userPosts[0] ? (
                   <PostCard post={userPosts[0]} />
                 ) : (
-                  <p className="text-sm italic text-app-muted">No dispatches yet.</p>
+                  <p className="text-sm italic text-app-muted">No dispatches yet. <Link to="/app/submit" className="text-app-action hover:underline">Write the first one</Link>.</p>
                 )}
               </section>
             </div>

@@ -4,9 +4,9 @@ import { ShieldCheck } from 'lucide-react';
 import type { Channel, Post } from '../types';
 
 type ContextMode =
-  | { kind: 'front-page'; trendingPosts: Post[]; savedCount: number; highlightsCount: number }
+  | { kind: 'front-page'; trendingPosts: Post[]; savedCount: number; highlightsCount: number; latestArticles?: Post[]; editorsPicks?: Post[]; featuredArticles?: Post[] }
   | { kind: 'channel'; channel: Channel; topPosts: Post[] }
-  | { kind: 'post-detail'; post: Post; relatedPosts: Post[] };
+  | { kind: 'post-detail'; post: Post; relatedPosts: Post[]; recommendedArticles?: Post[] };
 
 interface ContextPanelProps {
   mode: ContextMode;
@@ -35,6 +35,9 @@ const FrontPagePanel: React.FC<Extract<ContextMode, { kind: 'front-page' }>> = (
   trendingPosts,
   savedCount,
   highlightsCount,
+  latestArticles,
+  editorsPicks,
+  featuredArticles,
 }) => (
   <>
     <section>
@@ -67,6 +70,60 @@ const FrontPagePanel: React.FC<Extract<ContextMode, { kind: 'front-page' }>> = (
       </ol>
     </section>
 
+    {editorsPicks && editorsPicks.length > 0 && (
+      <section>
+        <PanelHeader>Editor&apos;s picks</PanelHeader>
+        <ol className="space-y-2.5">
+          {editorsPicks.slice(0, 4).map((post) => (
+            <li key={post.id} className="flex items-start gap-2.5">
+              <Link
+                to={`/app/p/${post.id}`}
+                className="min-w-0 text-[13px] font-semibold leading-snug text-app-heading transition-colors duration-150 hover:text-app-action"
+              >
+                {post.title}
+              </Link>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )}
+
+    {featuredArticles && featuredArticles.length > 0 && (
+      <section>
+        <PanelHeader>Featured</PanelHeader>
+        <ol className="space-y-2.5">
+          {featuredArticles.slice(0, 4).map((post) => (
+            <li key={post.id} className="flex items-start gap-2.5">
+              <Link
+                to={`/app/p/${post.id}`}
+                className="min-w-0 text-[13px] font-semibold leading-snug text-app-heading transition-colors duration-150 hover:text-app-action"
+              >
+                {post.title}
+              </Link>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )}
+
+    {latestArticles && latestArticles.length > 0 && (
+      <section>
+        <PanelHeader>Latest</PanelHeader>
+        <ol className="space-y-2.5">
+          {latestArticles.slice(0, 4).map((post) => (
+            <li key={post.id} className="flex items-start gap-2.5">
+              <Link
+                to={`/app/p/${post.id}`}
+                className="min-w-0 text-[13px] font-semibold leading-snug text-app-heading transition-colors duration-150 hover:text-app-action"
+              >
+                {post.title}
+              </Link>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )}
+
     <section>
       <PanelHeader>Daily brief</PanelHeader>
       <p className="text-[13px] italic leading-snug text-app-muted">Delivered at 7 a.m. local time.</p>
@@ -79,11 +136,11 @@ const FrontPagePanel: React.FC<Extract<ContextMode, { kind: 'front-page' }>> = (
           type="email"
           autoComplete="email"
           placeholder="you@domain.com"
-          className="min-h-10 min-w-0 flex-1 border border-app-border bg-app-bg px-2.5 text-[13px] text-app-text outline-none transition-shadow placeholder:text-app-faint focus:border-app-action focus:shadow-[var(--shadow-focus)]"
+          className="min-h-11 min-w-0 flex-1 border border-app-border bg-app-bg px-2.5 text-[13px] text-app-text outline-none transition-shadow placeholder:text-app-faint focus:border-app-action focus:shadow-[var(--shadow-focus)]"
         />
         <button
           type="submit"
-          className="inline-flex h-10 items-center border border-app-action bg-app-action px-2.5 font-mono text-[11px] text-app-on-action transition-colors hover:bg-app-action-hover"
+          className="inline-flex h-11 items-center border border-app-action bg-app-action px-2.5 font-mono text-[11px] text-app-on-action transition-colors hover:bg-app-action-hover"
         >
           Subscribe
         </button>
@@ -154,7 +211,7 @@ const ChannelPanel: React.FC<Extract<ContextMode, { kind: 'channel' }>> = ({ cha
   </>
 );
 
-const PostDetailPanel: React.FC<Extract<ContextMode, { kind: 'post-detail' }>> = ({ post, relatedPosts }) => (
+const PostDetailPanel: React.FC<Extract<ContextMode, { kind: 'post-detail' }>> = ({ post, relatedPosts, recommendedArticles }) => (
   <>
     <section>
       <PanelHeader>More from r/{post.channelName || 'community'}</PanelHeader>
@@ -189,12 +246,23 @@ const PostDetailPanel: React.FC<Extract<ContextMode, { kind: 'post-detail' }>> =
       </Link>
     </section>
 
-    <section>
-      <PanelHeader>Trending</PanelHeader>
-      <Link to="/app" className="text-[12px] font-semibold text-app-action hover:underline">
-        What others are reading now
-      </Link>
-    </section>
+    {recommendedArticles && recommendedArticles.length > 0 && (
+      <section>
+        <PanelHeader>Recommended</PanelHeader>
+        <ol className="space-y-2.5">
+          {recommendedArticles.slice(0, 4).map((article) => (
+            <li key={article.id} className="flex items-start gap-2.5">
+              <Link
+                to={`/app/p/${article.id}`}
+                className="min-w-0 text-[13px] font-semibold leading-snug text-app-heading transition-colors duration-150 hover:text-app-action"
+              >
+                {article.title}
+              </Link>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )}
   </>
 );
 

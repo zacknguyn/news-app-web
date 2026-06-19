@@ -116,6 +116,7 @@ export const backendPostToPost = (dto: BackendPostDTO): Post => {
     userVote: dto.userVote === 1 ? 'up' : dto.userVote === -1 ? 'down' : null,
     backendArticleId: dto.articleId ? String(dto.articleId) : undefined,
     savedByMe: Boolean(dto.savedByMe),
+    aiSummary: dto.aiSummary || undefined,
   };
 };
 
@@ -139,7 +140,7 @@ export const backendArticleToPost = (dto: BackendArticleDTO): Post => {
     channelId: category ? String(category.id) : 'articles',
     channelName,
     title: dto.title,
-    content: dto.subtitle || dto.aiSummary || dto.content,
+    content: dto.content,
     mediaUrl: dto.imageUrl || undefined,
     mediaType: dto.imageUrl ? 'image' : 'link',
     upvotes: Math.max(dto.views || 0, 0),
@@ -149,6 +150,8 @@ export const backendArticleToPost = (dto: BackendArticleDTO): Post => {
     userVote: null,
     backendArticleId: String(dto.id),
     savedByMe: false,
+    aiSummary: dto.aiSummary || undefined,
+    tags: (dto.tags || []).map((t) => ({ id: t.id, name: t.name, slug: t.slug || '' })),
   };
 };
 

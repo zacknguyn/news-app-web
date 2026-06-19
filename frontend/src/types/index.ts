@@ -22,6 +22,12 @@ export type User = {
   entitlements?: string[];
 };
 
+export type TagInfo = {
+  id: number;
+  name: string;
+  slug: string;
+};
+
 export type Post = {
   id: string;
   authorId: string;
@@ -39,6 +45,8 @@ export type Post = {
   userVote?: 'up' | 'down' | null;
   backendArticleId?: string;
   savedByMe?: boolean;
+  aiSummary?: string;
+  tags?: TagInfo[];
 };
 
 export type Comment = {

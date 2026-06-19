@@ -27,6 +27,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 const navItems = [
   { to: '/app', label: 'Front', end: true },
   { to: '/app/topics', label: 'Topics' },
+  { to: '/app/categories', label: 'Categories' },
   { to: '/app/highlights', label: 'Notebook' },
   { to: '/app/trust', label: 'Trust' },
   { to: '/app/subscribe', label: 'Subscribe' },
@@ -295,7 +296,7 @@ export const AppTopBar: React.FC = () => {
                 ) : searchError ? (
                   <div className="px-3 py-4 text-sm font-semibold text-[var(--color-app-action)]">{searchError}</div>
                 ) : searchResults.length === 0 ? (
-                  <div className="px-3 py-4 text-sm font-semibold text-[var(--color-app-muted)]">No reports found.</div>
+                  <div className="px-3 py-4 text-sm font-semibold text-[var(--color-app-muted)]">No reports found. Try a different search term or browse <Link to="/app" className="text-app-action hover:underline">the front page</Link>.</div>
                 ) : (
                   <div className="divide-y divide-[var(--color-app-border)]">
                     {searchResults.map((post) => (

@@ -21,7 +21,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
   kind = 'post',
   label = 'Share',
   iconOnly = false,
-  className = 'inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[var(--color-app-muted)] hover:text-[var(--color-app-action)]',
+  className = 'inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[var(--color-app-muted)] hover:text-[var(--color-app-action)]',
   successMessage,
   onDiscuss,
 }) => {

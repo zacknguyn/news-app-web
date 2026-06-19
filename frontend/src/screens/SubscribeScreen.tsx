@@ -103,6 +103,7 @@ export const SubscribeScreen: React.FC = () => {
   const stripeSessionId = searchParams.get('session_id');
   const [preferences, setPreferences] = useState<AppPreferences>(() => readAppPreferences());
   const [isRedirectingPlan, setIsRedirectingPlan] = useState<PlanId | null>(null);
+  const [isOpeningPortal, setIsOpeningPortal] = useState(false);
   const [isCompletingCheckout, setIsCompletingCheckout] = useState(
     () => stripeStatus === 'success' && Boolean(stripeSessionId),
   );
@@ -170,6 +171,17 @@ export const SubscribeScreen: React.FC = () => {
   const updatePreferences = (next: Partial<AppPreferences>, message: string) => {
     setPreferences((current) => ({ ...current, ...next }));
     toast.success(message);
+  };
+
+  const openPortal = async () => {
+    setIsOpeningPortal(true);
+    try {
+      const session = await backendApi.createSubscriptionPortalSession();
+      window.location.assign(session.url);
+    } catch (error) {
+      setIsOpeningPortal(false);
+      toast.error(error instanceof Error ? error.message : 'Stripe portal could not be opened.');
+    }
   };
 
   const updateSubscription = async (next: Partial<AppPreferences>, message: string) => {
@@ -338,6 +350,19 @@ export const SubscribeScreen: React.FC = () => {
             </p>
           )}
         </section>
+        {preferences.subscriptionPlan !== 'free' && (
+          <section>
+            <h2 className="mono-label mb-4 text-app-muted">Stripe</h2>
+            <button
+              type="button"
+              onClick={openPortal}
+              disabled={isOpeningPortal}
+              className="h-9 w-full border border-app-border bg-app-bg px-4 font-mono text-[11px] uppercase tracking-wider text-app-heading hover:border-app-action hover:text-app-action disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {isOpeningPortal ? 'Opening Portal...' : 'Manage Billing'}
+            </button>
+          </section>
+        )}
         <section>
           <h2 className="mono-label mb-4 text-app-muted">What unlocks</h2>
           <ol className="space-y-3">

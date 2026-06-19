@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { backendApi } from '../lib/api';
 import { backendTopicToChannel } from '../lib/backendAdapters';
@@ -31,6 +31,45 @@ export const SubmitNewsScreen: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [formError, setFormError] = useState('');
+
+  const [articleSearchQuery, setArticleSearchQuery] = useState('');
+  const [articleSearchResults, setArticleSearchResults] = useState<{ id: number; title: string; sourceUrl?: string }[]>([]);
+  const [linkedArticleId, setLinkedArticleId] = useState<number | undefined>(undefined);
+  const [linkedArticleTitle, setLinkedArticleTitle] = useState('');
+  const articleSearchRef = useRef<HTMLInputElement>(null);
+  const articleSearchTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleArticleSearch = (query: string) => {
+    setArticleSearchQuery(query);
+    if (articleSearchTimeout.current) clearTimeout(articleSearchTimeout.current);
+    if (!query.trim()) {
+      setArticleSearchResults([]);
+      return;
+    }
+    articleSearchTimeout.current = setTimeout(async () => {
+      try {
+        const res = await backendApi.searchArticles(query.trim(), 0, 5);
+        setArticleSearchResults(
+          res.content.map((a) => ({ id: a.id, title: a.title, sourceUrl: a.sourceUrl })),
+        );
+      } catch {
+        setArticleSearchResults([]);
+      }
+    }, 300);
+  };
+
+  const pickArticle = (id: number, title: string, sourceUrl?: string) => {
+    setLinkedArticleId(id);
+    setLinkedArticleTitle(title);
+    setArticleSearchQuery('');
+    setArticleSearchResults([]);
+    if (sourceUrl) setSourceUrl(sourceUrl);
+  };
+
+  const clearLinkedArticle = () => {
+    setLinkedArticleId(undefined);
+    setLinkedArticleTitle('');
+  };
 
   const plainContent = stripHtml(content);
   const contentError = hasSubmitted && plainContent.length < 80 ? 'Add at least 80 characters of report context.' : '';
@@ -104,6 +143,7 @@ export const SubmitNewsScreen: React.FC = () => {
         topicId: Number(selectedChannel),
         sourceUrl: sourceUrl.trim() || undefined,
         imageUrl: thumbnailUrl.trim() || undefined,
+        articleId: linkedArticleId,
       });
       localStorage.removeItem(DRAFT_KEY);
       navigate(`/app/p/${createdPost.id}`);
@@ -191,6 +231,44 @@ export const SubmitNewsScreen: React.FC = () => {
                 onChange={(event) => setSourceUrl(event.target.value)}
                 placeholder="https://..."
               />
+            </Field>
+            <Field id="link-article" label="Link an article (optional)">
+              <div className="relative">
+                {linkedArticleId ? (
+                  <div className="flex items-center justify-between gap-2 border border-app-border px-3 py-2">
+                    <span className="truncate text-xs text-app-text">{linkedArticleTitle}</span>
+                    <button type="button" onClick={clearLinkedArticle} className="shrink-0 text-app-faint hover:text-app-text">
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      ref={articleSearchRef}
+                      type="text"
+                      value={articleSearchQuery}
+                      onChange={(e) => handleArticleSearch(e.target.value)}
+                      placeholder="Search articles..."
+                      className="h-10 w-full border border-app-border bg-app-bg px-3 text-sm text-app-text outline-none placeholder:text-app-faint focus:border-app-action"
+                    />
+                    {articleSearchResults.length > 0 && (
+                      <ul className="absolute left-0 right-0 top-full z-10 max-h-48 overflow-y-auto border border-t-0 border-app-border bg-app-bg">
+                        {articleSearchResults.map((a) => (
+                          <li key={a.id}>
+                            <button
+                              type="button"
+                              onClick={() => pickArticle(a.id, a.title, a.sourceUrl)}
+                              className="w-full px-3 py-2 text-left text-xs text-app-text hover:bg-app-bg-hover"
+                            >
+                              {a.title}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
+                )}
+              </div>
             </Field>
             <Field id="dispatch-channel" label="Topic">
               <select

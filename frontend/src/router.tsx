@@ -12,6 +12,7 @@ const SubmitNewsScreen = lazy(() => import('./screens/SubmitNewsScreen'));
 const CreateChannelScreen = lazy(() => import('./screens/CreateChannelScreen'));
 const HighlightsScreen = lazy(() => import('./screens/HighlightsScreen'));
 const TopicsScreen = lazy(() => import('./screens/TopicsScreen'));
+const CategoriesScreen = lazy(() => import('./screens/CategoriesScreen'));
 const SubscribeScreen = lazy(() => import('./screens/SubscribeScreen'));
 const TrustScreen = lazy(() => import('./screens/TrustScreen'));
 const AdminScreen = lazy(() => import('./screens/AdminScreen'));
@@ -127,6 +128,30 @@ export const router = createBrowserRouter([
         element: (
           <LazyLoad>
             <TopicsScreen />
+          </LazyLoad>
+        ),
+      },
+      {
+        path: 'categories',
+        element: (
+          <LazyLoad>
+            <CategoriesScreen />
+          </LazyLoad>
+        ),
+      },
+      {
+        path: 'category/:slug',
+        element: (
+          <LazyLoad>
+            <CategoriesScreen />
+          </LazyLoad>
+        ),
+      },
+      {
+        path: 'tag/:slug',
+        element: (
+          <LazyLoad>
+            <CategoriesScreen />
           </LazyLoad>
         ),
       },

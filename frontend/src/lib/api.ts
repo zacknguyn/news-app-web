@@ -41,6 +41,27 @@ export type BackendUserDTO = {
   entitlements?: string[] | null;
 };
 
+export type BackendTrustFactor = {
+  label: string;
+  score: number;
+  max: number;
+};
+
+export type BackendTrustResponse = {
+  totalScore: number;
+  maxScore: number;
+  factors: BackendTrustFactor[];
+};
+
+export type BackendSearchResultDTO = {
+  entityType: string;
+  id: number;
+  title: string;
+  subtitle: string;
+  url: string;
+  status: string;
+};
+
 export type BackendAuthResponse = {
   token: string;
   type: string;
@@ -78,6 +99,7 @@ export type BackendPostDTO = {
   topicId: number;
   topicName: string;
   articleId?: number | null;
+  aiSummary?: string | null;
   createdAt: string;
   updatedAt?: string | null;
 };
@@ -159,6 +181,10 @@ export type BackendSavedPostDTO = {
 
 export type BackendStripeCheckoutSessionDTO = {
   sessionId: string;
+  url: string;
+};
+
+export type BackendStripePortalSessionDTO = {
   url: string;
 };
 
@@ -386,6 +412,9 @@ export const backendApi = {
     return apiRequest<PaginatedResponse<BackendUserDTO>>(`/admin/users?${params.toString()}`);
   },
 
+  getAdminUser: (id: number) =>
+    apiRequest<BackendUserDTO>(`/admin/users/${id}`),
+
   updateAdminUserStatus: (id: number, status: string) =>
     apiRequest<BackendUserDTO>(`/admin/users/${id}/status`, {
       method: 'PATCH',
@@ -397,6 +426,12 @@ export const backendApi = {
       method: 'PATCH',
       body: JSON.stringify({ role }),
     }),
+
+  deleteAdminUser: (id: number) =>
+    apiRequest<void>(`/admin/users/${id}`, { method: 'DELETE' }),
+
+  searchAdmin: (q: string) =>
+    apiRequest<BackendSearchResultDTO[]>(`/admin/search?q=${encodeURIComponent(q)}`),
 
   getAdminAdCampaigns: (status = '', page = 0, size = 20) =>
     apiRequest<PaginatedResponse<BackendAdCampaignDTO>>(
@@ -413,6 +448,72 @@ export const backendApi = {
     apiRequest<BackendAdCampaignDTO>(`/admin/ads/${id}/reject`, {
       method: 'PATCH',
       body: JSON.stringify({ reviewNote }),
+    }),
+
+  getAdminCategories: (search = '', page = 0, size = 20) =>
+    apiRequest<PaginatedResponse<BackendCategoryDTO>>(
+      `/admin/categories?search=${encodeURIComponent(search)}&page=${page}&size=${size}`,
+    ),
+
+  createAdminCategory: (input: { name: string; slug?: string; description?: string }) =>
+    apiRequest<BackendCategoryDTO>('/admin/categories', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  updateAdminCategory: (id: number, input: { name?: string; slug?: string; description?: string }) =>
+    apiRequest<BackendCategoryDTO>(`/admin/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
+
+  deleteAdminCategory: (id: number) =>
+    apiRequest<void>(`/admin/categories/${id}`, {
+      method: 'DELETE',
+    }),
+
+  getAdminTags: (search = '', page = 0, size = 20) =>
+    apiRequest<PaginatedResponse<BackendTagDTO>>(
+      `/admin/tags?search=${encodeURIComponent(search)}&page=${page}&size=${size}`,
+    ),
+
+  createAdminTag: (input: { name: string; slug?: string }) =>
+    apiRequest<BackendTagDTO>('/admin/tags', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  updateAdminTag: (id: number, input: { name?: string; slug?: string }) =>
+    apiRequest<BackendTagDTO>(`/admin/tags/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
+
+  deleteAdminTag: (id: number) =>
+    apiRequest<void>(`/admin/tags/${id}`, {
+      method: 'DELETE',
+    }),
+
+  getAdminAuthors: (search = '', page = 0, size = 20) =>
+    apiRequest<PaginatedResponse<BackendAuthorDTO>>(
+      `/admin/authors?search=${encodeURIComponent(search)}&page=${page}&size=${size}`,
+    ),
+
+  createAdminAuthor: (input: { name: string; slug?: string; bio?: string; avatarUrl?: string; email?: string; facebookUrl?: string; twitterUrl?: string }) =>
+    apiRequest<BackendAuthorDTO>('/admin/authors', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  updateAdminAuthor: (id: number, input: { name?: string; slug?: string; bio?: string; avatarUrl?: string; email?: string; facebookUrl?: string; twitterUrl?: string }) =>
+    apiRequest<BackendAuthorDTO>(`/admin/authors/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
+
+  deleteAdminAuthor: (id: number) =>
+    apiRequest<void>(`/admin/authors/${id}`, {
+      method: 'DELETE',
     }),
 
   getPartnerAdCampaigns: (page = 0, size = 20) =>
@@ -437,6 +538,8 @@ export const backendApi = {
 
   getCurrentUser: () => apiRequest<BackendUserDTO>('/users/me'),
 
+  getMyTrust: () => apiRequest<BackendTrustResponse>('/users/me/trust'),
+
   getUserProfile: (id: string | number) => apiRequest<BackendUserDTO>(`/users/${id}`),
 
   getMySubscription: () => apiRequest<BackendUserDTO>('/users/me/subscription'),
@@ -451,6 +554,11 @@ export const backendApi = {
     apiRequest<BackendStripeCheckoutSessionDTO>('/users/me/subscription/checkout', {
       method: 'POST',
       body: JSON.stringify(input),
+    }),
+
+  createSubscriptionPortalSession: () =>
+    apiRequest<BackendStripePortalSessionDTO>('/users/me/subscription/portal', {
+      method: 'POST',
     }),
 
   completeSubscriptionCheckout: (sessionId: string) =>
@@ -598,6 +706,11 @@ export const backendApi = {
       method: 'POST',
     }),
 
+  summarizePost: (postId: number, maxPoints?: number, language?: string, force?: boolean) =>
+    apiRequest<BackendPostDTO>(`/posts/${postId}/summary?language=${language ?? 'vi'}&force=${force ?? false}${maxPoints != null ? `&maxPoints=${maxPoints}` : ''}`, {
+      method: 'POST',
+    }),
+
   getArticle: (articleId: number) => apiRequest<BackendArticleDTO>(`/articles/${articleId}`, { skipAuth: true }),
 
   getArticles: (page = 0, size = 20) =>
@@ -621,6 +734,11 @@ export const backendApi = {
       skipAuth: true,
     }),
 
+  getArticlesByTag: (slug: string, page = 0, size = 20) =>
+    apiRequest<PaginatedResponse<BackendArticleDTO>>(`/articles/by-tag/${slug}?page=${page}&size=${size}`, {
+      skipAuth: true,
+    }),
+
   getArticlesByUser: (userId: number, page = 0, size = 20) =>
     apiRequest<PaginatedResponse<BackendArticleDTO>>(`/articles/by-user/${userId}?page=${page}&size=${size}`, {
       skipAuth: true,
@@ -632,10 +750,18 @@ export const backendApi = {
       { skipAuth: true },
     ),
 
+  getRecommendedArticles: () =>
+    apiRequest<BackendArticleDTO[]>('/articles/recommended'),
+
   incrementArticleViews: (articleId: number) =>
     apiRequest<void>(`/articles/${articleId}/view`, {
       method: 'POST',
       skipAuth: true,
+    }),
+
+  summarizeArticle: (articleId: number) =>
+    apiRequest<BackendArticleDTO>(`/articles/${articleId}/summary`, {
+      method: 'POST',
     }),
 
   getCommentsByArticle: (articleId: number, page = 0, size = 100) =>
@@ -663,6 +789,11 @@ export const backendApi = {
 
   unlikeComment: (commentId: string) =>
     apiRequest<BackendCommentDTO>(`/comments/${commentId}/like`, {
+      method: 'DELETE',
+    }),
+
+  deleteComment: (commentId: string) =>
+    apiRequest<void>(`/comments/${commentId}`, {
       method: 'DELETE',
     }),
 };

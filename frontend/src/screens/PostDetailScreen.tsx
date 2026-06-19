@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Bookmark } from 'lucide-react';
+import { ArrowLeft, Bookmark, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { MOCK_POSTS } from '../lib/mockData';
 import { CommentSection } from '../components/CommentSection';
@@ -40,9 +40,11 @@ export const PostDetailScreen: React.FC = () => {
   const [quoteDraft, setQuoteDraft] = useState<string | null>(null);
   const [isPostSaved, setIsPostSaved] = useState(false);
   const [isSavingPost, setIsSavingPost] = useState(false);
+  const [isSummarizing, setIsSummarizing] = useState(false);
   const [isDeletingPost, setIsDeletingPost] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [savedHighlights, setSavedHighlights] = useState<SavedHighlight[]>([]);
+  const [recommendedArticles, setRecommendedArticles] = useState<Post[]>([]);
   const [selectionMenu, setSelectionMenu] = useState<SelectionMenu | null>(null);
 
   useEffect(() => {
@@ -60,13 +62,14 @@ export const PostDetailScreen: React.FC = () => {
           if (Number.isNaN(articleId)) throw new Error('Article link is invalid.');
           const foundArticle = await backendApi.getArticle(articleId);
           if (isMounted) setPost(backendArticleToPost(foundArticle));
+          backendApi.incrementArticleViews(articleId).catch(() => undefined);
           return;
         }
         const foundPost = await backendApi.getPost(id);
         if (isMounted) setPost(backendPostToPost(foundPost));
       } catch (error) {
         if (!isMounted) return;
-        setPostNotice(error instanceof Error ? error.message : 'Backend detail unavailable.');
+        setPostNotice(error instanceof Error ? error.message : 'Backend detail unavailable. The post may have been removed or the server is offline.');
         setPost(null);
       } finally {
         if (isMounted) setIsPostLoading(false);
@@ -97,6 +100,15 @@ export const PostDetailScreen: React.FC = () => {
       isMounted = false;
     };
   }, [post]);
+
+  useEffect(() => {
+    if (!post) return;
+    let isMounted = true;
+    backendApi.getRecommendedArticles()
+      .then((articles) => { if (isMounted) setRecommendedArticles(articles.map(backendArticleToPost)); })
+      .catch(() => undefined);
+    return () => { isMounted = false; };
+  }, [post?.backendArticleId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -133,7 +145,7 @@ export const PostDetailScreen: React.FC = () => {
     return (
       <div className="px-4 py-20">
         <span className="swiss-loading">
-          <span>.</span> Loading post
+          <span>.</span> Loading post details
         </span>
       </div>
     );
@@ -219,6 +231,24 @@ export const PostDetailScreen: React.FC = () => {
       toast.error(error instanceof Error ? error.message : 'Unable to update saved post.');
     } finally {
       setIsSavingPost(false);
+    }
+  };
+
+  const handleSummarize = async () => {
+    setIsSummarizing(true);
+    try {
+      if (post.id.startsWith('article-') && post.backendArticleId) {
+        const updatedArticle = await backendApi.summarizeArticle(Number(post.backendArticleId));
+        setPost(backendArticleToPost(updatedArticle));
+      } else {
+        const updatedPost = await backendApi.summarizePost(Number(post.id));
+        setPost(backendPostToPost(updatedPost));
+      }
+      toast.success('AI summary generated.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Summarization failed.');
+    } finally {
+      setIsSummarizing(false);
     }
   };
 
@@ -328,6 +358,19 @@ export const PostDetailScreen: React.FC = () => {
                 {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · share ·
                 save · report
               </p>
+              {post.tags && post.tags.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {post.tags.map((tag) => (
+                    <Link
+                      key={tag.id}
+                      to={`/app/tag/${tag.slug}`}
+                      className="inline-block border border-app-border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-app-muted transition-colors hover:border-app-action hover:text-app-action"
+                    >
+                      {tag.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
               {post.mediaUrl && post.mediaType === 'image' && (
                 <figure className="mt-6">
                   <img
@@ -339,6 +382,12 @@ export const PostDetailScreen: React.FC = () => {
                     Image attached to dispatch.
                   </figcaption>
                 </figure>
+              )}
+              {post.aiSummary && (
+                <div className="mt-8 border-l-2 border-app-action bg-app-surface px-4 py-3">
+                  <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-app-action">AI Summary</p>
+                  <p className="text-sm leading-6 text-app-text">{post.aiSummary}</p>
+                </div>
               )}
               <div
                 ref={articleRef}
@@ -390,26 +439,38 @@ export const PostDetailScreen: React.FC = () => {
                     title={isPostSaved ? 'Saved' : 'Save post'}
                   />
                 </Tooltip>
+{!post.aiSummary && (
+  <Tooltip label="Generate a concise AI summary of this post." side="top">
+    <PostActionButton
+      icon={<Sparkles strokeWidth={2.25} />}
+      label={isSummarizing ? 'Summarizing...' : 'AI Summary'}
+      disabled={isSummarizing}
+      onClick={handleSummarize}
+      ariaLabel="Summarize with AI"
+      title="Summarize"
+    />
+  </Tooltip>
+)}
                 <ShareButton
                   title={post.title}
                   text={stripHtml(post.content).slice(0, 220)}
                   url={`/app/p/${post.id}`}
                   kind="post"
-                  className="inline-flex min-h-10 select-none items-center gap-2 border border-app-border bg-transparent px-3 font-mono text-[11px] uppercase leading-none tracking-wider text-app-heading transition-colors duration-150 hover:border-app-action hover:text-app-action"
+                  className="inline-flex min-h-11 select-none items-center gap-2 border border-app-border bg-transparent px-3 font-mono text-[11px] uppercase leading-none tracking-wider text-app-heading transition-colors duration-150 hover:border-app-action hover:text-app-action"
                   successMessage="Report link copied."
                 />
                 {canDeletePost && !confirmDelete && (
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(true)}
-                    className="inline-flex min-h-10 items-center px-3 font-mono text-[11px] uppercase leading-none tracking-wider text-app-action hover:underline"
+                    className="inline-flex min-h-11 items-center px-3 font-mono text-[11px] uppercase leading-none tracking-wider text-app-action hover:underline"
                   >
                     Delete
                   </button>
                 )}
               </div>
               {confirmDelete && (
-                <div className="mt-4 border border-app-border p-3">
+                <div role="alert" aria-live="assertive" className="mt-4 border border-app-border p-3">
                   <p className="text-sm text-app-text">Delete this post and its linked discussion data?</p>
                   <div className="mt-3 flex gap-4 font-mono text-[11px] uppercase tracking-wider">
                     <button
@@ -467,21 +528,19 @@ export const PostDetailScreen: React.FC = () => {
           <p className="mt-2 text-sm leading-6 text-app-muted">Saved quotes from this dispatch.</p>
         </section>
         <section>
-          <h2 className="mono-label mb-4 text-app-muted">Related</h2>
+          <h2 className="mono-label mb-4 text-app-muted">{recommendedArticles.length > 0 ? 'Recommended' : 'Related'}</h2>
           <ol className="space-y-3">
-            {MOCK_POSTS.filter((candidate) => candidate.id !== post.id)
-              .slice(0, 5)
-              .map((candidate, index) => (
-                <li key={candidate.id} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-2">
-                  <span className="font-mono text-[11px] text-app-muted">{String(index + 1).padStart(2, '0')}</span>
-                  <Link
-                    to={`/app/p/${candidate.id}`}
-                    className="truncate text-sm text-app-heading hover:text-app-action"
-                  >
-                    {candidate.title}
-                  </Link>
-                </li>
-              ))}
+            {(recommendedArticles.length > 0 ? recommendedArticles : MOCK_POSTS.filter((c) => c.id !== post.id).slice(0, 5)).map((item, index) => (
+              <li key={item.id} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-2">
+                <span className="font-mono text-[11px] text-app-muted">{String(index + 1).padStart(2, '0')}</span>
+                <Link
+                  to={`/app/p/${item.id}`}
+                  className="truncate text-sm text-app-heading hover:text-app-action"
+                >
+                  {item.title}
+                </Link>
+              </li>
+            ))}
           </ol>
         </section>
       </aside>

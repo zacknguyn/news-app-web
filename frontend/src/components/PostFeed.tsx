@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Bookmark, Plus } from 'lucide-react';
 import { PostCard } from './PostCard';
@@ -7,6 +7,7 @@ import { ContextPanel, type ContextMode } from './ContextPanel';
 import { clearProgress, readProgress, type ReadingProgress } from '../lib/readingProgress';
 import { backendApi } from '../lib/api';
 import { backendArticleToPost, backendPostToPost, backendTopicToChannel } from '../lib/backendAdapters';
+import { useKeyboard } from '../lib/useKeyboard';
 import { Alert } from './ui/Alert';
 import type { Channel, Post } from '../types';
 
@@ -17,6 +18,9 @@ const sortTabs = ['Hot', 'New', 'Top', 'Controversial', 'Rising'];
 
 export const PostFeed: React.FC = () => {
   const { slug } = useParams();
+  const navigate = useNavigate();
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const postRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [progress, setProgress] = useState<ReadingProgress | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -26,6 +30,9 @@ export const PostFeed: React.FC = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [feedNotice, setFeedNotice] = useState('');
   const [trendingArticles, setTrendingArticles] = useState<Post[]>([]);
+  const [latestArticles, setLatestArticles] = useState<Post[]>([]);
+  const [editorsPicks, setEditorsPicks] = useState<Post[]>([]);
+  const [featuredArticles, setFeaturedArticles] = useState<Post[]>([]);
   const [activeSort, setActiveSort] = useState('Hot');
   const feedSentinelRef = React.useRef<HTMLDivElement>(null);
 
@@ -56,14 +63,26 @@ export const PostFeed: React.FC = () => {
       setFeedNotice('');
 
       try {
-        const [backendTopics, trendingArticleResults] = await Promise.all([
+        const [backendTopics, trendingArticleResults, latestResults, editorsPicksResults, featuredResults] = await Promise.all([
           backendApi.getTopics(),
           backendApi.getTrendingArticles(6).catch(() => []),
+          backendApi.getLatestArticles(4).catch(() => []),
+          backendApi.getEditorsPicks().catch(() => []),
+          backendApi.getFeaturedArticles().catch(() => []),
         ]);
         const nextChannels = backendTopics.map(backendTopicToChannel);
-        const activeChannel = slug
+        let activeChannel = slug
           ? nextChannels.find((channel) => channel.slug === slug || channel.id === slug)
           : null;
+
+        if (slug && !activeChannel) {
+          const topicBySlug = await backendApi.getTopicBySlug(slug).catch(() => null);
+          if (topicBySlug) {
+            activeChannel = backendTopicToChannel(topicBySlug);
+            nextChannels.push(activeChannel);
+          }
+        }
+
         const backendPosts = activeChannel
           ? await backendApi.getPostsByTopic(Number(activeChannel.id), 0, HOME_FEED_PAGE_SIZE)
           : await backendApi.getHotPosts(0, HOME_FEED_PAGE_SIZE);
@@ -74,13 +93,19 @@ export const PostFeed: React.FC = () => {
         setFeedPage(0);
         setHasMorePosts(!backendPosts.last);
         setTrendingArticles(trendingArticleResults.map(backendArticleToPost));
+        setLatestArticles(latestResults.map(backendArticleToPost));
+        setEditorsPicks(editorsPicksResults.map(backendArticleToPost));
+        setFeaturedArticles(featuredResults.map(backendArticleToPost));
       } catch (error) {
         if (!isMounted) return;
-        setFeedNotice(error instanceof Error ? error.message : 'Backend feed unavailable.');
+        setFeedNotice(error instanceof Error ? error.message : 'Backend feed unavailable. The server may be offline — try again later or check your connection.');
         setChannels([]);
         setPosts([]);
         setHasMorePosts(false);
         setTrendingArticles([]);
+        setLatestArticles([]);
+        setEditorsPicks([]);
+        setFeaturedArticles([]);
       } finally {
         if (isMounted) setIsLoadingPosts(false);
       }
@@ -94,6 +119,46 @@ export const PostFeed: React.FC = () => {
 
   const activeChannel = slug ? channels.find((channel) => channel.slug === slug || channel.id === slug) || null : null;
   const visibleProgress = progress && progress.progress < 98 ? progress : null;
+
+  useEffect(() => {
+    setFocusedIndex(-1);
+    postRefs.current = [];
+  }, [posts.length]);
+
+  const enabled = !isLoadingPosts && posts.length > 0;
+  useKeyboard([
+    {
+      key: 'j', handler: () => {
+        if (!enabled) return;
+        setFocusedIndex((prev) => {
+          const next = Math.min(prev + 1, posts.length - 1);
+          postRefs.current[next]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          return next;
+        });
+      }, enabled,
+    },
+    {
+      key: 'k', handler: () => {
+        if (!enabled) return;
+        setFocusedIndex((prev) => {
+          const next = Math.max(prev - 1, 0);
+          postRefs.current[next]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          return next;
+        });
+      }, enabled,
+    },
+    {
+      key: 'Enter', handler: () => {
+        if (focusedIndex < 0 || focusedIndex >= posts.length) return;
+        navigate(`/app/p/${posts[focusedIndex].id}`);
+      }, enabled: enabled && focusedIndex >= 0,
+    },
+    {
+      key: 'Escape', handler: () => {
+        setFocusedIndex(-1);
+      }, enabled: focusedIndex >= 0,
+    },
+  ]);
 
   useEffect(() => {
     const node = feedSentinelRef.current;
@@ -176,7 +241,7 @@ export const PostFeed: React.FC = () => {
       setFeedPage(nextPage);
       setHasMorePosts(!response.last);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to load more reports.');
+      toast.error(error instanceof Error ? error.message : 'Unable to load more reports. Try scrolling again or refreshing the page.');
     } finally {
       setIsLoadingMore(false);
     }
@@ -216,6 +281,9 @@ export const PostFeed: React.FC = () => {
         trendingPosts: trendingArticles,
         savedCount: 0,
         highlightsCount: progress?.highlightCount ?? 0,
+        latestArticles,
+        editorsPicks,
+        featuredArticles,
       };
 
   return (
@@ -324,7 +392,14 @@ export const PostFeed: React.FC = () => {
           <>
             <div>
               {posts.map((post, index) => (
-                <PostCard key={`feed-${post.id}-${index}`} post={post} onVote={handleVote} />
+                <div
+                  key={`feed-${post.id}-${index}`}
+                  ref={(el) => { postRefs.current[index] = el; }}
+                  className={focusedIndex === index ? 'ring-1 ring-inset ring-app-action' : ''}
+                  onMouseEnter={() => setFocusedIndex(index)}
+                >
+                  <PostCard post={post} onVote={handleVote} />
+                </div>
               ))}
             </div>
             <div ref={feedSentinelRef} className="h-1" aria-hidden="true" />
@@ -342,7 +417,7 @@ export const PostFeed: React.FC = () => {
           </>
         ) : (
           <div className="px-4 py-12">
-            <p className="text-sm italic text-app-muted">No dispatches yet. The first story is the hardest to file.</p>
+            <p className="text-sm italic text-app-muted">No dispatches yet. The first story is the hardest to file. <Link to="/app/submit" className="text-app-action hover:underline">Write the first one</Link>.</p>
           </div>
         )}
       </section>

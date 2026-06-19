@@ -10,9 +10,12 @@ interface CommentProps {
   comment: CommentType;
   depth?: number;
   postAuthorId?: string;
+  currentUserId?: string;
+  currentUserRole?: string;
   onReply: (parentId: string, content: string) => void;
   onLike?: (commentId: string) => Promise<number | null> | number | null;
   onUnlike?: (commentId: string) => Promise<number | null> | number | null;
+  onDelete?: (commentId: string) => Promise<void>;
 }
 
 function timeAgo(date: string): string {
@@ -37,13 +40,28 @@ function countReplies(comment: CommentType): number {
 
 const TREE_INDENT = 24;
 
-const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId, onReply, onLike, onUnlike }) => {
+const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId, currentUserId, currentUserRole, onReply, onLike, onUnlike, onDelete }) => {
   const [showReplies, setShowReplies] = useState(true);
   const [isReplying, setIsReplying] = useState(false);
   const [replyDraft, setReplyDraft] = useState('');
   const [displayLikes, setDisplayLikes] = useState(comment.upvotes);
   const [hasLiked, setHasLiked] = useState(Boolean(comment.likedByMe || comment.userVote === 'up'));
   const [isLiking, setIsLiking] = useState(false);
+  const [confirmDeleteComment, setConfirmDeleteComment] = useState(false);
+  const [isDeletingComment, setIsDeletingComment] = useState(false);
+
+  const canDelete = onDelete && (currentUserRole === 'ADMIN' || comment.author.id === currentUserId);
+
+  const handleDeleteComment = async () => {
+    if (!onDelete || isDeletingComment) return;
+    setIsDeletingComment(true);
+    try {
+      await onDelete(comment.id);
+    } finally {
+      setIsDeletingComment(false);
+      setConfirmDeleteComment(false);
+    }
+  };
 
   const handleToggleLike = async () => {
     if (isLiking) return;
@@ -112,6 +130,34 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
             <button type="button" className="hover:text-app-action">
               Report
             </button>
+            {canDelete && !confirmDeleteComment && (
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteComment(true)}
+                className="text-app-action hover:underline"
+              >
+                Delete
+              </button>
+            )}
+            {confirmDeleteComment && (
+              <span role="alert" aria-live="polite" className="inline-flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleDeleteComment}
+                  disabled={isDeletingComment}
+                  className="text-app-action hover:underline disabled:opacity-40"
+                >
+                  {isDeletingComment ? 'Deleting' : 'Confirm'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDeleteComment(false)}
+                  className="hover:text-app-action"
+                >
+                  Cancel
+                </button>
+              </span>
+            )}
           </div>
 
           {comment.quote && (
@@ -147,7 +193,7 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
               <button
                 type="button"
                 onClick={() => setShowReplies(!showReplies)}
-                className="inline-flex min-h-10 items-center px-2 font-mono text-[11px] uppercase tracking-wider text-app-muted transition-colors hover:text-app-heading"
+                className="inline-flex min-h-11 items-center px-2 font-mono text-[11px] uppercase tracking-wider text-app-muted transition-colors hover:text-app-heading"
               >
                 {showReplies ? 'Collapse' : 'Expand'} {replyCount}
               </button>
@@ -194,9 +240,12 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
                   comment={reply}
                   depth={depth + 1}
                   postAuthorId={postAuthorId}
+                  currentUserId={currentUserId}
+                  currentUserRole={currentUserRole}
                   onReply={onReply}
                   onLike={onLike}
                   onUnlike={onUnlike}
+                  onDelete={onDelete}
                 />
               ))}
             </div>
@@ -214,12 +263,15 @@ function cn(...inputs: Array<string | false | null | undefined>): string {
 interface CommentTreeProps {
   comments: CommentType[];
   postAuthorId?: string;
+  currentUserId?: string;
+  currentUserRole?: string;
   onReply: (parentId: string, content: string) => void;
   onLike?: (commentId: string) => Promise<number | null> | number | null;
   onUnlike?: (commentId: string) => Promise<number | null> | number | null;
+  onDelete?: (commentId: string) => Promise<void>;
 }
 
-export const CommentTree: React.FC<CommentTreeProps> = ({ comments, postAuthorId, onReply, onLike, onUnlike }) => {
+export const CommentTree: React.FC<CommentTreeProps> = ({ comments, postAuthorId, currentUserId, currentUserRole, onReply, onLike, onUnlike, onDelete }) => {
   return (
     <div className="space-y-6">
       {comments.map((comment) => (
@@ -227,9 +279,12 @@ export const CommentTree: React.FC<CommentTreeProps> = ({ comments, postAuthorId
           key={comment.id}
           comment={comment}
           postAuthorId={postAuthorId}
+          currentUserId={currentUserId}
+          currentUserRole={currentUserRole}
           onReply={onReply}
           onLike={onLike}
           onUnlike={onUnlike}
+          onDelete={onDelete}
         />
       ))}
     </div>

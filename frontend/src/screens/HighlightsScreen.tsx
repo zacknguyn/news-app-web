@@ -46,7 +46,7 @@ export const HighlightsScreen: React.FC = () => {
         setNotice('');
       })
       .catch((error) => {
-        if (isMounted) setNotice(error instanceof Error ? error.message : 'Unable to load notebook.');
+        if (isMounted) setNotice(error instanceof Error ? error.message : 'Unable to load notebook. The server may be offline — try refreshing the page.');
       });
     return () => {
       isMounted = false;

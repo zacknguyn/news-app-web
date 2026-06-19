@@ -30,12 +30,24 @@ export const TopicsScreen: React.FC = () => {
     let isMounted = true;
     const loadTopics = async () => {
       try {
-        const nextTopics = await backendApi.getTopics();
+        const [nextTopics, myTopics] = await Promise.all([
+          backendApi.getTopics(),
+          isAuthenticated ? backendApi.getMyTopics().catch(() => [] as never[]) : ([] as never[]),
+        ]);
         if (!isMounted) return;
-        setTopics(nextTopics.map(backendTopicToChannel).sort(byActivity));
+        const myTopicIds = new Set((myTopics as Array<{ id: number }>).map((t) => t.id));
+        setTopics(
+          nextTopics
+            .map((topic) => {
+              const channel = backendTopicToChannel(topic);
+              if (myTopicIds.size > 0) channel.joined = myTopicIds.has(topic.id);
+              return channel;
+            })
+            .sort(byActivity),
+        );
         setNotice('');
       } catch (error) {
-        if (isMounted) setNotice(error instanceof Error ? error.message : 'Unable to load topics.');
+        if (isMounted) setNotice(error instanceof Error ? error.message : 'Unable to load topics. The server may be offline — try refreshing the page.');
       }
     };
     loadTopics();
@@ -154,7 +166,7 @@ export const TopicsScreen: React.FC = () => {
         <div className="mt-6 border-y border-app-border">
           {visibleTopics.length === 0 ? (
             <p className="py-8 text-sm italic text-app-muted">
-              {activeTab === 'following' ? 'No followed communities yet.' : 'No communities found.'}
+              {activeTab === 'following' ? 'No followed communities yet. Browse the list below and join one to get started.' : 'No communities found. Create the first one to rally a readership.'}
             </p>
           ) : (
             visibleTopics.map((topic) => (
@@ -207,7 +219,7 @@ export const TopicsScreen: React.FC = () => {
                 <span className="font-mono text-[11px] text-app-muted">{formatCount(topic.memberCount)} members</span>
               </Link>
             ))}
-            {joinedTopics.length === 0 && <p className="text-sm italic text-app-muted">No followed communities.</p>}
+            {joinedTopics.length === 0 && <p className="text-sm italic text-app-muted">No followed communities yet. Join one from the list above to see it here.</p>}
           </div>
         </section>
         <section>

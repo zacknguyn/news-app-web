@@ -5,6 +5,7 @@ import { MOCK_COMMENTS } from '../lib/mockData';
 import type { Comment } from '../types';
 import { backendApi } from '../lib/api';
 import { backendCommentToComment } from '../lib/backendAdapters';
+import { useAuth } from '../context/AuthContext';
 import { Alert } from './ui/Alert';
 import { TextArea } from './ui/Input';
 
@@ -37,7 +38,9 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
   quoteDraft,
   onQuoteDraftClear,
 }) => {
+  const isArticle = postId.startsWith('article-');
   const [comments, setComments] = useState<Comment[]>(() => MOCK_COMMENTS.filter((c) => c.postId === postId));
+  const { user } = useAuth();
   const [commentText, setCommentText] = useState('');
   const [commentNotice, setCommentNotice] = useState('');
   const hasCommentContent = Boolean(commentText.trim() || quoteDraft?.trim());
@@ -62,12 +65,12 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
             setCommentNotice('Showing article-linked discussion for this post.');
           } catch {
             setComments([]);
-            setCommentNotice(error instanceof Error ? error.message : 'Backend comments unavailable.');
+setCommentNotice(error instanceof Error ? error.message : 'Comments are currently unavailable. The server may be offline — try refreshing.');
           }
           return;
         }
         setComments([]);
-        setCommentNotice(error instanceof Error ? error.message : 'Backend comments unavailable.');
+        setCommentNotice(error instanceof Error ? error.message : 'Comments are currently unavailable. The server may be offline — try refreshing.');
       }
     };
 
@@ -78,6 +81,13 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
     };
   }, [backendArticleId, postId]);
 
+  const createComment = async (input: { content: string; parentId?: number }) => {
+    if (isArticle && backendArticleId) {
+      return backendApi.createArticleComment(Number(backendArticleId), input);
+    }
+    return backendApi.createPostComment(postId, input);
+  };
+
   const handleAddComment = async () => {
     const body = commentText.trim();
     const quote = quoteDraft?.trim();
@@ -85,7 +95,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
     if (!content) return;
 
     try {
-      const createdComment = await backendApi.createPostComment(postId, { content });
+      const createdComment = await createComment({ content });
       setComments((prev) => [backendCommentToComment(createdComment, postId), ...prev]);
       setCommentText('');
       onQuoteDraftClear?.();
@@ -97,10 +107,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
 
   const handleAddReply = async (parentId: string, content: string) => {
     try {
-      const createdReply = await backendApi.createPostComment(postId, {
-        content,
-        parentId: Number(parentId),
-      });
+      const createdReply = await createComment({ content, parentId: Number(parentId) });
       const reply = backendCommentToComment(createdReply, postId);
       setComments((prev) => addReplyToThread(prev, parentId, reply));
       toast.success('Reply posted.');
@@ -130,6 +137,22 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Comment unlike failed.');
       return null;
+    }
+  };
+
+  const removeCommentFromTree = (comments: Comment[], id: string): Comment[] =>
+    comments
+      .filter((c) => c.id !== id)
+      .map((c) => ({ ...c, replies: removeCommentFromTree(c.replies, id) }));
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      await backendApi.deleteComment(commentId);
+      setComments((prev) => removeCommentFromTree(prev, commentId));
+      toast.success('Comment deleted.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Delete failed.');
+      throw error;
     }
   };
 
@@ -193,9 +216,12 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
         <CommentTree
           comments={comments}
           postAuthorId={postAuthorId}
+          currentUserId={user?.id}
+          currentUserRole={user?.role}
           onReply={handleAddReply}
           onLike={handleCommentLike}
           onUnlike={handleCommentUnlike}
+          onDelete={handleDeleteComment}
         />
       )}
     </section>
