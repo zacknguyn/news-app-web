@@ -386,7 +386,18 @@ export const PostDetailScreen: React.FC = () => {
               {post.aiSummary && (
                 <div className="mt-8 border-l-2 border-app-action bg-app-surface px-4 py-3">
                   <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-app-action">AI Summary</p>
-                  <p className="text-sm leading-6 text-app-text">{post.aiSummary}</p>
+                  <ul className="space-y-1.5">
+                    {post.aiSummary
+                      .split('\n')
+                      .map((line) => line.replace(/^[-•]\s*/, '').trim())
+                      .filter((line) => line.length > 0)
+                      .map((line, i) => (
+                        <li key={i} className="flex gap-2 text-sm leading-6 text-app-text">
+                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-app-action" />
+                          <span>{line}</span>
+                        </li>
+                      ))}
+                  </ul>
                 </div>
               )}
               <div
