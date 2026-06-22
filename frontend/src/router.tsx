@@ -12,6 +12,8 @@ const SubmitNewsScreen = lazy(() => import('./screens/SubmitNewsScreen'));
 const CreateChannelScreen = lazy(() => import('./screens/CreateChannelScreen'));
 const HighlightsScreen = lazy(() => import('./screens/HighlightsScreen'));
 const BrowseScreen = lazy(() => import('./screens/BrowseScreen'));
+const TopicsScreen = lazy(() => import('./screens/TopicsScreen'));
+const CategoriesScreen = lazy(() => import('./screens/CategoriesScreen'));
 const SubscribeScreen = lazy(() => import('./screens/SubscribeScreen'));
 const TrustScreen = lazy(() => import('./screens/TrustScreen'));
 const AdminScreen = lazy(() => import('./screens/AdminScreen'));
@@ -22,6 +24,8 @@ const LoginScreen = lazy(() => import('./auth/LoginScreen'));
 const RegisterScreen = lazy(() => import('./auth/RegisterScreen'));
 
 const NotFoundScreen = lazy(() => import('./screens/NotFoundScreen'));
+const SettingsScreen = lazy(() => import('./screens/SettingsScreen'));
+const NotificationsScreen = lazy(() => import('./screens/NotificationsScreen'));
 
 const LoadingScreen = () => (
   <div className="flex h-full w-full items-center justify-center bg-[var(--color-app-bg)] p-20">
@@ -124,11 +128,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'topics',
-        element: <Navigate to="/app/browse" replace />,
+        element: <LazyLoad><TopicsScreen /></LazyLoad>,
       },
       {
         path: 'categories',
-        element: <Navigate to="/app/browse" replace />,
+        element: <LazyLoad><CategoriesScreen /></LazyLoad>,
       },
       {
         path: 'browse',
@@ -140,11 +144,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'category/:slug',
-        element: <Navigate to="/app/browse" replace />,
+        element: <LazyLoad><CategoriesScreen /></LazyLoad>,
       },
       {
         path: 'tag/:slug',
-        element: <Navigate to="/app/browse" replace />,
+        element: <LazyLoad><CategoriesScreen /></LazyLoad>,
       },
       {
         path: 'highlights',
@@ -156,7 +160,19 @@ export const router = createBrowserRouter([
       },
       {
         path: 'settings',
-        element: <Navigate to="/app" replace />,
+        element: (
+          <LazyLoad>
+            <SettingsScreen />
+          </LazyLoad>
+        ),
+      },
+      {
+        path: 'notifications',
+        element: (
+          <LazyLoad>
+            <NotificationsScreen />
+          </LazyLoad>
+        ),
       },
       {
         path: 'subscribe',

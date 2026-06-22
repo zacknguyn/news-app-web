@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Check, Grid2X2, Plus, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { backendApi } from '../lib/api';
 import { backendTopicToChannel } from '../lib/backendAdapters';
@@ -58,15 +59,6 @@ export const TopicsScreen: React.FC = () => {
 
   const joinedTopics = useMemo(() => topics.filter((topic) => topic.joined).sort(byActivity), [topics]);
   const trendingTopics = useMemo(() => [...topics].sort(byActivity), [topics]);
-  const suggestedTopics = useMemo(
-    () =>
-      topics
-        .filter((topic) => !topic.joined)
-        .sort(byActivity)
-        .slice(0, 5),
-    [topics],
-  );
-
   const visibleTopics = useMemo(() => {
     const base = activeTab === 'following' ? joinedTopics : activeTab === 'trending' ? trendingTopics : topics;
     const normalizedQuery = query.trim().toLowerCase();
@@ -113,144 +105,16 @@ export const TopicsScreen: React.FC = () => {
   ];
 
   return (
-    <div className="app-page grid gap-8 xl:grid-cols-[minmax(0,1fr)_16rem]">
-      <main className="min-w-0">
-        <div className="flex flex-col gap-4 border-b border-app-border pb-5 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="mono-label mb-3 text-app-action">Topics</p>
-            <h1 className="text-[32px] font-semibold leading-tight text-app-heading">Reading communities</h1>
-            <p className="mt-3 max-w-[65ch] text-sm leading-6 text-app-muted">
-              Follow communities to shape your feed.
-            </p>
-          </div>
-          {isAuthenticated && (
-            <Link
-              to="/app/c/new"
-              className="font-mono text-[11px] uppercase tracking-wider text-app-action hover:underline"
-            >
-              Start a new community
-            </Link>
-          )}
-        </div>
-
-        {notice && (
-          <Alert tone="error" className="mt-5">
-            {notice}
-          </Alert>
-        )}
-
-        <div className="mt-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <nav className="flex gap-4" aria-label="Topic sections">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`border-b-2 pb-2 font-mono text-[11px] uppercase tracking-wider ${activeTab === tab.id ? 'border-app-action text-app-action' : 'border-transparent text-app-muted hover:text-app-heading'}`}
-              >
-                {tab.label} <span className="tabular-nums">{tab.count}</span>
-              </button>
-            ))}
-          </nav>
-          <SearchInput
-            id="topics-search"
-            size="sm"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onClear={() => setQuery('')}
-            placeholder="Search communities"
-            containerClassName="lg:w-72"
-          />
-        </div>
-
-        <div className="mt-6 border-y border-app-border">
-          {visibleTopics.length === 0 ? (
-            <p className="py-8 text-sm italic text-app-muted">
-              {activeTab === 'following' ? 'No followed communities yet. Browse the list below and join one to get started.' : 'No communities found. Create the first one to rally a readership.'}
-            </p>
-          ) : (
-            visibleTopics.map((topic) => (
-              <article
-                key={topic.id}
-                className="grid gap-4 border-b border-app-border py-4 last:border-b-0 md:grid-cols-[minmax(0,1fr)_9rem]"
-              >
-                <div className="min-w-0">
-                  <p className="mb-1 font-mono text-[11px] text-app-muted">
-                    {formatCount(topic.memberCount)} members · {formatCount(topic.postCount)} reports
-                  </p>
-                  <Link to={`/app/c/${topic.slug}`} className="block">
-                    <h2 className="text-xl font-semibold text-app-heading hover:text-app-action">{topic.name}</h2>
-                  </Link>
-                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-app-text">{topic.description}</p>
-                </div>
-                <div className="flex items-start justify-between gap-3 md:block">
-                  <button
-                    type="button"
-                    onClick={() => toggleTopic(topic)}
-                    disabled={pendingTopicId === topic.id}
-                    className="font-mono text-[11px] uppercase tracking-wider text-app-action hover:underline disabled:opacity-40"
-                  >
-                    {topic.joined ? 'Joined' : 'Join'}
-                  </button>
-                  <Link
-                    to={`/app/c/${topic.slug}`}
-                    className="font-mono text-[11px] uppercase tracking-wider text-app-muted hover:text-app-action md:mt-4 md:block"
-                  >
-                    Open
-                  </Link>
-                </div>
-              </article>
-            ))
-          )}
-        </div>
-      </main>
-
-      <aside className="space-y-8 xl:sticky xl:top-24 xl:self-start">
-        <section>
-          <h2 className="mono-label mb-4 text-app-muted">Your followed communities</h2>
-          <div className="space-y-3">
-            {joinedTopics.slice(0, 8).map((topic) => (
-              <Link
-                key={topic.id}
-                to={`/app/c/${topic.slug}`}
-                className="block border-b border-app-border pb-3 text-sm hover:text-app-action"
-              >
-                <span className="block truncate font-semibold text-app-heading">{topic.name}</span>
-                <span className="font-mono text-[11px] text-app-muted">{formatCount(topic.memberCount)} members</span>
-              </Link>
-            ))}
-            {joinedTopics.length === 0 && <p className="text-sm italic text-app-muted">No followed communities yet. Join one from the list above to see it here.</p>}
-          </div>
-        </section>
-        <section>
-          <h2 className="mono-label mb-4 text-app-muted">Start a new community</h2>
-          <p className="text-sm leading-6 text-app-muted">Create a topic for focused reporting and discussion.</p>
-          <Link
-            to="/app/c/new"
-            className="mt-3 inline-flex font-mono text-[11px] uppercase tracking-wider text-app-action hover:underline"
-          >
-            Create community
-          </Link>
-        </section>
-        {suggestedTopics.length > 0 && (
-          <section>
-            <h2 className="mono-label mb-4 text-app-muted">Suggested</h2>
-            <div className="space-y-3">
-              {suggestedTopics.map((topic) => (
-                <button
-                  key={topic.id}
-                  type="button"
-                  onClick={() => toggleTopic(topic)}
-                  className="flex w-full items-center justify-between gap-3 border-b border-app-border pb-3 text-left"
-                >
-                  <span className="truncate text-sm font-semibold text-app-heading">{topic.name}</span>
-                  <span className="font-mono text-[11px] text-app-action">Join</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-      </aside>
+    <div className="app-page mx-auto max-w-[1280px]">
+      <div className="grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)]">
+        <aside className="hidden lg:block"><div className="sticky top-24"><h2 className="mb-5 font-mono text-[10px] font-semibold uppercase tracking-widest text-app-muted">Topic views</h2><nav className="space-y-1">{tabs.map(tab => <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm ${activeTab === tab.id ? 'bg-app-action-soft font-semibold text-app-action' : 'text-app-muted hover:bg-app-surface-alt hover:text-app-heading'}`}><span className="flex items-center gap-3"><Grid2X2 className="h-4 w-4" />{tab.label}</span><span className="text-xs">{tab.count}</span></button>)}</nav><div className="mt-10"><h2 className="mb-4 font-mono text-[10px] font-semibold uppercase tracking-widest text-app-muted">Your interests</h2><div className="flex flex-wrap gap-2">{joinedTopics.slice(0,6).map(topic => <Link key={topic.id} to={`/app/c/${topic.slug}`} className="inline-flex items-center gap-1 rounded-full bg-app-action-soft px-3 py-1 text-xs text-app-action">{topic.name}<Check className="h-3 w-3" /></Link>)}</div></div></div></aside>
+        <main className="min-w-0"><header className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end"><div><p className="mb-3 font-mono text-[10px] font-semibold uppercase tracking-widest text-app-action">Intelligence directory</p><h1 className="text-[34px] font-bold tracking-tight text-app-heading md:text-5xl">Explore Topics</h1><p className="mt-3 max-w-xl text-sm leading-6 text-app-muted">Curate your feed by following focused intelligence channels backed by the live topic directory.</p></div><SearchInput id="topics-search" value={query} onChange={e => setQuery(e.target.value)} onClear={() => setQuery('')} placeholder="Search topics" containerClassName="md:w-72" /></header>
+          {notice && <Alert tone="error" className="mb-6">{notice}</Alert>}
+          <div className="mb-6 flex gap-3 overflow-x-auto lg:hidden">{tabs.map(tab => <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold ${activeTab === tab.id ? 'bg-app-action text-app-on-action' : 'bg-app-surface-alt text-app-muted'}`}>{tab.label} {tab.count}</button>)}</div>
+          {visibleTopics.length ? <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{visibleTopics.map(topic => <article key={topic.id} className={`group flex min-h-28 items-center justify-between rounded-xl border p-4 transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-subtle)] ${topic.joined ? 'border-app-action bg-app-action text-app-on-action' : 'border-app-border bg-app-surface hover:border-app-action'}`}><Link to={`/app/c/${topic.slug}`} className="min-w-0 flex-1"><h2 className={`truncate text-sm font-bold ${topic.joined ? 'text-app-on-action' : 'text-app-heading'}`}>{topic.name}</h2><p className={`mt-1 line-clamp-2 text-xs leading-5 ${topic.joined ? 'text-white/70' : 'text-app-muted'}`}>{topic.description || `${formatCount(topic.memberCount)} followers`}</p><p className={`mt-2 font-mono text-[9px] ${topic.joined ? 'text-white/60' : 'text-app-faint'}`}>{formatCount(topic.memberCount)} followers · {formatCount(topic.postCount)} reports</p></Link><button type="button" onClick={() => toggleTopic(topic)} disabled={pendingTopicId === topic.id} aria-label={topic.joined ? `Unfollow ${topic.name}` : `Follow ${topic.name}`} className={`ml-3 grid h-8 w-8 shrink-0 place-items-center rounded-full ${topic.joined ? 'bg-white/15 text-white' : 'bg-app-surface-alt text-app-action group-hover:bg-app-action-soft'}`}>{topic.joined ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}</button></article>)}</section> : <div className="rounded-xl border border-app-border bg-app-surface p-10 text-center text-sm italic text-app-muted">No topics found in this view.</div>}
+          <section className="mt-16 grid gap-6 md:grid-cols-3"><div className="relative overflow-hidden rounded-2xl bg-app-action p-8 text-app-on-action md:col-span-2"><Sparkles className="mb-5 h-7 w-7" /><p className="font-mono text-[10px] uppercase tracking-widest text-white/70">Community spotlight</p><h2 className="mt-3 text-2xl font-bold">Start a focused intelligence channel</h2><p className="mt-3 max-w-md text-sm leading-6 text-white/75">Build a collaborative space for source-backed analysis and reporting.</p><Link to="/app/c/new" className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-app-action">Create channel <Plus className="h-4 w-4" /></Link></div><div className="rounded-2xl border border-app-border bg-app-surface-alt p-7"><h2 className="text-xl font-semibold text-app-heading">Weekly summary</h2><p className="mt-3 text-sm leading-6 text-app-muted">Get a curated digest from followed topics every Friday.</p><Link to="/app/settings" className="mt-8 inline-block text-sm font-bold text-app-action hover:underline">Configure email</Link></div></section>
+        </main>
+      </div>
     </div>
   );
 };

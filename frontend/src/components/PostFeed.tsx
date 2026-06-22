@@ -3,10 +3,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Bookmark, Plus } from 'lucide-react';
 import { PostCard } from './PostCard';
-import { ContextPanel, type ContextMode } from './ContextPanel';
 import { clearProgress, readProgress, type ReadingProgress } from '../lib/readingProgress';
 import { backendApi } from '../lib/api';
-import { backendArticleToPost, backendPostToPost, backendTopicToChannel } from '../lib/backendAdapters';
+import { backendPostToPost, backendTopicToChannel } from '../lib/backendAdapters';
 import { useKeyboard } from '../lib/useKeyboard';
 import { Alert } from './ui/Alert';
 import type { Channel, Post } from '../types';
@@ -15,6 +14,15 @@ const HOME_FEED_PAGE_SIZE = 20;
 const LOAD_MORE_PAGE_SIZE = 12;
 
 const sortTabs = ['Hot', 'New', 'Top', 'Controversial', 'Rising'];
+
+const getChannelIcon = (name: string) => {
+  const norm = name.toLowerCase();
+  if (norm.includes('tech')) return '⚡';
+  if (norm.includes('geopolitics') || norm.includes('politics')) return '🌐';
+  if (norm.includes('economy') || norm.includes('finance') || norm.includes('market')) return '📈';
+  if (norm.includes('science') || norm.includes('health') || norm.includes('biotech')) return '🧬';
+  return '📑';
+};
 
 export const PostFeed: React.FC = () => {
   const { slug } = useParams();
@@ -29,10 +37,6 @@ export const PostFeed: React.FC = () => {
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [feedNotice, setFeedNotice] = useState('');
-  const [trendingArticles, setTrendingArticles] = useState<Post[]>([]);
-  const [latestArticles, setLatestArticles] = useState<Post[]>([]);
-  const [editorsPicks, setEditorsPicks] = useState<Post[]>([]);
-  const [featuredArticles, setFeaturedArticles] = useState<Post[]>([]);
   const [activeSort, setActiveSort] = useState('Hot');
   const feedSentinelRef = React.useRef<HTMLDivElement>(null);
 
@@ -63,13 +67,7 @@ export const PostFeed: React.FC = () => {
       setFeedNotice('');
 
       try {
-        const [backendTopics, trendingArticleResults, latestResults, editorsPicksResults, featuredResults] = await Promise.all([
-          backendApi.getTopics(),
-          backendApi.getTrendingArticles(6).catch(() => []),
-          backendApi.getLatestArticles(4).catch(() => []),
-          backendApi.getEditorsPicks().catch(() => []),
-          backendApi.getFeaturedArticles().catch(() => []),
-        ]);
+        const backendTopics = await backendApi.getTopics();
         const nextChannels = backendTopics.map(backendTopicToChannel);
         let activeChannel = slug
           ? nextChannels.find((channel) => channel.slug === slug || channel.id === slug)
@@ -92,20 +90,12 @@ export const PostFeed: React.FC = () => {
         setPosts(backendPosts.content.map(backendPostToPost));
         setFeedPage(0);
         setHasMorePosts(!backendPosts.last);
-        setTrendingArticles(trendingArticleResults.map(backendArticleToPost));
-        setLatestArticles(latestResults.map(backendArticleToPost));
-        setEditorsPicks(editorsPicksResults.map(backendArticleToPost));
-        setFeaturedArticles(featuredResults.map(backendArticleToPost));
       } catch (error) {
         if (!isMounted) return;
         setFeedNotice(error instanceof Error ? error.message : 'Backend feed unavailable. The server may be offline — try again later or check your connection.');
         setChannels([]);
         setPosts([]);
         setHasMorePosts(false);
-        setTrendingArticles([]);
-        setLatestArticles([]);
-        setEditorsPicks([]);
-        setFeaturedArticles([]);
       } finally {
         if (isMounted) setIsLoadingPosts(false);
       }
@@ -173,7 +163,6 @@ export const PostFeed: React.FC = () => {
     );
     observer.observe(node);
     return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feedSentinelRef.current, hasMorePosts, isLoadingMore, activeChannel?.id]);
 
   const dismissProgress = async () => {
@@ -262,8 +251,7 @@ export const PostFeed: React.FC = () => {
               memberCount: Math.max(0, (channel.memberCount || 0) + (channel.joined ? -1 : 1)),
             }
           : channel,
-      ),
-    );
+    ));
 
     try {
       const updated = activeChannel.joined
@@ -277,206 +265,188 @@ export const PostFeed: React.FC = () => {
     }
   };
 
-  const contextMode: ContextMode = activeChannel
-    ? { kind: 'channel', channel: activeChannel, topPosts: posts }
-    : {
-        kind: 'front-page',
-        trendingPosts: trendingArticles,
-        savedCount: 0,
-        highlightsCount: progress?.highlightCount ?? 0,
-        latestArticles,
-        editorsPicks,
-        featuredArticles,
-      };
-
   return (
-    <div className="grid w-full grid-cols-1 lg:grid-cols-[minmax(0,1fr)_18rem]">
-      <section className="min-w-0 border-r border-app-border">
+    <div className="bg-bg min-h-screen text-on-surface w-full">
+      <div className="max-w-[640px] mx-auto px-4 py-8">
+        {/* Resume reading toast */}
         {visibleProgress && (
-          <aside className="border-b border-app-border bg-app-surface-alt px-5 py-5" aria-label="Continue reading">
-            <div className="flex items-start gap-4">
-              <Link to={`/app/p/${visibleProgress.postId}`} className="min-w-0 flex-1">
-                <div className="mb-1.5 flex items-center gap-2 text-[12px] text-app-action">
+          <aside className="border border-primary/20 bg-green-50/20 px-5 py-3.5 mb-6 rounded-xl animate-scale-in" aria-label="Continue reading">
+            <div className="flex items-center justify-between gap-4">
+              <Link to={`/app/p/${visibleProgress.postId}`} className="min-w-0 flex-grow">
+                <div className="mb-1 flex items-center gap-1.5 text-xs text-primary font-bold">
                   <Bookmark className="h-3.5 w-3.5" />
-                  <span className="font-semibold tracking-wider">Resume</span>
-                  <span className="tabular-nums">{visibleProgress.progress}%</span>
+                  <span className="uppercase tracking-wider">Resume dispatch reading</span>
+                  <span className="bg-green-100 px-1.5 py-0.5 rounded text-[10px] tabular-nums">{visibleProgress.progress}%</span>
                 </div>
-                <h2 className="truncate text-sm font-semibold text-app-heading hover:text-app-action">
+                <h2 className="truncate text-xs font-bold text-on-surface hover:text-primary transition-colors">
                   {visibleProgress.title}
                 </h2>
-                <div className="mt-2 h-px bg-app-border">
-                  <div className="h-full bg-app-action transition-all" style={{ width: `${visibleProgress.progress}%` }} />
-                </div>
               </Link>
               <button
                 type="button"
                 onClick={dismissProgress}
-                className="mt-1 min-h-10 px-2 text-[12px] text-app-muted hover:text-app-action"
+                className="text-xs text-outline hover:text-primary font-bold"
               >
-                Hide
+                Dismiss
               </button>
             </div>
           </aside>
         )}
 
-        <div className="border-b border-app-border px-5 pb-6 pt-5">
-          {activeChannel ? (
-            <ChannelHeader channel={activeChannel} onToggleJoin={handleToggleJoin} />
-          ) : (
-            <>
-              <div className="flex items-end justify-between gap-4">
-                <div>
-                  <h1 className="text-[28px] font-semibold tracking-[-0.01em] text-app-heading">Home</h1>
-                  <p className="mt-1.5 text-[13px] text-app-muted">
-                    {posts.length.toLocaleString('en-US')} posts
-                  </p>
-                </div>
+        {/* Topic Pill Carousel (TopicRail) */}
+        <section className="mb-8">
+          <div className="flex overflow-x-auto scrollbar-hide gap-2 pb-2">
+            <Link
+              to="/app"
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
+                !activeChannel
+                  ? 'bg-primary text-white border-primary shadow-sm'
+                  : 'bg-surface-container-low text-on-surface-variant border-outline-variant/40 hover:bg-surface-container-high hover:text-primary'
+              }`}
+            >
+              🔥 Global Live Feed
+            </Link>
+            {channels.map((channel) => {
+              const active = activeChannel?.id === channel.id;
+              const icon = getChannelIcon(channel.name);
+              return (
                 <Link
-                  to="/app/c/new"
-                  className="inline-flex h-10 shrink-0 items-center gap-1.5 border border-app-border px-4 text-[12px] font-medium text-app-action transition-colors hover:border-app-action"
+                  key={channel.id}
+                  to={`/app/c/${channel.slug || channel.id}`}
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
+                    active
+                      ? 'bg-primary text-white border-primary shadow-sm'
+                      : 'bg-surface-container-low text-on-surface-variant border-outline-variant/40 hover:bg-surface-container-high hover:text-primary'
+                  }`}
                 >
-                  <Plus className="h-3.5 w-3.5" />
-                  Create community
+                  <span className="mr-1.5">{icon}</span>
+                  {channel.name}
                 </Link>
-              </div>
-            </>
-          )}
-        </div>
+              );
+            })}
+          </div>
+        </section>
 
-        <div className="border-b border-app-border px-5">
-          <nav aria-label="Sort reports" className="-mb-px flex gap-6 overflow-x-auto">
-            {sortTabs.map((tab) => (
+        {/* Feed Header / Filter Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-outline-variant/20 mb-6">
+          <div>
+            {activeChannel ? (
+              <div>
+                <h1 className="text-xl font-serif font-bold text-on-surface flex items-center gap-2">
+                  {activeChannel.name}
+                  <span className="bg-green-100 text-primary text-[10px] px-2 py-0.5 rounded-full font-sans font-bold uppercase tracking-wider">
+                    Domain
+                  </span>
+                </h1>
+                <p className="text-xs text-on-surface-variant mt-1">
+                  {activeChannel.memberCount || 0} Contributors • {activeChannel.description}
+                </p>
+              </div>
+            ) : (
+              <div>
+                <h1 className="text-xl font-serif font-bold text-on-surface">Intelligence Hub</h1>
+                <p className="text-xs text-on-surface-variant mt-1">Analyzing Live Signal Clusters</p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            {activeChannel && (
               <button
-                key={tab}
                 type="button"
-                onClick={() => setActiveSort(tab)}
-                className={`relative shrink-0 pb-3 pt-2 text-[12px] font-medium tracking-wide transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:transition-colors ${
-                  activeSort === tab
-                    ? 'text-app-action after:bg-app-action'
-                    : 'text-app-muted after:bg-transparent hover:text-app-heading'
+                onClick={handleToggleJoin}
+                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                  activeChannel.joined
+                    ? 'bg-surface-container border-outline-variant text-on-surface-variant'
+                    : 'bg-primary text-white border-primary hover:brightness-110'
                 }`}
               >
-                {tab}
+                {activeChannel.joined ? 'Subscribed' : 'Subscribe'}
               </button>
-            ))}
-          </nav>
-        </div>
-
-        {!activeChannel && (trendingArticles.length > 0 || editorsPicks.length > 0) && (
-          <div className="border-b border-app-border px-5 py-4 lg:hidden">
-            <div className="flex gap-6 overflow-x-auto pb-1">
-              {trendingArticles.slice(0, 4).map((post) => (
-                <Link
-                  key={post.id}
-                  to={`/app/p/${post.id}`}
-                  className="min-w-0 shrink-0"
+            )}
+            
+            <div className="flex border border-outline-variant/30 rounded-full p-0.5 bg-surface-container-low">
+              {sortTabs.map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveSort(tab)}
+                  className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide transition-all ${
+                    activeSort === tab
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'text-on-surface-variant hover:text-primary'
+                  }`}
                 >
-                  <p className="text-[11px] font-semibold tracking-wider text-app-muted">Trending</p>
-                  <p className="mt-1 w-48 truncate text-[13px] font-medium text-app-heading hover:text-app-action">{post.title}</p>
-                </Link>
-              ))}
-              {editorsPicks.slice(0, 2).map((post) => (
-                <Link
-                  key={post.id}
-                  to={`/app/p/${post.id}`}
-                  className="min-w-0 shrink-0 border-l border-app-border pl-5"
-                >
-                  <p className="text-[11px] font-semibold tracking-wider text-app-accent">Editor&apos;s pick</p>
-                  <p className="mt-1 w-48 truncate text-[13px] font-medium text-app-heading hover:text-app-action">{post.title}</p>
-                </Link>
+                  {tab}
+                </button>
               ))}
             </div>
           </div>
-        )}
+        </div>
 
         {feedNotice && (
-          <div className="px-4 pb-4 pt-5">
+          <div className="mb-6">
             <Alert tone="warning">{feedNotice}</Alert>
           </div>
         )}
 
-        {isLoadingPosts ? (
-          <div className="px-5 pb-8 pt-6">
-            <span className="text-[12px] font-medium text-app-muted">Loading…</span>
-            <div className="mt-6 space-y-5">
-              {Array.from({ length: 6 }).map((_, index) => (
+        {/* Post List */}
+        <div className="space-y-6">
+          {isLoadingPosts ? (
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
-                  className="grid grid-cols-[3rem_minmax(0,1fr)_8rem] gap-3 border-b border-app-border pb-5 animate-skeleton"
+                  className="p-5 rounded-2xl border border-outline-variant/30 bg-white/50 animate-skeleton space-y-4"
                   style={{ animationDelay: `${index * 80}ms` }}
                 >
-                  <div className="h-20 border border-app-border bg-app-surface-alt" />
-                  <div className="space-y-3">
-                    <div className="h-3 w-1/3 border border-app-border bg-app-surface-alt" />
-                    <div className="h-5 w-5/6 border border-app-border bg-app-surface-alt" />
-                    <div className="h-3 w-2/3 border border-app-border bg-app-surface-alt" />
+                  <div className="flex items-center justify-between">
+                    <div className="h-3 w-1/4 bg-surface-container rounded" />
+                    <div className="h-4 w-20 bg-surface-container rounded-full" />
                   </div>
-                  <div className="hidden aspect-square border border-app-border bg-app-surface-alt sm:block" />
+                  <div className="h-5 w-3/4 bg-surface-container rounded" />
+                  <div className="h-3 w-5/6 bg-surface-container rounded" />
                 </div>
               ))}
             </div>
-          </div>
-        ) : posts.length > 0 ? (
-          <>
-            <div>
-              {posts.map((post, index) => (
-                <div
-                  key={`feed-${post.id}-${index}`}
-                  ref={(el) => { postRefs.current[index] = el; }}
-                  className="animate-fade-up"
-                  style={{ animationDelay: `${Math.min(index * 40, 500)}ms` }}
-                  onMouseEnter={() => setFocusedIndex(index)}
-                >
-                  <PostCard post={post} onVote={handleVote} />
+          ) : posts.length > 0 ? (
+            <>
+              <div className="space-y-6">
+                {posts.map((post, index) => (
+                  <div
+                    key={`feed-${post.id}-${index}`}
+                    ref={(el) => { postRefs.current[index] = el; }}
+                    className="animate-fade-up"
+                    style={{ animationDelay: `${Math.min(index * 40, 500)}ms` }}
+                    onMouseEnter={() => setFocusedIndex(index)}
+                  >
+                    <PostCard post={post} onVote={handleVote} />
+                  </div>
+                ))}
+              </div>
+              <div ref={feedSentinelRef} className="h-px" aria-hidden="true" />
+              {isLoadingMore ? (
+                <div className="py-8 text-center">
+                  <span className="text-xs font-semibold text-outline">Fetching deeper signal clusters…</span>
                 </div>
-              ))}
+              ) : !hasMorePosts ? (
+                <div className="py-8 text-center border-t border-outline-variant/20 mt-6">
+                  <p className="text-xs font-semibold text-outline uppercase tracking-wider">End of Vetted Intel Stream</p>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <div className="py-16 text-center bg-white rounded-2xl border border-outline-variant/20 p-8">
+              <p className="text-sm text-on-surface-variant">No signal dispatches detected in this domain.</p>
+              <Link to="/app/submit" className="mt-4 inline-flex items-center gap-1.5 bg-primary text-white px-5 py-2.5 rounded-full text-xs font-bold hover:brightness-110 transition-all">
+                <Plus className="h-3.5 w-3.5" /> File First Dispatch
+              </Link>
             </div>
-            <div ref={feedSentinelRef} className="h-px" aria-hidden="true" />
-            {isLoadingMore ? (
-              <div className="border-b border-app-border px-5 py-8">
-                <span className="text-[12px] font-medium text-app-muted">Loading more…</span>
-              </div>
-            ) : !hasMorePosts ? (
-              <div className="border-b border-app-border px-5 py-8">
-                <p className="text-[13px] text-app-muted">No more reports.</p>
-              </div>
-            ) : null}
-          </>
-        ) : (
-          <div className="px-5 py-16">
-            <p className="text-[14px] text-app-muted">No posts yet in this feed. <Link to="/app/submit" className="font-medium text-app-action hover:underline">Write the first one</Link>.</p>
-          </div>
-        )}
-      </section>
-
-      <ContextPanel mode={contextMode} />
+          )}
+        </div>
+      </div>
     </div>
   );
 };
 
-const ChannelHeader: React.FC<{ channel: Channel; onToggleJoin: () => void }> = ({ channel, onToggleJoin }) => (
-  <div className="grid grid-cols-[48px_minmax(0,1fr)_auto] gap-4">
-    <img
-      src={channel.avatarUrl || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(channel.name)}`}
-      alt=""
-      className="h-12 w-12 border border-app-border object-cover"
-    />
-    <div className="min-w-0">
-      <p className="mb-1.5 text-[12px] font-semibold tracking-wider text-app-muted">Community</p>
-      <h1 className="truncate text-2xl font-semibold tracking-[-0.01em] text-app-heading">{channel.name}</h1>
-      <p className="mt-1.5 line-clamp-2 text-[14px] leading-6 text-app-text">{channel.description}</p>
-      <p className="mt-2 text-[12px] text-app-muted">
-        {(channel.memberCount || 0).toLocaleString('en-US')} members
-        <span aria-hidden="true"> · </span>
-        {(channel.postCount || 0).toLocaleString('en-US')} reports
-      </p>
-    </div>
-    <button
-      type="button"
-      onClick={onToggleJoin}
-      className="h-10 self-start border border-app-border px-4 text-[12px] font-medium text-app-action transition-colors hover:border-app-action hover:bg-app-action hover:text-app-on-action"
-    >
-      {channel.joined ? 'Joined' : 'Join'}
-    </button>
-  </div>
-);
+export default PostFeed;

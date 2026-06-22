@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { ArrowRight, CheckCircle2, Minus, ShieldCheck } from 'lucide-react';
 import {
   readAppPreferences,
   saveAppPreferences,
@@ -221,169 +222,70 @@ export const SubscribeScreen: React.FC = () => {
     }
   };
 
+  const startCheckout = (plan: PlanId) =>
+    updateSubscription({ subscriptionPlan: plan }, `${plans.find((item) => item.id === plan)?.name || 'Plan'} selected.`);
+
   return (
-    <div className="app-page grid gap-10 lg:grid-cols-[minmax(0,1fr)_18rem]">
-      <main className="min-w-0">
-        <p className="mono-label mb-3 text-app-action">Subscription</p>
-        <div className="border-b-2 border-app-heading pb-6">
-          <h1 className="text-[32px] font-semibold leading-tight text-app-heading">Support the newsroom</h1>
-          <p className="mt-3 max-w-[68ch] text-sm leading-6 text-app-muted">
-            Keep public reporting open. Subscribers get stronger signal, better reading tools, and a closer line to the
-            contributors they trust.
-          </p>
+    <div className="app-page mx-auto max-w-[1280px]">
+      <header className="mb-14 text-center">
+        <p className="mb-4 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-app-action">Unrivaled intelligence</p>
+        <h1 className="mx-auto max-w-3xl text-[38px] font-bold leading-tight tracking-[-0.03em] text-app-heading sm:text-5xl">Elevate Your Perspective with Premium Vetting</h1>
+        <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-app-muted">Join informed decision-makers with deeper verification, focused intelligence feeds, and professional research tools.</p>
+        <div className="mx-auto mt-8 grid w-fit grid-cols-2 rounded-xl border border-app-border bg-app-surface p-1 text-xs font-semibold">
+          {(['monthly', 'annual'] as const).map((cadence) => <button key={cadence} type="button" onClick={() => updateSubscription({ billingCadence: cadence }, 'Billing cadence saved.')} className={`rounded-lg px-5 py-2.5 capitalize ${preferences.billingCadence === cadence ? 'bg-app-action text-app-on-action' : 'text-app-muted hover:text-app-heading'}`}>{cadence}</button>)}
         </div>
+      </header>
 
-        <section className="mt-8 flex flex-wrap items-center justify-between gap-4 border-b border-app-border pb-4">
-          <div>
-            <h2 className="mono-label text-app-muted">Choose plan</h2>
-            <p className="mt-2 text-sm text-app-muted">
-              Paid tiers use Stripe Checkout test mode. Free keeps the local account on public access.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 border border-app-border font-mono text-[11px] uppercase tracking-wider">
-            {(['monthly', 'annual'] as const).map((cadence) => (
-              <button
-                key={cadence}
-                type="button"
-                onClick={() => updateSubscription({ billingCadence: cadence }, 'Billing cadence saved.')}
-                className={`px-4 py-3 ${
-                  preferences.billingCadence === cadence
-                    ? 'bg-app-heading text-app-bg'
-                    : 'text-app-muted hover:text-app-heading'
-                }`}
-              >
-                {cadence === 'monthly' ? 'Monthly' : 'Annual'}
-              </button>
-            ))}
-          </div>
-        </section>
+      <section className="mb-24 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        {plans.map((plan) => {
+          const selected = preferences.subscriptionPlan === plan.id;
+          const featured = plan.id === 'backer';
+          const price = isAnnual ? plan.priceAnnual : plan.priceMonthly;
+          return <article key={plan.id} className={`relative flex flex-col rounded-3xl border bg-app-surface p-7 shadow-[var(--shadow-subtle)] transition-transform hover:-translate-y-1 ${featured ? 'border-2 border-app-action shadow-[0_0_24px_var(--color-app-action-soft)]' : 'border-app-border'}`}>
+            {featured && <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-app-action px-4 py-1 font-mono text-[9px] font-bold uppercase tracking-widest text-app-on-action">Most popular</span>}
+            <h2 className="text-xl font-semibold text-app-heading">{plan.name}</h2><p className="mt-2 min-h-10 text-sm text-app-muted">{plan.position}</p>
+            <p className="my-7"><strong className="text-4xl text-app-heading">${price}</strong><span className="text-sm text-app-muted">/{isAnnual ? 'yr' : 'mo'}</span></p>
+            <ul className="mb-8 flex-grow space-y-4">{plan.features.map(feature => <li key={feature} className="flex gap-3 text-sm text-app-text"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-app-action" />{feature}</li>)}</ul>
+            <button type="button" disabled={Boolean(isRedirectingPlan) || isCompletingCheckout} onClick={() => startCheckout(plan.id)} className={`w-full rounded-xl border px-4 py-3 text-sm font-semibold transition-colors disabled:opacity-45 ${featured || selected ? 'border-app-action bg-app-action text-app-on-action hover:bg-app-action-hover' : 'border-app-border text-app-heading hover:border-app-action hover:bg-app-action-faint'}`}>{isCompletingCheckout ? 'Verifying Stripe...' : isRedirectingPlan === plan.id ? 'Opening Stripe...' : selected ? 'Current plan' : plan.id === 'free' ? 'Use free' : 'Checkout with Stripe'}</button>
+          </article>;
+        })}
+      </section>
 
-        <section className="mt-6 grid gap-4 xl:grid-cols-2">
-          {plans.map((plan) => {
-            const isSelected = preferences.subscriptionPlan === plan.id;
-            const price = isAnnual ? plan.priceAnnual : plan.priceMonthly;
+      <section className="mb-24">
+        <h2 className="mb-10 text-center text-2xl font-semibold text-app-heading">Detailed Verification Capabilities</h2>
+        <div className="overflow-x-auto rounded-2xl border border-app-border bg-app-surface"><table className="min-w-[720px] w-full text-left text-sm"><thead><tr className="border-b border-app-border font-mono text-[10px] uppercase tracking-widest text-app-muted"><th className="px-5 py-5">Capability</th><th className="px-5 py-5">Free</th><th className="px-5 py-5">Reader+</th><th className="px-5 py-5 text-app-action">Backer</th><th className="px-5 py-5">Newsroom</th></tr></thead><tbody className="divide-y divide-app-border">
+          <CompareRow label="Source verification score" values={['-', 'Basic', 'Advanced', 'Advanced']} />
+          <CompareRow label="Cross-reference mapping" values={['-', 'Basic', 'Advanced', 'Real-time']} />
+          <CompareRow label="Shared research folders" values={['-', '-', '-', 'Included']} />
+          <CompareRow label="Intelligence briefings" values={['Weekly', 'Daily', 'Daily', 'Priority']} />
+          <CompareRow label="Research exports" values={['-', '-', 'Selected', 'Markdown / PDF']} />
+        </tbody></table></div>
+      </section>
 
-            return (
-              <article
-                key={plan.id}
-                className={`border p-5 ${
-                  isSelected ? 'border-app-heading bg-app-surface' : 'border-app-border bg-transparent'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-app-heading">{plan.name}</h3>
-                    <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-app-action">
-                      {plan.position}
-                    </p>
-                  </div>
-                  <p className="font-mono text-[24px] font-semibold tabular-nums text-app-heading">
-                    {price === 0 ? '$0' : `$${price}`}
-                    <span className="ml-1 text-[11px] font-normal text-app-muted">/{isAnnual ? 'yr' : 'mo'}</span>
-                  </p>
-                </div>
-                <p className="mt-4 min-h-12 text-sm leading-6 text-app-muted">{plan.bestFor}</p>
-                <ul className="mt-5 space-y-2 border-t border-app-border pt-4">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="grid grid-cols-[1rem_minmax(0,1fr)] gap-2 text-sm text-app-text">
-                      <span className="font-mono text-app-action">+</span>
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  onClick={() => updateSubscription({ subscriptionPlan: plan.id }, `${plan.name} selected.`)}
-                  disabled={Boolean(isRedirectingPlan) || isCompletingCheckout}
-                  className={`mt-5 h-11 w-full border font-mono text-[11px] uppercase tracking-wider transition-colors ${
-                    isSelected
-                      ? 'border-app-heading bg-app-heading text-app-bg'
-                      : 'border-app-border text-app-heading hover:border-app-action hover:text-app-action'
-                  } disabled:cursor-not-allowed disabled:opacity-45`}
-                >
-                  {isCompletingCheckout
-                    ? 'Verifying Stripe'
-                    : isRedirectingPlan === plan.id
-                      ? 'Opening Stripe'
-                      : isSelected
-                        ? 'Current plan'
-                        : plan.priceMonthly === 0
-                          ? 'Use free'
-                          : 'Checkout with Stripe'}
-                </button>
-              </article>
-            );
-          })}
-        </section>
+      <section className="mx-auto mb-20 grid max-w-4xl overflow-hidden rounded-[2rem] border border-app-border bg-app-surface p-4 shadow-[var(--shadow-raised)] md:grid-cols-2">
+        <div className="relative flex min-h-[320px] flex-col overflow-hidden rounded-3xl bg-app-action p-9 text-app-on-action"><div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-2xl" /><ShieldCheck className="relative mb-7 h-10 w-10" /><h2 className="relative text-2xl font-semibold">Enterprise-grade security</h2><p className="relative mt-4 text-sm leading-6 text-white/75">Payments are handled by Stripe Checkout. Tourane News never collects or stores your card number. Saved research and account data remain protected by the application security layer.</p><p className="relative mt-auto pt-10 font-mono text-[10px] uppercase tracking-widest text-white/70">Secured by Stripe + Tourane</p></div>
+        <div className="flex flex-col p-6 md:p-10"><p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-app-action">Secure checkout</p><h2 className="mt-3 text-2xl font-semibold text-app-heading">{selectedPlan.name}</h2><p className="mt-2 text-sm text-app-muted">{selectedPlan.bestFor}</p><div className="my-7 border-y border-app-border py-5"><div className="flex justify-between text-sm"><span className="text-app-muted">Billing</span><strong className="capitalize text-app-heading">{preferences.billingCadence}</strong></div><div className="mt-3 flex justify-between text-sm"><span className="text-app-muted">Total</span><strong className="text-app-heading">${isAnnual ? selectedPlan.priceAnnual : selectedPlan.priceMonthly}/{isAnnual ? 'year' : 'month'}</strong></div>{annualSavings > 0 && <p className="mt-3 text-xs text-app-action">Save ${annualSavings} with annual billing.</p>}</div>
+          {selectedPlan.id === 'free' ? <p className="rounded-xl bg-app-surface-alt p-4 text-sm leading-6 text-app-muted">Choose a paid plan above to continue to Stripe Checkout.</p> : <button type="button" onClick={() => startCheckout(selectedPlan.id)} disabled={Boolean(isRedirectingPlan) || isCompletingCheckout} className="flex w-full items-center justify-center gap-2 rounded-xl bg-app-heading px-5 py-4 text-sm font-semibold text-app-bg hover:bg-black disabled:opacity-45"><span>{isRedirectingPlan ? 'Opening Stripe...' : `Subscribe to ${selectedPlan.name}`}</span><ArrowRight className="h-4 w-4" /></button>}
+          {preferences.subscriptionPlan !== 'free' && <button type="button" onClick={openPortal} disabled={isOpeningPortal} className="mt-3 rounded-xl border border-app-border px-5 py-3 text-sm font-semibold text-app-muted hover:border-app-action hover:text-app-action disabled:opacity-45">{isOpeningPortal ? 'Opening portal...' : 'Manage existing billing'}</button>}
+          <p className="mt-5 text-center text-[10px] leading-4 text-app-faint">By continuing, you agree to the subscription and privacy terms.</p>
+        </div>
+      </section>
 
-        <section className="mt-10">
-          <h2 className="mono-label mb-3 text-app-muted">Subscriber briefing</h2>
-          <div className="border-y border-app-border">
-            {briefingOptions.map((option) => (
-              <PreferenceRow
-                key={option.value}
-                checked={preferences.newsletter === option.value}
-                disabled={planRank[preferences.subscriptionPlan] === 0 && option.value === 'daily'}
-                title={option.title}
-                copy={
-                  planRank[preferences.subscriptionPlan] === 0 && option.value === 'daily'
-                    ? 'Daily briefing unlocks with Reader Plus.'
-                    : option.copy
-                }
-                onClick={() => updatePreferences({ newsletter: option.value }, 'Briefing preference saved.')}
-              />
-            ))}
-          </div>
-        </section>
-      </main>
-
-      <aside className="space-y-8 lg:sticky lg:top-24 lg:self-start">
-        <section>
-          <h2 className="mono-label mb-4 text-app-muted">Current</h2>
-          <p className="text-2xl font-semibold text-app-heading">{selectedPlan.name}</p>
-          <p className="mt-2 font-mono text-[11px] uppercase tracking-wider text-app-muted">
-            {isAnnual ? 'Annual billing' : 'Monthly billing'}
-          </p>
-          {annualSavings > 0 && (
-            <p className="mt-3 text-sm leading-6 text-app-muted">
-              Annual saves ${annualSavings} compared with monthly.
-            </p>
-          )}
-        </section>
-        {preferences.subscriptionPlan !== 'free' && (
-          <section>
-            <h2 className="mono-label mb-4 text-app-muted">Stripe</h2>
-            <button
-              type="button"
-              onClick={openPortal}
-              disabled={isOpeningPortal}
-              className="h-9 w-full border border-app-border bg-app-bg px-4 font-mono text-[11px] uppercase tracking-wider text-app-heading hover:border-app-action hover:text-app-action disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {isOpeningPortal ? 'Opening Portal...' : 'Manage Billing'}
-            </button>
-          </section>
-        )}
-        <section>
-          <h2 className="mono-label mb-4 text-app-muted">What unlocks</h2>
-          <ol className="space-y-3">
-            {['Briefings', 'Advanced saves', 'Source notes', 'Subscriber discussions'].map((item, index) => (
-              <li key={item} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-2 text-sm text-app-muted">
-                <span className="font-mono text-[11px] text-app-action">{String(index + 1).padStart(2, '0')}</span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ol>
-        </section>
-        <section>
-          <h2 className="mono-label mb-4 text-app-muted">Back</h2>
-          <Link to="/app" className="font-mono text-[11px] uppercase tracking-wider text-app-action hover:underline">
-            Back to home
-          </Link>
-        </section>
-      </aside>
+      <section className="mx-auto max-w-4xl border-t border-app-border pt-10"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="font-mono text-[10px] uppercase tracking-widest text-app-action">Subscriber briefing</p><h2 className="mt-2 text-2xl font-semibold text-app-heading">Choose your signal cadence</h2></div><Link to="/app" className="text-sm font-semibold text-app-action hover:underline">Back to home</Link></div><div className="mt-6 grid gap-3 md:grid-cols-3">{briefingOptions.map(option => <PreferenceRow key={option.value} checked={preferences.newsletter === option.value} disabled={planRank[preferences.subscriptionPlan] === 0 && option.value === 'daily'} title={option.title} copy={planRank[preferences.subscriptionPlan] === 0 && option.value === 'daily' ? 'Daily briefing unlocks with Reader Plus.' : option.copy} onClick={() => updatePreferences({ newsletter: option.value }, 'Briefing preference saved.')} />)}</div></section>
     </div>
   );
 };
+
+const CompareRow: React.FC<{ label: string; values: string[] }> = ({ label, values }) => (
+  <tr>
+    <td className="px-5 py-5 font-semibold text-app-heading">{label}</td>
+    {values.map((value, index) => (
+      <td key={label + index} className={index === 2 ? 'px-5 py-5 font-semibold text-app-action' : 'px-5 py-5 text-app-muted'}>
+        {value === '-' ? <Minus className="h-4 w-4 text-app-faint" /> : value}
+      </td>
+    ))}
+  </tr>
+);
 
 const PreferenceRow: React.FC<{
   checked: boolean;

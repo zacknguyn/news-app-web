@@ -10,9 +10,6 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import { FontSize, TextStyle } from '@tiptap/extension-text-style';
 import {
-  AlignCenter,
-  AlignLeft,
-  AlignRight,
   Bold,
   Image as ImageIcon,
   Indent,
@@ -59,16 +56,16 @@ export type RichEditorControls = {
 };
 
 const toolbarButtonClass = (active = false) =>
-  `inline-flex h-9 min-w-9 items-center justify-center border border-transparent px-2.5 text-sm font-semibold transition-colors ${
+  `inline-flex h-9 min-w-9 items-center justify-center rounded-lg text-sm font-semibold transition-all active:scale-95 ${
     active
-      ? 'bg-app-heading text-app-surface border-app-heading'
-      : 'text-app-muted hover:text-app-heading hover:bg-app-surface-alt'
+      ? 'bg-primary text-white shadow-sm'
+      : 'text-on-surface-variant hover:text-primary hover:bg-primary/5'
   }`;
 
-const toolbarGroupClass = 'flex shrink-0 items-center gap-0.5 border border-app-border bg-app-surface p-0.5';
-const toolbarLabelClass = 'px-2 text-[10px] font-bold font-mono text-app-faint select-none';
+const toolbarGroupClass = 'flex shrink-0 items-center gap-1 bg-surface-container-low border border-outline-variant/30 rounded-xl p-1';
+const toolbarLabelClass = 'px-2 text-[9px] font-bold uppercase tracking-widest text-outline select-none';
 const selectClass =
-  'h-9 border border-transparent bg-transparent px-2 text-sm font-semibold text-app-heading outline-none hover:bg-app-surface-alt focus:bg-app-surface-alt focus:border-app-border';
+  'h-8 border-none bg-transparent px-2 text-xs font-bold text-on-surface outline-none cursor-pointer';
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
 const getImages = (html: string): EditorImage[] => {
@@ -153,14 +150,14 @@ export const RichPostEditor: React.FC<RichPostEditorProps> = ({
         types: ['heading', 'paragraph'],
       }),
       Placeholder.configure({
-        placeholder: 'Write the report. Use headings, quotes, lists, links, and image blocks...',
+        placeholder: 'Begin writing your vetting dispatch here. Type to present details...',
       }),
     ],
     content: value || '',
     editorProps: {
       attributes: {
         class:
-          'tourane-editor-content reader-serif min-h-[480px] px-0 py-6 text-xl leading-relaxed text-[var(--color-app-ink)] outline-none lg:min-h-[600px]',
+          'tourane-editor-content serif-title min-h-[400px] px-4 py-6 text-[17px] leading-relaxed text-on-surface outline-none lg:min-h-[500px]',
       },
     },
     onUpdate: ({ editor }) => {
@@ -303,21 +300,19 @@ export const RichPostEditor: React.FC<RichPostEditorProps> = ({
     });
 
     return () => onControlsReady?.(null);
-    // Controls are re-registered when the editor instance changes; toolbar callbacks read the current editor closure.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, fontSize]);
 
   if (!editor || editor.isDestroyed) return null;
 
   return (
-    <div className="border border-app-border bg-app-surface">
+    <div className="bg-white rounded-2xl border border-outline-variant/30 overflow-hidden shadow-sm">
       <BubbleMenu
         editor={editor}
         updateDelay={120}
         options={{ placement: 'top', offset: 8 }}
         shouldShow={({ editor }) => !editor.state.selection.empty}
       >
-        <div className="flex items-center gap-0.5 border border-app-border bg-app-surface p-0.5 shadow-[var(--shadow-modal)]">
+        <div className="flex items-center gap-1 border border-outline-variant/30 bg-white p-1 rounded-xl shadow-lg">
           <button
             type="button"
             className={toolbarButtonClass(editor.isActive('bold'))}
@@ -342,7 +337,7 @@ export const RichPostEditor: React.FC<RichPostEditorProps> = ({
           >
             <LinkIcon className="h-4 w-4" />
           </button>
-          <label className="ml-1 flex items-center gap-2 border-l border-app-border pl-2 text-xs font-semibold text-app-muted">
+          <label className="ml-1 flex items-center gap-2 border-l border-outline-variant/30 pl-2 text-xs font-semibold text-outline">
             <span className="font-mono tabular-nums">{fontSize}px</span>
             <input
               type="range"
@@ -350,16 +345,17 @@ export const RichPostEditor: React.FC<RichPostEditorProps> = ({
               max="32"
               value={fontSize}
               onChange={(event) => applyFontSize(Number(event.target.value))}
-              className="w-28 accent-app-action"
+              className="w-24 accent-primary"
             />
           </label>
         </div>
       </BubbleMenu>
 
-      <div className="overflow-x-auto border-b border-app-border bg-app-surface-alt p-2">
-        <div className="flex min-w-max items-center gap-1.5">
+      {/* Editor Main Toolbar */}
+      <div className="overflow-x-auto border-b border-outline-variant/20 bg-surface-container-low p-3">
+        <div className="flex min-w-max items-center gap-3">
           <div className={toolbarGroupClass}>
-            <span className={toolbarLabelClass}>Block</span>
+            <span className={toolbarLabelClass}>Format</span>
             <select
               value={getCurrentBlock(editor)}
               onChange={(event) => applyBlock(event.target.value)}
@@ -446,34 +442,6 @@ export const RichPostEditor: React.FC<RichPostEditorProps> = ({
           </div>
 
           <div className={toolbarGroupClass}>
-            <span className={toolbarLabelClass}>Align</span>
-            <button
-              type="button"
-              className={toolbarButtonClass(editor.isActive({ textAlign: 'left' }))}
-              onClick={() => editor.chain().focus().setTextAlign('left').run()}
-              aria-label="Align left"
-            >
-              <AlignLeft className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className={toolbarButtonClass(editor.isActive({ textAlign: 'center' }))}
-              onClick={() => editor.chain().focus().setTextAlign('center').run()}
-              aria-label="Align center"
-            >
-              <AlignCenter className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className={toolbarButtonClass(editor.isActive({ textAlign: 'right' }))}
-              onClick={() => editor.chain().focus().setTextAlign('right').run()}
-              aria-label="Align right"
-            >
-              <AlignRight className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className={toolbarGroupClass}>
             <span className={toolbarLabelClass}>Media</span>
             <button type="button" className={toolbarButtonClass()} onClick={addImage} aria-label="Add image URL">
               <ImageIcon className="h-4 w-4" />
@@ -482,7 +450,7 @@ export const RichPostEditor: React.FC<RichPostEditorProps> = ({
               type="button"
               className={toolbarButtonClass(editor.isActive('image'))}
               onClick={editImageDetails}
-              aria-label="Edit selected image caption and alt text"
+              aria-label="Edit selected image caption"
             >
               Alt
             </button>
@@ -509,29 +477,30 @@ export const RichPostEditor: React.FC<RichPostEditorProps> = ({
           }}
         />
       </div>
+
       {panel && (
-        <div className="border-b border-app-border p-4">
+        <div className="border-b border-outline-variant/20 p-4 bg-surface-container-lowest">
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end">
             {panel.kind === 'link' && (
               <label className="block">
-                <span className="mono-label mb-2 block text-app-muted">Source URL</span>
+                <span className="text-[10px] uppercase tracking-wider font-bold text-outline mb-1.5 block">Source URL</span>
                 <input
                   type="url"
                   value={panel.url}
                   onChange={(event) => setPanel({ kind: 'link', url: event.target.value })}
-                  className="h-10 w-full border border-app-border bg-app-bg px-3 text-sm text-app-text outline-none focus:border-app-action focus:shadow-[var(--shadow-focus)]"
+                  className="h-10 w-full border border-outline-variant rounded-lg bg-white px-3 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   autoFocus
                 />
               </label>
             )}
             {panel.kind === 'image' && (
               <label className="block">
-                <span className="mono-label mb-2 block text-app-muted">Image URL</span>
+                <span className="text-[10px] uppercase tracking-wider font-bold text-outline mb-1.5 block">Image URL</span>
                 <input
                   type="url"
                   value={panel.url}
                   onChange={(event) => setPanel({ kind: 'image', url: event.target.value })}
-                  className="h-10 w-full border border-app-border bg-app-bg px-3 text-sm text-app-text outline-none focus:border-app-action focus:shadow-[var(--shadow-focus)]"
+                  className="h-10 w-full border border-outline-variant rounded-lg bg-white px-3 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   autoFocus
                 />
               </label>
@@ -539,20 +508,20 @@ export const RichPostEditor: React.FC<RichPostEditorProps> = ({
             {panel.kind === 'imageDetails' && (
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
-                  <span className="mono-label mb-2 block text-app-muted">Alt text</span>
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-outline mb-1.5 block">Alt text</span>
                   <input
                     value={panel.alt}
                     onChange={(event) => setPanel({ ...panel, alt: event.target.value })}
-                    className="h-10 w-full border border-app-border bg-app-bg px-3 text-sm text-app-text outline-none focus:border-app-action focus:shadow-[var(--shadow-focus)]"
+                    className="h-10 w-full border border-outline-variant rounded-lg bg-white px-3 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     autoFocus
                   />
                 </label>
                 <label className="block">
-                  <span className="mono-label mb-2 block text-app-muted">Caption</span>
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-outline mb-1.5 block">Caption</span>
                   <input
                     value={panel.title}
                     onChange={(event) => setPanel({ ...panel, title: event.target.value })}
-                    className="h-10 w-full border border-app-border bg-app-bg px-3 text-sm text-app-text outline-none focus:border-app-action focus:shadow-[var(--shadow-focus)]"
+                    className="h-10 w-full border border-outline-variant rounded-lg bg-white px-3 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                 </label>
               </div>
@@ -560,22 +529,22 @@ export const RichPostEditor: React.FC<RichPostEditorProps> = ({
             <button
               type="button"
               onClick={submitPanel}
-              className="h-10 bg-app-action px-4 font-mono text-[11px] uppercase tracking-wider text-app-on-action hover:bg-app-action-hover"
+              className="h-10 bg-primary px-5 rounded-lg text-xs font-bold text-white hover:brightness-110"
             >
               Apply
             </button>
             <button
               type="button"
               onClick={() => setPanel(null)}
-              className="h-10 px-2 font-mono text-[11px] uppercase tracking-wider text-app-muted hover:text-app-heading"
+              className="h-10 px-3 text-xs font-bold text-outline hover:text-on-surface"
             >
               Cancel
             </button>
           </div>
         </div>
       )}
-      <EditorContent editor={editor} className="px-4 sm:px-5" onPaste={cleanPaste} onDrop={handleDrop} />
-      {error && <p className="border-t border-app-border px-4 py-2 text-xs font-bold text-error sm:px-5">{error}</p>}
+      <EditorContent editor={editor} className="px-1" onPaste={cleanPaste} onDrop={handleDrop} />
+      {error && <p className="border-t border-red-200 px-5 py-3.5 text-xs font-semibold text-red-600 bg-red-50">{error}</p>}
     </div>
   );
 };

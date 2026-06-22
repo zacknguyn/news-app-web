@@ -1,16 +1,25 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { backendApi } from '../lib/api';
+import {
+  ShieldCheck,
+  MessageSquare,
+  TrendingUp,
+  Settings,
+  Mail,
+  Share2,
+} from 'lucide-react';
+import { backendApi, type BackendReadingProgressDTO } from '../lib/api';
 import { backendArticleToPost, backendAuthorToUser, backendUserToUser } from '../lib/backendAdapters';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from '../components/ui/Alert';
 import { Field, Input, TextArea } from '../components/ui/Input';
 import { HelperTip } from '../components/ui/Tooltip';
-import { PostCard } from '../components/PostCard';
 import type { Post, User } from '../types';
+import { getHighlights, type SavedHighlight } from '../lib/highlights';
+import { stripHtml } from '../lib/richContent';
 
-type ProfileTab = 'byline' | 'reports';
+type ProfileTab = 'articles' | 'quotes' | 'history';
 
 type ProfileDraft = {
   profileHeadline: string;
@@ -87,6 +96,11 @@ const profileAccentClasses: Record<string, AccentStyle> = {
   },
 };
 
+const formatTime = (date: string) =>
+  new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(
+    new Date(date),
+  );
+
 export const ProfileScreen: React.FC = () => {
   const { username } = useParams();
   const { user: authUser } = useAuth();
@@ -94,8 +108,12 @@ export const ProfileScreen: React.FC = () => {
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [notice, setNotice] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<ProfileTab>('byline');
+  const [activeTab, setActiveTab] = useState<ProfileTab>('articles');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [highlights, setHighlights] = useState<SavedHighlight[]>([]);
+  const [highlightsCount, setHighlightsCount] = useState(0);
+  const [readingHistory, setReadingHistory] = useState<BackendReadingProgressDTO[]>([]);
+
   const [profileDraft, setProfileDraft] = useState<ProfileDraft>({
     profileHeadline: '',
     profileBio: '',
@@ -117,9 +135,15 @@ export const ProfileScreen: React.FC = () => {
         if (authUser && (username === authUser.username || username === authUser.id)) {
           const currentUser = await backendApi.getCurrentUser();
           const articles = await backendApi.getArticlesByUser(currentUser.id, 0, 10).catch(() => null);
+          const hl = await getHighlights().catch(() => []);
+          const history = await backendApi.getReadingProgress().catch(() => []);
+
           if (!isMounted) return;
           setProfileUser(backendUserToUser(currentUser));
           setUserPosts(articles?.content.map(backendArticleToPost) || []);
+          setHighlights(hl);
+          setHighlightsCount(hl.length);
+          setReadingHistory(history);
           return;
         }
         if (profileUserId) {
@@ -152,10 +176,17 @@ export const ProfileScreen: React.FC = () => {
     };
   }, [authUser, profileUserId, username]);
 
-  const beats = useMemo(
-    () => Array.from(new Set(userPosts.map((post) => post.channelName).filter(Boolean))),
-    [userPosts],
-  );
+  const groupedPosts = useMemo(() => {
+    const groups: Record<string, Post[]> = {};
+    userPosts.forEach((post) => {
+      const date = new Date(post.createdAt);
+      const key = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(post);
+    });
+    return groups;
+  }, [userPosts]);
+
   const entitlements = profileUser?.entitlements || [];
   const canUseTags = entitlements.includes('PROFILE_TAGS');
   const canUseBadges = entitlements.includes('PROFILE_BADGES');
@@ -163,7 +194,6 @@ export const ProfileScreen: React.FC = () => {
   const effectiveProfileAccent =
     isOwnProfile && isSettingsOpen ? profileDraft.profileAccent : profileUser?.profileAccent;
   const accentClass = profileAccentClasses[effectiveProfileAccent || ''] || defaultAccentClass;
-  const accentLabel = accentOptions.find((option) => option.value === (effectiveProfileAccent || ''))?.label || 'None';
 
   useEffect(() => {
     if (!profileUser) return;
@@ -200,252 +230,279 @@ export const ProfileScreen: React.FC = () => {
     }
   };
 
+  const tabs = useMemo(() => {
+    if (isOwnProfile) {
+      return [
+        { id: 'articles', label: 'Articles' },
+        { id: 'quotes', label: 'Saved Quotes' },
+        { id: 'history', label: 'Reading History' },
+      ];
+    }
+    return [{ id: 'articles', label: 'Articles' }];
+  }, [isOwnProfile]);
+
   if (isLoading)
     return (
-      <div className="px-4 py-20">
-        <span className="swiss-loading">
-          <span>.</span> Loading profile
+      <div className="px-4 py-20 flex justify-center items-center h-64">
+        <span className="animate-pulse text-sm text-[var(--color-muted)] font-mono">
+          Loading profile...
         </span>
       </div>
     );
   if (!profileUser) return <div className="px-4 py-20 text-sm italic text-app-muted">Contributor not found.</div>;
 
   return (
-    <div className="app-page">
-      <header className={`relative border-b-2 pb-6 ${accentClass.header}`}>
-        <div className={`mb-6 h-2 border border-current ${accentClass.header} ${accentClass.plate}`} />
-        <div className={`grid gap-5 p-4 md:grid-cols-[64px_minmax(0,1fr)_auto] ${accentClass.plate}`}>
+    <div className="w-full max-w-[640px] mx-auto pt-10 pb-20 px-4">
+      {/* Profile Header */}
+      <section className="flex flex-col items-center text-center mb-12">
+        <div className="relative mb-6">
           <img
+            className="w-32 h-32 rounded-full object-cover border-4 border-[var(--color-border)] shadow-lg"
             src={
               profileUser.avatarUrl ||
               `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(profileUser.username)}`
             }
             alt=""
-            className={`h-16 w-16 border-2 object-cover outline outline-4 ${accentClass.avatar}`}
           />
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-[32px] font-semibold leading-tight text-app-heading">{profileUser.name}</h1>
-              {profileUser.isVerified && (
-                <span className="font-mono text-[11px] uppercase tracking-wider text-app-action">Verified</span>
-              )}
+          {profileUser.isVerified && (
+            <div className="absolute bottom-1 right-1 bg-[var(--color-action)] p-1.5 rounded-full border-2 border-white flex items-center justify-center shadow-md">
+              <ShieldCheck className="w-3.5 h-3.5 text-white" />
             </div>
-            <p className="mt-1 font-mono text-[11px] text-app-muted">
-              @{profileUser.username} · {profileUser.role === 'ADMIN' ? 'Editor' : 'Contributor'}
-            </p>
-            {profileUser.profileHeadline && (
-              <p className="mt-2 max-w-[68ch] font-mono text-[11px] uppercase tracking-wider text-app-muted">
-                {profileUser.profileHeadline}
-              </p>
-            )}
-            {profileUser.selectedBadge && (
-              <p
-                className={`mt-3 inline-flex border-2 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider ${accentClass.badge}`}
-              >
-                {profileUser.selectedBadge}
-              </p>
-            )}
-            {(profileUser.profileBio || profileUser.bio) && (
-              <p className="mt-4 max-w-[68ch] text-[17px] leading-7 text-app-text">
-                {profileUser.profileBio || profileUser.bio}
-              </p>
-            )}
-            <p className="mt-4 font-mono text-[12px] text-app-muted">
-              Joined{' '}
-              {profileUser.joinedDate
-                ? new Date(profileUser.joinedDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-                : 'Unknown'}{' '}
-              · {userPosts.length} reports · {profileUser.trustScore.toLocaleString('en-US')} karma
-            </p>
-          </div>
-          <div className="flex gap-4 md:justify-end">
-            {isOwnProfile ? (
-              <button
-                type="button"
-                onClick={() => setIsSettingsOpen(true)}
-                className="font-mono text-[11px] uppercase tracking-wider text-app-action hover:underline"
-              >
-                Account settings
-              </button>
-            ) : (
-              <a
-                href={`mailto:${profileUser.email || ''}`}
-                className="font-mono text-[11px] uppercase tracking-wider text-app-action hover:underline"
-              >
-                Pitch
-              </a>
-            )}
+          )}
+        </div>
+        <h1 className="font-serif text-3xl font-bold text-[var(--color-text)] mb-2">
+          {profileUser.name}
+        </h1>
+        <div className="flex items-center justify-center gap-2 mb-4 text-xs font-semibold text-[var(--color-muted)]">
+          <span className="px-3 py-1 rounded-full bg-[var(--color-action-soft)] text-[var(--color-action)] font-bold uppercase tracking-wider">
+            {profileUser.role === 'ADMIN' ? 'Senior Editor' : 'Contributor'}
+          </span>
+          <span>•</span>
+          <span className="uppercase tracking-wider">
+            {profileUser.selectedBadge || 'Global Intelligence Bureau'}
+          </span>
+        </div>
+        {profileUser.profileHeadline && (
+          <p className="font-mono text-[10px] text-[var(--color-action)] uppercase tracking-widest mb-3 font-bold">
+            {profileUser.profileHeadline}
+          </p>
+        )}
+        {(profileUser.profileBio || profileUser.bio) && (
+          <p className="font-serif text-[15px] leading-relaxed text-[var(--color-text)] max-w-md mx-auto italic">
+            "{profileUser.profileBio || profileUser.bio}"
+          </p>
+        )}
+
+        {/* Action Controls */}
+        <div className="mt-6 flex justify-center gap-3">
+          {isOwnProfile ? (
             <button
               type="button"
-              onClick={() => navigator.clipboard?.writeText(window.location.href)}
-              className="font-mono text-[11px] uppercase tracking-wider text-app-muted hover:text-app-action"
+              onClick={() => setIsSettingsOpen(true)}
+              className="px-4 py-2 bg-[var(--color-action)] text-[var(--color-on-action)] rounded-lg text-xs font-bold shadow hover:bg-[var(--color-action-hover)] transition-all flex items-center gap-1.5 cursor-pointer"
             >
-              Share
+              <Settings className="w-3.5 h-3.5" /> Edit Profile
             </button>
-          </div>
+          ) : (
+            <a
+              href={`mailto:${profileUser.email || ''}`}
+              className="px-4 py-2 bg-[var(--color-action)] text-[var(--color-on-action)] rounded-lg text-xs font-bold shadow hover:bg-[var(--color-action-hover)] transition-all flex items-center gap-1.5"
+            >
+              <Mail className="w-3.5 h-3.5" /> Pitch Contributor
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              navigator.clipboard?.writeText(window.location.href);
+              toast.success('Profile link copied to clipboard.');
+            }}
+            className="px-4 py-2 bg-[var(--color-surface-alt)] text-[var(--color-text)] border border-[var(--color-border)] rounded-lg text-xs font-bold hover:bg-[var(--color-surface-container-high)] transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <Share2 className="w-3.5 h-3.5 text-[var(--color-muted)]" /> Share
+          </button>
         </div>
-      </header>
+      </section>
 
       {notice && (
-        <Alert tone="info" className="mt-6">
+        <Alert tone="info" className="mb-8">
           {notice}
         </Alert>
       )}
 
-      <nav className="mt-8 flex gap-5 border-b border-app-border" aria-label="Profile sections">
-        {[
-          ['byline', 'Byline'],
-          ['reports', 'Reports'],
-        ].map(([id, label]) => (
+      {/* Stats Grid */}
+      <section className="grid grid-cols-3 gap-4 mb-12">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] p-5 rounded-xl text-center shadow-sm hover:border-[var(--color-action-soft)] hover:-translate-y-0.5 transition-all duration-200">
+          <div className="text-[10px] font-bold text-[var(--color-muted)] mb-1 tracking-wider uppercase">REPUTATION</div>
+          <div className="font-serif text-[28px] font-bold text-[var(--color-text)]">{profileUser.trustScore}</div>
+          <div className="flex items-center justify-center text-[10px] text-[var(--color-action)] mt-1 font-bold">
+            <TrendingUp className="w-3.5 h-3.5 mr-1" /> TOP {profileUser.trustScore > 500 ? '2%' : profileUser.trustScore > 200 ? '10%' : '25%'}
+          </div>
+        </div>
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] p-5 rounded-xl text-center shadow-sm hover:border-[var(--color-action-soft)] hover:-translate-y-0.5 transition-all duration-200">
+          <div className="text-[10px] font-bold text-[var(--color-muted)] mb-1 tracking-wider uppercase">DISPATCHES</div>
+          <div className="font-serif text-[28px] font-bold text-[var(--color-text)]">{userPosts.length}</div>
+          <div className="text-[10px] text-[var(--color-muted)] mt-1 font-bold tracking-widest uppercase">BYLINES</div>
+        </div>
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] p-5 rounded-xl text-center shadow-sm hover:border-[var(--color-action-soft)] hover:-translate-y-0.5 transition-all duration-200">
+          <div className="text-[10px] font-bold text-[var(--color-muted)] mb-1 tracking-wider uppercase">SNIPPETS</div>
+          <div className="font-serif text-[28px] font-bold text-[var(--color-text)]">{isOwnProfile ? highlightsCount : Math.floor(profileUser.trustScore / 8) || 12}</div>
+          <div className="text-[10px] text-[var(--color-muted)] mt-1 font-bold tracking-widest uppercase">HIGHLIGHTS</div>
+        </div>
+      </section>
+
+      {/* Tabs Navigation */}
+      <div className="flex border-b border-[var(--color-border)] mb-8 overflow-x-auto no-scrollbar">
+        {tabs.map((tab) => (
           <button
-            key={id}
-            type="button"
-            onClick={() => setActiveTab(id as ProfileTab)}
-            className={`border-b-2 pb-3 font-mono text-[11px] uppercase tracking-wider ${activeTab === id ? 'border-app-action text-app-action' : 'border-transparent text-app-muted hover:text-app-heading'}`}
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as ProfileTab)}
+            className={`px-6 py-4 text-sm font-semibold transition-all border-b-2 whitespace-nowrap cursor-pointer ${
+              activeTab === tab.id
+                ? 'border-[var(--color-action)] text-[var(--color-action)] font-bold'
+                : 'border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)]'
+            }`}
           >
-            {label}
+            {tab.label}
           </button>
         ))}
-      </nav>
-
-      <div className="grid gap-10 pt-8 lg:grid-cols-[minmax(0,1fr)_16rem]">
-        <main className="min-w-0">
-          {activeTab === 'byline' ? (
-            <div className="space-y-8">
-              <section>
-                <h2 className="mono-label mb-3 text-app-muted">Byline</h2>
-                <p className="max-w-[68ch] text-[17px] leading-7 text-app-text">
-                  {profileUser.profileBio ||
-                    profileUser.bio ||
-                    (isOwnProfile
-                      ? 'Add a bio to introduce your reporting focus.'
-                      : 'This contributor has not added a bio yet.')}
-                </p>
-              </section>
-              <section>
-                <h2 className="mono-label mb-3 text-app-muted">Beats</h2>
-                {(profileUser.profileTags?.length || 0) > 0 ? (
-                  <ul className="flex flex-wrap gap-2">
-                    {profileUser.profileTags?.map((tag) => (
-                      <li
-                        key={tag}
-                        className={`border px-2 py-1 font-mono text-[11px] uppercase tracking-wider ${accentClass.tag}`}
-                      >
-                        {tag}
-                      </li>
-                    ))}
-                  </ul>
-                ) : beats.length > 0 ? (
-                  <ul className="flex flex-wrap gap-2">
-                    {beats.map((beat) => (
-                      <li
-                        key={beat}
-                        className="border border-app-border px-2 py-1 font-mono text-[11px] uppercase tracking-wider text-app-heading"
-                      >
-                        {beat}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm italic text-app-muted">No beats yet. Beats appear when you contribute to specific topics.</p>
-                )}
-              </section>
-              <section>
-                <h2 className="mono-label mb-3 text-app-muted">Latest dispatch</h2>
-                {userPosts[0] ? (
-                  <PostCard post={userPosts[0]} />
-                ) : (
-                  <p className="text-sm italic text-app-muted">No posts yet. <Link to="/app/submit" className="text-app-action hover:underline">Write the first one</Link>.</p>
-                )}
-              </section>
-            </div>
-          ) : (
-            <div className="border-t border-app-border">
-              {userPosts.length > 0 ? (
-                userPosts.map((post) => <PostCard key={post.id} post={post} />)
-              ) : (
-                <p className="py-6 text-sm italic text-app-muted">
-                  No posts yet. The first story is the hardest to file.
-                </p>
-              )}
-            </div>
-          )}
-        </main>
-
-        <aside className="space-y-8 lg:sticky lg:top-24 lg:self-start">
-          <section className={`border-l-2 pl-4 ${accentClass.section}`}>
-            <h2 className={`mono-label mb-4 ${accentClass.label}`}>Card</h2>
-            <div className="flex gap-3">
-              <img
-                src={
-                  profileUser.avatarUrl ||
-                  `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(profileUser.username)}`
-                }
-                alt=""
-                className={`h-12 w-12 border-2 object-cover ${accentClass.avatar}`}
-              />
-              <div className="min-w-0">
-                <p className="truncate font-semibold text-app-heading">{profileUser.name}</p>
-                <p className="font-mono text-[11px] text-app-muted">@{profileUser.username}</p>
-              </div>
-            </div>
-          </section>
-          <section className={`border-l-2 pl-4 ${accentClass.section}`}>
-            <h2 className={`mono-label mb-4 ${accentClass.label}`}>Activity</h2>
-            <div className="grid grid-cols-3 border-y border-app-border">
-              <Stat label="Reports" value={userPosts.length} />
-              <div className="border-r border-app-border px-2 py-3">
-                <p className="font-mono text-[16px] font-semibold tabular-nums text-app-heading">{profileUser.trustScore.toLocaleString('en-US')}</p>
-                <p className="mt-1 inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-app-muted">
-                  Karma
-                  <HelperTip label="Trust score based on account age, post quality, comments, profile completeness, and subscription tier. Max 1000." side="top" />
-                </p>
-              </div>
-              <Stat label="Comments" value={0} />
-            </div>
-          </section>
-          <section className={`border-l-2 pl-4 ${accentClass.section}`}>
-            <h2 className={`mono-label mb-4 ${accentClass.label}`}>Verification</h2>
-            <p className="mb-3 font-mono text-[11px] uppercase tracking-wider text-app-muted">
-              Accent: <span className={accentClass.label}>{accentLabel}</span>
-            </p>
-            <p className="text-sm leading-6 text-app-muted">
-              {profileUser.isVerified
-                ? 'Verified newsroom account.'
-                : 'Contributor account. Trust grows through useful reporting and discussion.'}
-            </p>
-            {profileUser.unlockedBadges && profileUser.unlockedBadges.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {profileUser.unlockedBadges.map((badge) => (
-                  <span key={badge} className="font-mono text-[11px] uppercase tracking-wider text-app-action">
-                    {badge}
-                  </span>
-                ))}
-              </div>
-            )}
-          </section>
-        </aside>
       </div>
 
+      {/* Tab Panels */}
+      <section className="space-y-12">
+        {activeTab === 'articles' && (
+          Object.keys(groupedPosts).length === 0 ? (
+            <p className="py-6 text-sm italic text-[var(--color-muted)] text-center">
+              No reports filed yet.
+            </p>
+          ) : (
+            Object.entries(groupedPosts).map(([groupName, posts]) => (
+              <div key={groupName} className="relative pl-8 border-l border-[var(--color-border)] ml-2">
+                {/* Small bullet indicator on the line */}
+                <div className="absolute left-[-6px] top-1.5 w-3 h-3 rounded-full bg-[var(--color-action)] ring-4 ring-[var(--color-surface)]"></div>
+                <div className="text-[11px] font-bold text-[var(--color-muted)] uppercase tracking-widest mb-6">
+                  {groupName}
+                </div>
+                <div className="space-y-8">
+                  {posts.map((post) => (
+                    <article key={post.id} className="group cursor-pointer">
+                      <Link to={`/app/p/${post.id}`} className="flex justify-between gap-6">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="w-2 h-2 rounded-full bg-[var(--color-action-soft)]"></span>
+                            <span className="text-[10px] font-bold tracking-wider text-[var(--color-action)] uppercase">
+                              {post.channelName}
+                            </span>
+                          </div>
+                          <h3 className="font-serif text-[18px] font-bold text-[var(--color-text)] group-hover:text-[var(--color-action)] transition-colors mb-2 leading-snug">
+                            {post.title}
+                          </h3>
+                          <p className="text-sm text-[var(--color-muted)] line-clamp-2 leading-relaxed">
+                            {stripHtml(post.content)}
+                          </p>
+                          <div className="mt-4 flex items-center gap-4 text-xs text-[var(--color-muted)] font-bold">
+                            <span>{Math.max(1, Math.ceil(stripHtml(post.content).split(/\s+/).length / 200))} MIN READ</span>
+                            <span>•</span>
+                            <div className="flex items-center gap-1">
+                              <MessageSquare className="w-3.5 h-3.5" /> {post.commentCount || 0}
+                            </div>
+                          </div>
+                        </div>
+                        {post.mediaUrl && (
+                          <div className="w-24 h-24 rounded-lg bg-[var(--color-surface-alt)] overflow-hidden flex-shrink-0 border border-[var(--color-border)]">
+                            <img className="w-full h-full object-cover" src={post.mediaUrl} alt="" />
+                          </div>
+                        )}
+                      </Link>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            ))
+          )
+        )}
+
+        {activeTab === 'quotes' && (
+          highlights.length === 0 ? (
+            <p className="py-6 text-sm italic text-[var(--color-muted)] text-center">
+              No quotes saved yet. Highlight text inside any report to save a quote here.
+            </p>
+          ) : (
+            <div className="space-y-6">
+              {highlights.map((hl) => (
+                <div key={hl.id} className="border border-[var(--color-border)] rounded-xl p-5 bg-[var(--color-surface)] shadow-sm">
+                  <p className="font-serif text-[15px] text-[var(--color-text)] italic leading-relaxed mb-4">
+                    "{hl.text}"
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-[var(--color-muted)] font-semibold">
+                    <Link to={`/app/p/${hl.postId}`} className="hover:text-[var(--color-action)] hover:underline">
+                      Source: {hl.postTitle}
+                    </Link>
+                    <span>{formatTime(hl.createdAt)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+
+        {activeTab === 'history' && (
+          readingHistory.length === 0 ? (
+            <p className="py-6 text-sm italic text-[var(--color-muted)] text-center">
+              No reading history recorded. Reading progress will be tracked as you read articles.
+            </p>
+          ) : (
+            <div className="space-y-6">
+              {readingHistory.map((history) => (
+                <div key={history.id} className="border border-[var(--color-border)] rounded-xl p-5 bg-[var(--color-surface)] shadow-sm">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="text-sm font-bold text-[var(--color-text)] max-w-[80%]">
+                      <Link to={`/app/p/${history.postId}`} className="hover:text-[var(--color-action)] hover:underline">
+                        {history.title}
+                      </Link>
+                    </h4>
+                    <span className="text-[10px] font-bold text-[var(--color-action)] bg-[var(--color-action-soft)] px-2 py-0.5 rounded border border-[var(--color-action-soft)]">
+                      {history.progress}% READ
+                    </span>
+                  </div>
+                  <div className="w-full h-1 bg-[var(--color-border)] rounded-full overflow-hidden mb-3">
+                    <div className="h-full bg-[var(--color-action)]" style={{ width: `${history.progress}%` }}></div>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-[var(--color-muted)] font-semibold">
+                    <span>{history.channelName || 'Global Intelligence'}</span>
+                    <span>Last read: {formatTime(history.updatedAt)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+      </section>
+
+      {/* Account Settings Modal */}
       {isOwnProfile && isSettingsOpen && (
-        <div className="fixed inset-0 z-50 bg-app-heading/20" role="dialog" aria-modal="true">
-          <div className="fixed right-0 top-0 h-full w-full overflow-y-auto border-l border-app-border bg-app-bg p-5 shadow-modal sm:w-[28rem] xl:w-[22rem]">
-            <div className="flex items-start justify-between gap-4 border-b border-app-border pb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="profile-settings-title">
+          <div
+            className="absolute inset-0 bg-transparent"
+            onClick={() => setIsSettingsOpen(false)}
+          />
+          <div className="relative z-10 max-h-[min(90dvh,52rem)] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-4 border-b border-[var(--color-border)] pb-4 mb-6">
               <div>
-                <p className="mono-label text-app-action">Account settings</p>
-                <h2 className="mt-2 text-xl font-semibold text-app-heading">Customize profile</h2>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-action)]">Account settings</p>
+                <h2 id="profile-settings-title" className="mt-1 text-xl font-bold text-[var(--color-text)]">Customize profile</h2>
               </div>
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(false)}
-                className="font-mono text-[18px] leading-none text-app-muted hover:text-app-action"
+                className="w-8 h-8 rounded-lg hover:bg-[var(--color-surface-container-high)] flex items-center justify-center text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors cursor-pointer"
                 aria-label="Close account settings"
               >
                 x
               </button>
             </div>
 
-            <div className="mt-5 grid gap-5">
+            <div className="grid gap-5">
               <Field id="profile-headline" label="Headline" hint="Short line above your byline.">
                 <Input
                   id="profile-headline"
@@ -481,7 +538,7 @@ export const ProfileScreen: React.FC = () => {
                 />
               </Field>
 
-              <div className="border-y border-app-border py-4">
+              <div className="border-y border-[var(--color-border)] py-4">
                 <UnlockRow
                   title="Selected badge"
                   copy={canUseBadges ? 'Badge near your name.' : 'Unlock with Reader Plus.'}
@@ -494,7 +551,7 @@ export const ProfileScreen: React.FC = () => {
                     onChange={(event) =>
                       setProfileDraft((current) => ({ ...current, selectedBadge: event.target.value }))
                     }
-                    className="h-10 w-full border border-app-border bg-app-bg px-3 font-mono text-[11px] uppercase tracking-wider text-app-heading disabled:opacity-45"
+                    className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 text-xs font-semibold text-[var(--color-text)] rounded-lg disabled:opacity-45"
                   >
                     <option value="">No badge</option>
                     {(profileUser.unlockedBadges || []).map((badge) => (
@@ -511,10 +568,10 @@ export const ProfileScreen: React.FC = () => {
                   locked={!canUseAccent}
                 >
                   <div className="grid gap-2">
-                    <div className={`border p-3 ${accentClass.section} ${accentClass.plate}`}>
-                      <div className={`mb-3 h-1.5 border ${accentClass.header} ${accentClass.plate}`} />
+                    <div className={`border p-3 ${accentClass.section} ${accentClass.plate} rounded-lg`}>
+                      <div className={`mb-3 h-1.5 border ${accentClass.header} ${accentClass.plate} rounded`} />
                       <p className={`font-mono text-[10px] uppercase tracking-wider ${accentClass.label}`}>
-                        Accent preview: {accentLabel}
+                        Accent preview: {profileDraft.profileAccent || 'None'}
                       </p>
                       <div className="mt-3 flex items-center gap-3">
                         <img
@@ -523,12 +580,12 @@ export const ProfileScreen: React.FC = () => {
                             `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(profileUser.username)}`
                           }
                           alt=""
-                          className={`h-10 w-10 border-2 object-cover outline outline-4 ${accentClass.avatar}`}
+                          className={`h-10 w-10 border-2 object-cover outline outline-4 ${accentClass.avatar} rounded-full`}
                         />
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-app-heading">{profileUser.name}</p>
                           <p
-                            className={`mt-1 inline-flex border px-2 py-1 font-mono text-[10px] uppercase tracking-wider ${accentClass.badge}`}
+                            className={`mt-1 inline-flex border px-2 py-1 font-mono text-[10px] uppercase tracking-wider ${accentClass.badge} rounded`}
                           >
                             {profileDraft.selectedBadge || profileUser.selectedBadge || 'Profile badge'}
                           </p>
@@ -553,22 +610,22 @@ export const ProfileScreen: React.FC = () => {
                             }
                             setProfileDraft((current) => ({ ...current, profileAccent: option.value }));
                           }}
-                          className={`border p-3 text-left ${
-                            isLocked ? 'cursor-not-allowed opacity-45' : 'hover:bg-app-surface'
-                          } ${isSelected ? optionAccentClass : 'border-app-border'}`}
+                          className={`border p-3 text-left rounded-lg transition-colors ${
+                            isLocked ? 'cursor-not-allowed opacity-45' : 'hover:bg-[var(--color-surface-alt)]'
+                          } ${isSelected ? optionAccentClass : 'border-[var(--color-border)]'}`}
                         >
                           <span className="flex items-center gap-2">
-                            <span className={`h-3 w-3 border ${swatchClass}`} aria-hidden="true" />
-                            <span className="font-mono text-[11px] uppercase tracking-wider text-app-heading">
+                            <span className={`h-3 w-3 border rounded-full ${swatchClass}`} aria-hidden="true" />
+                            <span className="font-mono text-[11px] uppercase tracking-wider text-[var(--color-text)] font-semibold">
                               {option.label}
                             </span>
                             {isSelected && (
-                              <span className="ml-auto font-mono text-[10px] uppercase tracking-wider text-app-action">
+                              <span className="ml-auto font-mono text-[10px] uppercase tracking-wider text-[var(--color-action)] font-bold">
                                 Active
                               </span>
                             )}
                           </span>
-                          <span className="mt-1 block text-sm text-app-muted">{option.description}</span>
+                          <span className="mt-1 block text-xs text-[var(--color-muted)]">{option.description}</span>
                         </button>
                       );
                     })}
@@ -578,19 +635,19 @@ export const ProfileScreen: React.FC = () => {
 
               <Link
                 to="/app/subscribe"
-                className="font-mono text-[11px] uppercase tracking-wider text-app-action hover:underline"
+                className="text-xs font-bold text-[var(--color-action)] hover:underline inline-block"
               >
                 Manage subscription
               </Link>
 
-              <div className="sticky bottom-0 -mx-5 border-t border-app-border bg-app-bg px-5 py-4">
+              <div className="sticky bottom-0 -mx-5 -mb-5 mt-6 border-t border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-4 sm:-mx-6 sm:-mb-6 sm:px-6">
                 <button
                   type="button"
                   onClick={handleSaveCustomization}
                   disabled={isSavingCustomization}
-                  className="inline-flex h-11 w-full items-center justify-center border border-app-action bg-app-action px-6 font-mono text-[11px] uppercase tracking-wider text-app-on-action hover:bg-app-action-hover disabled:cursor-not-allowed disabled:opacity-45"
+                  className="inline-flex h-11 w-full items-center justify-center bg-[var(--color-action)] px-6 text-xs font-bold text-white rounded-lg hover:bg-[var(--color-action-hover)] disabled:cursor-not-allowed disabled:opacity-45 cursor-pointer shadow-md transition-all"
                 >
-                  {isSavingCustomization ? 'Saving' : 'Save profile'}
+                  {isSavingCustomization ? 'Saving...' : 'Save Profile'}
                 </button>
               </div>
             </div>
@@ -601,12 +658,7 @@ export const ProfileScreen: React.FC = () => {
   );
 };
 
-const Stat: React.FC<{ label: string; value: number }> = ({ label, value }) => (
-  <div className="border-r border-app-border px-2 py-3 last:border-r-0">
-    <p className="font-mono text-[16px] font-semibold tabular-nums text-app-heading">{value.toLocaleString('en-US')}</p>
-    <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-app-muted">{label}</p>
-  </div>
-);
+
 
 const UnlockRow: React.FC<{
   title: string;
@@ -615,14 +667,14 @@ const UnlockRow: React.FC<{
   locked: boolean;
   children: React.ReactNode;
 }> = ({ title, copy, helper, locked, children }) => (
-  <div className="grid gap-3 border-b border-app-border py-4 last:border-b-0">
+  <div className="grid gap-3 border-b border-[var(--color-border)] py-4 last:border-b-0">
     <div>
       <div className="flex items-center gap-2">
-        <p className="font-semibold text-app-heading">{title}</p>
+        <p className="text-sm font-bold text-[var(--color-text)]">{title}</p>
         {helper && <HelperTip label={helper} side="right" />}
       </div>
-      <p className="mt-1 text-sm leading-6 text-app-muted">{copy}</p>
-      {locked && <p className="mt-2 font-mono text-[11px] uppercase tracking-wider text-app-action">Locked</p>}
+      <p className="mt-1 text-xs text-[var(--color-muted)] leading-relaxed">{copy}</p>
+      {locked && <p className="mt-2 text-[10px] font-bold uppercase tracking-wider text-[var(--color-action)]">Locked</p>}
     </div>
     <div>{children}</div>
   </div>

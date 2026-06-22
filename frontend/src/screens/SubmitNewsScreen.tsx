@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Image as ImageIcon, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { backendApi } from '../lib/api';
 import { backendTopicToChannel } from '../lib/backendAdapters';
 import type { Channel } from '../types';
 import { RichPostEditor } from '../components/RichPostEditor';
 import { addImageCaptions, stripHtml } from '../lib/richContent';
 import { Alert } from '../components/ui/Alert';
-import { Field, Input } from '../components/ui/Input';
 
 const DRAFT_KEY = 'tourane-news-submit-draft';
 
@@ -37,7 +37,9 @@ export const SubmitNewsScreen: React.FC = () => {
   const [linkedArticleId, setLinkedArticleId] = useState<number | undefined>(undefined);
   const [linkedArticleTitle, setLinkedArticleTitle] = useState('');
   const articleSearchRef = useRef<HTMLInputElement>(null);
-  const articleSearchTimeout = useRef<ReturnType<typeof setTimeout>>();
+  const articleSearchTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const [draftSaved, setDraftSaved] = useState(true);
 
   const handleArticleSearch = (query: string) => {
     setArticleSearchQuery(query);
@@ -50,7 +52,7 @@ export const SubmitNewsScreen: React.FC = () => {
       try {
         const res = await backendApi.searchArticles(query.trim(), 0, 5);
         setArticleSearchResults(
-          res.content.map((a) => ({ id: a.id, title: a.title, sourceUrl: a.sourceUrl })),
+          res.content.map((a) => ({ id: a.id, title: a.title, sourceUrl: a.slug ? `/app/article/${a.slug}` : undefined })),
         );
       } catch {
         setArticleSearchResults([]);
@@ -64,18 +66,18 @@ export const SubmitNewsScreen: React.FC = () => {
     setArticleSearchQuery('');
     setArticleSearchResults([]);
     if (sourceUrl) setSourceUrl(sourceUrl);
+    setDraftSaved(false);
   };
 
   const clearLinkedArticle = () => {
     setLinkedArticleId(undefined);
     setLinkedArticleTitle('');
+    setDraftSaved(false);
   };
 
   const plainContent = stripHtml(content);
   const contentError = hasSubmitted && plainContent.length < 80 ? 'Add at least 80 characters of report context.' : '';
   const canSubmit = Boolean(title.trim()) && plainContent.length >= 80 && Boolean(selectedChannel);
-  const joinedChannels = channels.filter((channel) => channel.joined);
-  const otherChannels = channels.filter((channel) => !channel.joined);
 
   useEffect(() => {
     const stored = localStorage.getItem(DRAFT_KEY);
@@ -94,6 +96,7 @@ export const SubmitNewsScreen: React.FC = () => {
 
   useEffect(() => {
     if (!title && !content && !sourceUrl && !thumbnailUrl) return;
+    setDraftSaved(false);
     const timeout = window.setTimeout(() => {
       const draft: Partial<SubmitDraft> = {
         title,
@@ -104,6 +107,7 @@ export const SubmitNewsScreen: React.FC = () => {
         updatedAt: new Date().toISOString(),
       };
       localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      setDraftSaved(true);
     }, 700);
     return () => window.clearTimeout(timeout);
   }, [title, content, sourceUrl, thumbnailUrl, selectedChannel]);
@@ -157,108 +161,194 @@ export const SubmitNewsScreen: React.FC = () => {
   return (
     <form
       id="submit-report-form"
-      className="app-page grid gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]"
+      className="bg-bg min-h-screen text-on-surface flex flex-col"
       onSubmit={handleSubmit}
       noValidate
     >
-      <main className="min-w-0">
-        <p className="mono-label mb-3 text-app-action">File a dispatch</p>
-        <h1 className="text-[32px] font-semibold leading-tight text-app-heading">File a report</h1>
-        <p className="mt-3 max-w-[65ch] text-sm leading-6 text-app-muted">
-          Publish an evidence-backed report into a community feed.
-        </p>
-
-        {formError && (
-          <Alert tone="error" className="mt-6">
-            {formError}
-          </Alert>
-        )}
-
-        <label htmlFor="report-title" className="sr-only">
-          Headline
-        </label>
-        <input
-          id="report-title"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder="Headline of your report"
-          className="mt-8 h-16 w-full border-0 border-b border-app-border bg-transparent px-0 text-[32px] font-semibold leading-tight tracking-[-0.01em] text-app-heading outline-none placeholder:text-app-faint focus:border-app-action focus:shadow-none"
-        />
-
-        <div className="mt-8 min-h-[520px] border border-app-border bg-app-bg">
-          {isPreviewing ? (
-            <article className="p-6 sm:p-8">
-              <h2 className="text-[28px] font-semibold leading-tight text-app-heading">{title || 'Untitled report'}</h2>
-              {thumbnailUrl && (
-                <img
-                  src={thumbnailUrl}
-                  alt=""
-                  className="mt-6 aspect-video w-full border border-app-border object-cover"
-                />
-              )}
-              <div
-                className="tourane-rich-content mt-8 max-w-[68ch] text-[17px] leading-8 text-app-text"
-                dangerouslySetInnerHTML={{ __html: addImageCaptions(content) }}
-              />
-            </article>
-          ) : (
-            <RichPostEditor
-              value={content}
-              onChange={setContent}
-              onUploadImage={async (file) => {
-                const uploaded = await backendApi.uploadMedia(file);
-                setThumbnailUrl((current) => current || uploaded.url);
-                return uploaded.url;
-              }}
-              error={contentError}
-            />
-          )}
+      {/* Fixed top toolbar */}
+      <header className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-outline-variant/30 h-16 flex items-center">
+        <div className="flex justify-between items-center w-full px-6 md:px-10 max-w-7xl mx-auto">
+          <div className="flex items-center gap-6">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="inline-flex items-center gap-1 text-xs font-bold text-outline hover:text-primary transition-all"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Cancel</span>
+            </button>
+            <div className="h-4 w-[1px] bg-outline-variant/40"></div>
+            <div className="flex items-center gap-1.5 text-on-surface-variant text-xs font-semibold">
+              <span className={`w-2 h-2 rounded-full ${draftSaved ? 'bg-green-500' : 'bg-amber-500 animate-pulse'}`} />
+              <span>{draftSaved ? 'Draft Saved' : 'Saving Draft...'}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsPreviewing(!isPreviewing)}
+              className="text-xs font-bold text-on-surface-variant hover:text-primary transition-all px-4 py-2 border border-outline-variant/40 rounded-full hover:bg-primary/5 bg-white"
+            >
+              {isPreviewing ? 'Edit' : 'Preview'}
+            </button>
+            <button
+              type="submit"
+              disabled={!canSubmit || isSubmitting}
+              className="bg-primary text-white text-xs font-bold px-6 py-2 rounded-full hover:brightness-110 active:scale-98 transition-all disabled:opacity-40"
+            >
+              {isSubmitting ? 'Publishing...' : 'Publish'}
+            </button>
+          </div>
         </div>
-        <div className="border-x border-b border-app-border px-4 py-2 font-mono text-[11px] text-app-muted">
-          {plainContent.length.toLocaleString('en-US')} characters
-        </div>
-      </main>
+      </header>
 
-      <aside className="space-y-6 xl:sticky xl:top-24 xl:self-start">
-        <section className="border-t border-app-border pt-4">
-          <h2 className="mono-label mb-4 text-app-muted">Publishing</h2>
-          <div className="space-y-5">
-            <Field id="source-url" label="Source URL" optional>
-              <Input
-                id="source-url"
+      {/* Main Content Space */}
+      <main className="pt-24 pb-32 px-6 max-w-7xl w-full mx-auto grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-8">
+        <div className="space-y-6">
+          {formError && <Alert tone="error">{formError}</Alert>}
+
+          {/* Headline Textarea Input */}
+          <textarea
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="Headline of your report..."
+            rows={1}
+            className="w-full bg-transparent border-none focus:ring-0 font-sans text-3xl md:text-4xl font-extrabold text-on-background resize-none placeholder:text-outline-variant/60 leading-tight outline-none"
+          />
+
+          {/* Cover Media Dropzone / URL Input */}
+          <div className="border border-outline-variant/30 rounded-2xl bg-white p-6 shadow-sm">
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-green-50 text-primary rounded-xl">
+                  <ImageIcon className="h-5 w-5" />
+                </div>
+                <div>
+                  <span className="block text-xs font-bold text-on-surface uppercase tracking-wider">Cover Image Link</span>
+                  <span className="text-[10px] text-outline font-semibold">Optionally attach illustration media</span>
+                </div>
+              </div>
+              <input
                 type="url"
-                value={sourceUrl}
-                onChange={(event) => setSourceUrl(event.target.value)}
-                placeholder="https://..."
+                value={thumbnailUrl}
+                onChange={(e) => setThumbnailUrl(e.target.value)}
+                placeholder="https://images.unsplash.com/..."
+                className="w-full md:w-80 px-3.5 py-2 border border-outline-variant/40 rounded-lg text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white"
               />
-            </Field>
-            <Field id="link-article" label="Link an article (optional)">
-              <div className="relative">
+            </div>
+            {thumbnailUrl && (
+              <div className="mt-4 rounded-xl overflow-hidden border border-outline-variant/20">
+                <img src={thumbnailUrl} alt="Cover preview" className="w-full h-40 object-cover" />
+              </div>
+            )}
+          </div>
+
+          {/* Editor Canvas */}
+          <div className="min-h-[480px]">
+            {isPreviewing ? (
+              <div className="bg-white rounded-2xl border border-outline-variant/30 p-6 md:p-10 space-y-6">
+                <h1 className="text-3xl font-extrabold leading-tight text-on-surface">{title || 'Untitled Dispatch'}</h1>
+                {thumbnailUrl && (
+                  <img
+                    src={thumbnailUrl}
+                    alt=""
+                    className="aspect-video w-full rounded-xl border border-outline-variant/30 object-cover"
+                  />
+                )}
+                <div
+                  className="serif-title text-[17px] leading-relaxed text-on-surface space-y-4"
+                  dangerouslySetInnerHTML={{ __html: addImageCaptions(content) }}
+                />
+              </div>
+            ) : (
+              <RichPostEditor
+                value={content}
+                onChange={setContent}
+                onUploadImage={async (file) => {
+                  const uploaded = await backendApi.uploadMedia(file);
+                  setThumbnailUrl((current) => current || uploaded.url);
+                  return uploaded.url;
+                }}
+                error={contentError}
+              />
+            )}
+          </div>
+
+          <div className="text-[10px] font-bold text-outline uppercase tracking-wider">
+            {plainContent.length.toLocaleString('en-US')} characters written
+          </div>
+        </div>
+
+        {/* Sidebar settings */}
+        <aside className="space-y-6 xl:sticky xl:top-20 xl:self-start">
+          
+          {/* Categories Pill Selector */}
+          <div className="bg-white p-5 rounded-2xl border border-outline-variant/30 shadow-sm space-y-4">
+            <span className="block text-[10px] uppercase tracking-widest font-bold text-outline">Target Intelligence Domain</span>
+            <div className="flex flex-wrap gap-2">
+              {channels.map((channel) => {
+                const selected = selectedChannel === channel.id;
+                return (
+                  <button
+                    key={channel.id}
+                    type="button"
+                    onClick={() => setSelectedChannel(channel.id)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
+                      selected
+                        ? 'bg-primary text-white border-primary shadow-sm'
+                        : 'bg-surface-container border-outline-variant/40 text-on-surface-variant hover:border-primary/50'
+                    }`}
+                  >
+                    {channel.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Linked Source metadata */}
+          <div className="bg-white p-5 rounded-2xl border border-outline-variant/30 shadow-sm space-y-4">
+            <span className="block text-[10px] uppercase tracking-widest font-bold text-outline">Citations Ledger</span>
+            
+            <div className="space-y-4">
+              <label className="block">
+                <span className="block text-[10px] font-semibold text-on-surface-variant mb-1">Source URL</span>
+                <input
+                  type="url"
+                  value={sourceUrl}
+                  onChange={(event) => setSourceUrl(event.target.value)}
+                  placeholder="https://..."
+                  className="w-full px-3 py-2 border border-outline-variant/40 rounded-lg text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white"
+                />
+              </label>
+
+              <div className="block">
+                <span className="block text-[10px] font-semibold text-on-surface-variant mb-1">Link an Article (optional)</span>
                 {linkedArticleId ? (
-                  <div className="flex items-center justify-between gap-2 border border-app-border px-3 py-2">
-                    <span className="truncate text-xs text-app-text">{linkedArticleTitle}</span>
-                    <button type="button" onClick={clearLinkedArticle} className="shrink-0 text-app-faint hover:text-app-text">
+                  <div className="flex items-center justify-between gap-2 border border-outline-variant/30 rounded-lg px-3 py-2 bg-surface-container-low">
+                    <span className="truncate text-xs text-on-surface-variant">{linkedArticleTitle}</span>
+                    <button type="button" onClick={clearLinkedArticle} className="text-xs font-bold text-outline hover:text-on-surface">
                       ✕
                     </button>
                   </div>
                 ) : (
-                  <>
+                  <div className="relative">
                     <input
                       ref={articleSearchRef}
                       type="text"
                       value={articleSearchQuery}
                       onChange={(e) => handleArticleSearch(e.target.value)}
                       placeholder="Search articles..."
-                      className="h-10 w-full border border-app-border bg-app-bg px-3 text-sm text-app-text outline-none placeholder:text-app-faint focus:border-app-action"
+                      className="w-full px-3 py-2 border border-outline-variant/40 rounded-lg text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white"
                     />
                     {articleSearchResults.length > 0 && (
-                      <ul className="absolute left-0 right-0 top-full z-10 max-h-48 overflow-y-auto border border-t-0 border-app-border bg-app-bg">
+                      <ul className="absolute left-0 right-0 top-full z-10 max-h-48 overflow-y-auto border border-outline-variant/30 bg-white rounded-xl shadow-lg mt-1">
                         {articleSearchResults.map((a) => (
                           <li key={a.id}>
                             <button
                               type="button"
                               onClick={() => pickArticle(a.id, a.title, a.sourceUrl)}
-                              className="w-full px-3 py-2 text-left text-xs text-app-text hover:bg-app-bg-hover"
+                              className="w-full px-3 py-2.5 text-left text-xs text-on-surface hover:bg-surface-container transition-all"
                             >
                               {a.title}
                             </button>
@@ -266,69 +356,40 @@ export const SubmitNewsScreen: React.FC = () => {
                         ))}
                       </ul>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
-            </Field>
-            <Field id="dispatch-channel" label="Topic">
-              <select
-                id="dispatch-channel"
-                value={selectedChannel}
-                onChange={(event) => setSelectedChannel(event.target.value)}
-                className="h-10 w-full border border-app-border bg-app-bg px-3 font-mono text-[11px] uppercase tracking-wider text-app-text outline-none focus:border-app-action focus:shadow-[var(--shadow-focus)]"
-              >
-                {joinedChannels.length > 0 && (
-                  <optgroup label="Joined topics">
-                    {joinedChannels.map((channel) => (
-                      <option key={channel.id} value={channel.id}>
-                        {channel.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-                {otherChannels.length > 0 && (
-                  <optgroup label="Other topics">
-                    {otherChannels.map((channel) => (
-                      <option key={channel.id} value={channel.id}>
-                        {channel.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-              </select>
-            </Field>
-            <button
-              type="submit"
-              disabled={!canSubmit || isSubmitting}
-              className="h-12 w-full bg-app-action font-mono text-[12px] uppercase tracking-wider text-app-on-action hover:bg-app-action-hover disabled:opacity-40"
-            >
-              {isSubmitting ? 'Publishing' : 'Publish'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsPreviewing((prev) => !prev)}
-              className="font-mono text-[11px] uppercase tracking-wider text-app-action hover:underline"
-            >
-              {isPreviewing ? 'Return to editor' : 'Preview report'}
-            </button>
+            </div>
           </div>
-        </section>
 
-        <section className="border-t border-app-border pt-4">
-          <h2 className="mono-label mb-4 text-app-muted">Checklist</h2>
-          <CheckRow label="Headline ready" ready={Boolean(title.trim())} />
-          <CheckRow label="Body 80+ chars" ready={plainContent.length >= 80} />
-          <CheckRow label="Topic selected" ready={Boolean(selectedChannel)} />
-        </section>
-      </aside>
+          {/* Vetting Checklist */}
+          <div className="bg-white p-5 rounded-2xl border border-outline-variant/30 shadow-sm space-y-4">
+            <span className="block text-[10px] uppercase tracking-widest font-bold text-outline">Submission Checklist</span>
+            
+            <div className="space-y-3">
+              <CheckRow label="Headline Drafted" ready={Boolean(title.trim())} />
+              <CheckRow label="Body content (80+ chars)" ready={plainContent.length >= 80} />
+              <CheckRow label="Domain Categorized" ready={Boolean(selectedChannel)} />
+            </div>
+          </div>
+        </aside>
+      </main>
     </form>
   );
 };
 
 const CheckRow: React.FC<{ label: string; ready: boolean }> = ({ label, ready }) => (
-  <div className="flex items-center justify-between gap-3 border-b border-app-border py-3 font-mono text-[11px]">
-    <span className="text-app-muted">{label}</span>
-    <span className={ready ? 'text-app-action' : 'text-app-faint'}>{ready ? 'Ready' : 'Missing'}</span>
+  <div className="flex items-center justify-between gap-3 border-b border-outline-variant/10 pb-2 text-xs font-semibold text-on-surface-variant">
+    <span>{label}</span>
+    {ready ? (
+      <span className="text-green-600 flex items-center gap-0.5 uppercase tracking-wider text-[10px] font-bold">
+        <CheckCircle2 className="h-3.5 w-3.5" /> Ready
+      </span>
+    ) : (
+      <span className="text-amber-600 flex items-center gap-0.5 uppercase tracking-wider text-[10px] font-bold">
+        <AlertTriangle className="h-3.5 w-3.5" /> Missing
+      </span>
+    )}
   </div>
 );
 

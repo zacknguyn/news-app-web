@@ -1,159 +1,90 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { FileUp, Info, Layers3, Palette, PencilLine, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { backendApi } from '../lib/api';
 import { backendTopicToChannel } from '../lib/backendAdapters';
-import { Field, Input, TextArea } from '../components/ui/Input';
+
+type Vetting = 'public' | 'analyst' | 'verified';
+const accents = ['#0F5132', '#4648d4', '#904900', '#ba1a1a', '#18181b'];
+const labels: Record<Vetting, string> = { public: 'Public', analyst: 'Analyst only', verified: 'Verified researchers' };
+const slugify = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
 export const CreateChannelScreen: React.FC = () => {
   const navigate = useNavigate();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [rules, setRules] = useState('');
-  const [avatar, setAvatar] = useState('');
-  const [banner, setBanner] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [slug, setSlug] = useState('');
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [vetting, setVetting] = useState<Vetting>('public');
+  const [accent, setAccent] = useState(accents[0]);
+  const [banner, setBanner] = useState<File | null>(null);
+  const [preview, setPreview] = useState('');
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const canSubmit = name.trim().length >= 3 && name.trim().length <= 100 && description.trim().length >= 20 && description.trim().length <= 500;
 
-  const requirements = [
-    ['Name, 3 to 100 characters', name.trim().length >= 3 && name.trim().length <= 100],
-    ['Description, 20 to 500 characters', description.trim().length >= 20 && description.trim().length <= 500],
-    ['Owner joins automatically', true],
-  ] as const;
-  const canSubmit = requirements.every(([, ready]) => ready);
+  useEffect(() => {
+    if (!banner) { setPreview(''); return; }
+    const url = URL.createObjectURL(banner); setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [banner]);
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!canSubmit) {
-      setError('Complete the requirements before creating a community.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError('');
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit) return setError('Title must be 3-100 characters and description 20-500 characters.');
+    setBusy(true); setError('');
     try {
-      const created = await backendApi.createTopic({
-        name: name.trim(),
-        description: description.trim(),
-        rules: rules.trim() || undefined,
-        avatar: avatar.trim() || undefined,
-        banner: banner.trim() || undefined,
-      });
-      navigate(`/app/c/${backendTopicToChannel(created).slug}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to create community.');
-    } finally {
-      setIsSubmitting(false);
-    }
+      const media = banner ? await backendApi.uploadMedia(banner, `${name.trim()} banner`) : null;
+      const topic = await backendApi.createTopic({ name: name.trim(), description: description.trim(), rules: `Posting privileges: ${labels[vetting]}`, banner: media?.url });
+      navigate(`/app/c/${backendTopicToChannel(topic).slug}`);
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to create channel.'); }
+    finally { setBusy(false); }
   };
 
-  return (
-    <div className="app-page grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <main>
-        <p className="mono-label mb-3 text-app-action">New community</p>
-        <h1 className="text-[32px] font-semibold leading-tight text-app-heading">Start a community</h1>
-        <p className="mt-3 max-w-[65ch] text-sm leading-6 text-app-muted">
-          Create a focused place for reporting, discussion, and source-backed updates.
-        </p>
-
-        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-          {error && (
-            <p className="border border-state-error-border px-3 py-2 font-mono text-[11px] text-state-error">{error}</p>
-          )}
-          <Field id="channel-name" label="Channel name" hint="3 to 100 characters">
-            <Input
-              id="channel-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              maxLength={100}
-              placeholder="Da Nang Watch"
-            />
-          </Field>
-          <Field id="channel-description" label="Description" hint="20 to 500 characters">
-            <TextArea
-              id="channel-description"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              maxLength={500}
-              placeholder="What belongs here? Who is this community for?"
-              className="min-h-32"
-            />
-          </Field>
-          <Field id="channel-rules" label="Rules" optional hint="Up to 2,000 characters">
-            <TextArea
-              id="channel-rules"
-              value={rules}
-              onChange={(event) => setRules(event.target.value)}
-              maxLength={2000}
-              placeholder="Source expectations, civility, moderation boundaries..."
-              className="min-h-40"
-            />
-          </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="channel-avatar" label="Avatar URL" optional>
-              <Input
-                id="channel-avatar"
-                type="url"
-                value={avatar}
-                onChange={(event) => setAvatar(event.target.value)}
-                placeholder="https://"
-              />
-            </Field>
-            <Field id="channel-banner" label="Banner URL" optional>
-              <Input
-                id="channel-banner"
-                type="url"
-                value={banner}
-                onChange={(event) => setBanner(event.target.value)}
-                placeholder="https://"
-              />
-            </Field>
-          </div>
-          <button
-            type="submit"
-            disabled={!canSubmit || isSubmitting}
-            className="h-12 bg-app-action px-5 font-mono text-[12px] uppercase tracking-wider text-app-on-action hover:bg-app-action-hover disabled:opacity-40"
-          >
-            {isSubmitting ? 'Creating' : 'Create community'}
-          </button>
-        </form>
-      </main>
-
-      <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-        <section className="border-t border-app-border pt-4">
-          <h2 className="mono-label mb-4 text-app-muted">Requirements</h2>
-          <div className="space-y-3">
-            {requirements.map(([label, ready]) => (
-              <div
-                key={label}
-                className="flex items-center justify-between gap-3 border-b border-app-border pb-3 font-mono text-[11px]"
-              >
-                <span className="text-app-muted">{label}</span>
-                <span className={ready ? 'text-app-action' : 'text-app-faint'}>{ready ? 'Ready' : 'Missing'}</span>
-              </div>
-            ))}
+  return <div className="app-page mx-auto max-w-[1280px]">
+    <header className="mb-8">
+      <p className="mb-2 font-mono text-[11px] font-semibold uppercase tracking-widest text-app-action">Channel builder</p>
+      <h1 className="text-[32px] font-bold tracking-tight text-app-heading md:text-[40px]">Create Intelligence Channel</h1>
+      <p className="mt-2 text-sm text-app-muted">Design a collaborative workspace for focused news analysis and reporting.</p>
+    </header>
+    <div className="grid items-start gap-8 lg:grid-cols-12">
+      <form onSubmit={submit} className="space-y-8 rounded-xl border border-app-border bg-app-surface p-5 shadow-[var(--shadow-subtle)] sm:p-8 lg:col-span-7">
+        {error && <div role="alert" className="rounded-lg border border-state-error-border bg-state-error-bg px-4 py-3 text-sm text-state-error">{error}</div>}
+        <section className="space-y-6">
+          <Section icon={PencilLine}>Identity &amp; Naming</Section>
+          <Field label="Channel title" id="title" note={`${name.trim().length}/100 - minimum 3`}><input id="title" className="channel-input" value={name} maxLength={100} placeholder="e.g., Global Semiconductor Intelligence" onChange={e => { setName(e.target.value); if (!slugTouched) setSlug(slugify(e.target.value)); }} /></Field>
+          <Field label="Description" id="description" note={`${description.trim().length}/500 - minimum 20`}><textarea id="description" className="channel-input min-h-28 resize-y" rows={3} value={description} maxLength={500} placeholder="Define the scope and mission of this channel..." onChange={e => setDescription(e.target.value)} /></Field>
+          <Field label="Custom slug" id="slug"><div className="flex min-w-0"><span className="flex shrink-0 items-center rounded-l-lg border border-r-0 border-app-border bg-app-surface-alt px-3 text-xs text-app-muted">tourane.news/c/</span><input id="slug" className="channel-input min-w-0 rounded-l-none" value={slug} placeholder="global-tech" onChange={e => { setSlugTouched(true); setSlug(slugify(e.target.value)); }} /></div></Field>
+        </section>
+        <section className="space-y-6">
+          <Section icon={ShieldCheck}>Vetting &amp; Permissions</Section>
+          <Field label="Posting privileges" id="vetting"><select id="vetting" className="channel-input" value={vetting} onChange={e => setVetting(e.target.value as Vetting)}><option value="public">Public (Open for all members)</option><option value="analyst">Analyst Only (Requires approved credentials)</option><option value="verified">Verified Researchers (Invite-only contribution)</option></select><p className="mt-2 text-xs leading-relaxed text-app-muted">Determines who can publish insights directly to the channel feed. All others can read and comment.</p></Field>
+        </section>
+        <section className="space-y-6">
+          <Section icon={Palette}>Visual Branding</Section>
+          <div className="grid gap-6 md:grid-cols-2">
+            <Field label="Accent color"><div className="flex gap-3">{accents.map(color => <button key={color} type="button" aria-label={`Select ${color}`} onClick={() => setAccent(color)} className={`h-8 w-8 rounded-full hover:scale-110 ${accent === color ? 'ring-2 ring-app-action ring-offset-2' : ''}`} style={{ backgroundColor: color }} />)}</div></Field>
+            <Field label="Banner photo"><input ref={fileRef} type="file" accept="image/*" className="sr-only" onChange={e => setBanner(e.target.files?.[0] ?? null)} /><button type="button" onClick={() => fileRef.current?.click()} className="flex min-h-20 w-full flex-col items-center justify-center rounded-lg border-2 border-dashed border-app-border bg-app-surface-alt/40 p-4 hover:border-app-action"><FileUp className="mb-1 h-5 w-5 text-app-faint" /><span className="max-w-full truncate text-xs text-app-muted">{banner?.name || 'Choose an image to upload'}</span></button></Field>
           </div>
         </section>
-        <section className="border border-app-border p-4">
-          <h2 className="mono-label mb-4 text-app-muted">Preview</h2>
-          <div className="flex gap-3">
-            <img
-              src={
-                avatar || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(name || 'Community')}`
-              }
-              alt=""
-              className="h-12 w-12 border border-app-border object-cover"
-            />
-            <div className="min-w-0">
-              <p className="truncate font-semibold text-app-heading">{name || 'Community name'}</p>
-              <p className="mt-1 line-clamp-2 text-sm leading-5 text-app-muted">
-                {description || 'Description preview appears here.'}
-              </p>
-            </div>
-          </div>
-        </section>
+        <div className="flex flex-col-reverse justify-end gap-3 border-t border-app-border pt-6 sm:flex-row"><button type="button" onClick={() => navigate(-1)} className="rounded-lg px-6 py-2.5 text-sm font-semibold text-app-muted hover:bg-app-surface-alt">Discard draft</button><button type="submit" disabled={!canSubmit || busy} className="rounded-lg bg-app-action px-8 py-2.5 text-sm font-semibold text-app-on-action shadow-lg hover:bg-app-action-hover disabled:opacity-40">{busy ? 'Creating channel...' : 'Create channel'}</button></div>
+      </form>
+      <aside className="space-y-4 lg:sticky lg:top-24 lg:col-span-5">
+        <div className="flex justify-between px-2 font-mono text-[10px] font-semibold uppercase tracking-widest text-app-muted"><span>Live preview</span><span className="flex items-center gap-2"><i className="h-2 w-2 animate-pulse rounded-full bg-red-600" />Editor view</span></div>
+        <div className="overflow-hidden rounded-xl border border-app-border bg-app-surface shadow-[var(--shadow-raised)]">
+          <div className="relative h-32" style={{ backgroundColor: accent }}><div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,.65),transparent_55%)] opacity-50" />{preview && <img src={preview} alt="Channel banner preview" className="absolute inset-0 h-full w-full object-cover" />}<div className="absolute -bottom-8 left-6 z-10 grid h-16 w-16 place-items-center rounded-xl border-[6px] border-white text-white shadow-md" style={{ backgroundColor: accent }}><Layers3 className="h-7 w-7" /></div></div>
+          <div className="p-6 pt-12"><div className="mb-4 flex items-start justify-between gap-4"><div className="min-w-0"><h2 className="truncate text-2xl font-semibold text-app-heading">{name.trim() || 'Global Tech News'}</h2><p className="truncate text-xs font-bold" style={{ color: accent }}>tourane.news/c/{slug || slugify(name) || 'global-tech'}</p></div><span className="shrink-0 rounded-full border px-3 py-1 text-[10px] font-bold uppercase" style={{ borderColor: `${accent}33`, backgroundColor: `${accent}14`, color: accent }}>{labels[vetting]}</span></div><p className="mb-6 min-h-16 text-sm leading-relaxed text-app-muted">{description.trim() || 'The live description of your channel will appear here. Start typing to shape its mission in real time.'}</p><div className="grid grid-cols-3 border-t border-app-border pt-6 text-center"><Stat v="0" l="Analysts" /><Stat v="0" l="Readers" border /><Stat v="0%" l="Trust" /></div></div>
+          <div className="flex justify-end bg-app-surface-alt px-6 py-4"><button disabled className="rounded-lg px-4 py-1.5 text-xs font-bold opacity-50" style={{ backgroundColor: `${accent}14`, color: accent }}>Join channel</button></div>
+        </div>
+        <div className="flex gap-3 rounded-xl border border-app-border bg-app-surface-alt/50 p-4"><Info className="h-4 w-4 shrink-0 text-app-action" /><p className="text-xs text-app-muted">This is how your channel card will appear in the <strong className="text-app-heading">Intelligence Directory</strong> and user dashboards.</p></div>
       </aside>
     </div>
-  );
+  </div>;
 };
 
+type Icon = React.ComponentType<{ className?: string }>;
+const Section = ({ icon: I, children }: { icon: Icon; children: React.ReactNode }) => <div className="flex items-center gap-2 border-b border-app-border pb-2"><I className="h-5 w-5 text-app-action" /><h2 className="font-mono text-[11px] font-semibold uppercase tracking-widest text-app-muted">{children}</h2></div>;
+const Field = ({ label, id, note, children }: { label: string; id?: string; note?: string; children: React.ReactNode }) => <div><label htmlFor={id} className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-wider text-app-muted">{label}</label>{children}{note && <p className="mt-2 text-right font-mono text-[10px] text-app-faint">{note}</p>}</div>;
+const Stat = ({ v, l, border = false }: { v: string; l: string; border?: boolean }) => <div className={border ? 'border-x border-app-border' : ''}><b className="block text-xl text-app-heading">{v}</b><span className="text-[10px] font-bold uppercase text-app-muted">{l}</span></div>;
 export default CreateChannelScreen;

@@ -37,7 +37,7 @@ const backendToLocal = (dto: BackendReadingProgressDTO): ReadingProgress => ({
   title: dto.title || 'Saved article',
   channelName: dto.channelName || 'Articles',
   trustLabel: 'Saved progress',
-  highlightCount: dto.highlightCount || 0,
+  highlightCount: 0,
   progress: Math.max(1, Math.min(99, dto.progress)),
   scrollY: dto.scrollY || 0,
   updatedAt: dto.updatedAt || new Date().toISOString(),

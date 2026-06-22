@@ -681,6 +681,9 @@ export const backendApi = {
   getPostsByTopic: (topicId: number, page = 0, size = 20) =>
     apiRequest<PaginatedResponse<BackendPostDTO>>(`/posts/topic/${topicId}?page=${page}&size=${size}`),
 
+  searchPosts: (keyword: string, page = 0, size = 20) =>
+    apiRequest<PaginatedResponse<BackendPostDTO>>(`/posts/search?keyword=${encodeURIComponent(keyword)}&page=${page}&size=${size}`),
+
   getPost: (postId: string) => apiRequest<BackendPostDTO>(`/posts/${postId}`),
 
   createPost: (input: {
@@ -709,6 +712,7 @@ export const backendApi = {
   summarizePost: (postId: number, maxPoints?: number, language?: string, force?: boolean) =>
     apiRequest<BackendPostDTO>(`/posts/${postId}/summary?language=${language ?? 'vi'}&force=${force ?? false}${maxPoints != null ? `&maxPoints=${maxPoints}` : ''}`, {
       method: 'POST',
+      timeoutMs: 120000,
     }),
 
   getArticle: (articleId: number) => apiRequest<BackendArticleDTO>(`/articles/${articleId}`, { skipAuth: true }),
@@ -762,6 +766,7 @@ export const backendApi = {
   summarizeArticle: (articleId: number) =>
     apiRequest<BackendArticleDTO>(`/articles/${articleId}/summary`, {
       method: 'POST',
+      timeoutMs: 120000,
     }),
 
   getCommentsByArticle: (articleId: number, page = 0, size = 100) =>

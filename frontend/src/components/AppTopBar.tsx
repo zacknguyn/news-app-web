@@ -13,7 +13,7 @@ import {
   type AppPreferences,
 } from '../lib/appPreferences';
 import { backendApi } from '../lib/api';
-import { backendArticleToPost } from '../lib/backendAdapters';
+import { backendPostToPost } from '../lib/backendAdapters';
 import { stripHtml } from '../lib/richContent';
 import type { Post } from '../types';
 
@@ -156,9 +156,9 @@ export const AppTopBar: React.FC = () => {
 
     const timeout = window.setTimeout(async () => {
       try {
-        const results = await backendApi.searchArticles(keyword, 0, 6);
+        const results = await backendApi.searchPosts(keyword, 0, 6);
         if (!isCancelled) {
-          setSearchResults(results.content.map(backendArticleToPost));
+          setSearchResults(results.content.map(backendPostToPost));
           setIsSearchOpen(true);
         }
       } catch (error) {
@@ -475,6 +475,22 @@ export const AppTopBar: React.FC = () => {
                   role="menuitem"
                 >
                   Subscribe
+                </Link>
+                <Link
+                  to="/app/notifications"
+                  onClick={() => setIsAccountOpen(false)}
+                  className="flex min-h-10 items-center px-3 text-sm font-semibold text-[var(--color-app-heading)] hover:bg-[var(--color-app-surface-alt)]"
+                  role="menuitem"
+                >
+                  Inbox
+                </Link>
+                <Link
+                  to="/app/settings"
+                  onClick={() => setIsAccountOpen(false)}
+                  className="flex min-h-10 items-center px-3 text-sm font-semibold text-[var(--color-app-heading)] hover:bg-[var(--color-app-surface-alt)]"
+                  role="menuitem"
+                >
+                  Settings
                 </Link>
                 <button
                   type="button"

@@ -1,14 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Bookmark, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, Bookmark, Sparkles, ShieldCheck, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { MOCK_POSTS } from '../lib/mockData';
 import { CommentSection } from '../components/CommentSection';
 import { Alert } from '../components/ui/Alert';
 import { VoteControl } from '../components/ui/VoteControl';
 import { ShareButton } from '../components/ui/ShareButton';
-import { PostActionButton } from '../components/ui/PostActionButton';
-import { Tooltip } from '../components/ui/Tooltip';
 import { backendApi } from '../lib/api';
 import { backendArticleToPost, backendPostToPost } from '../lib/backendAdapters';
 import { addImageCaptions, isRichHtml, stripHtml } from '../lib/richContent';
@@ -27,7 +25,78 @@ type SelectionMenu = {
   y: number;
 };
 
-const SELECTION_MENU_WIDTH = 286;
+const SELECTION_MENU_WIDTH = 280;
+
+const applyHighlightsToHtml = (htmlContent: string, highlights: SavedHighlight[]): string => {
+  if (!highlights || highlights.length === 0) return htmlContent;
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div>${htmlContent}</div>`, 'text/html');
+  const root = doc.body.firstChild as HTMLElement;
+
+  if (!root) return htmlContent;
+
+  const walk = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent || '';
+      if (!text.trim()) return;
+
+      let hasReplacements = false;
+      const fragment = document.createDocumentFragment();
+      const sortedHighlights = [...highlights].sort((a, b) => b.text.length - a.text.length);
+
+      const processText = (str: string) => {
+        if (!str) return;
+
+        let earliestMatchIndex = -1;
+        let earliestMatchLen = -1;
+        let matchedHighlight: SavedHighlight | null = null;
+
+        for (const hl of sortedHighlights) {
+          const idx = str.indexOf(hl.text);
+          if (idx !== -1) {
+            if (earliestMatchIndex === -1 || idx < earliestMatchIndex) {
+              earliestMatchIndex = idx;
+              earliestMatchLen = hl.text.length;
+              matchedHighlight = hl;
+            }
+          }
+        }
+
+        if (matchedHighlight && earliestMatchIndex !== -1) {
+          hasReplacements = true;
+          if (earliestMatchIndex > 0) {
+            fragment.appendChild(document.createTextNode(str.substring(0, earliestMatchIndex)));
+          }
+
+          const mark = document.createElement('mark');
+          mark.className = 'reader-highlight-mark';
+          mark.setAttribute('data-highlight-id', matchedHighlight.id);
+          mark.textContent = str.substring(earliestMatchIndex, earliestMatchIndex + earliestMatchLen);
+          fragment.appendChild(mark);
+
+          processText(str.substring(earliestMatchIndex + earliestMatchLen));
+        } else {
+          fragment.appendChild(document.createTextNode(str));
+        }
+      };
+
+      processText(text);
+
+      if (hasReplacements && node.parentNode) {
+        node.parentNode.replaceChild(fragment, node);
+      }
+    } else {
+      const children = Array.from(node.childNodes);
+      for (const child of children) {
+        walk(child);
+      }
+    }
+  };
+
+  walk(root);
+  return root.innerHTML;
+};
 
 export const PostDetailScreen: React.FC = () => {
   const articleRef = useRef<HTMLDivElement>(null);
@@ -41,12 +110,50 @@ export const PostDetailScreen: React.FC = () => {
   const [quoteDraft, setQuoteDraft] = useState<string | null>(null);
   const [isPostSaved, setIsPostSaved] = useState(false);
   const [isSavingPost, setIsSavingPost] = useState(false);
-  const [isSummarizing, setIsSummarizing] = useState(false);
   const [isDeletingPost, setIsDeletingPost] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [savedHighlights, setSavedHighlights] = useState<SavedHighlight[]>([]);
-  const [recommendedArticles, setRecommendedArticles] = useState<Post[]>([]);
   const [selectionMenu, setSelectionMenu] = useState<SelectionMenu | null>(null);
+
+  const [activeSummary, setActiveSummary] = useState<string | null>(null);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  const [isAiCollapsed, setIsAiCollapsed] = useState(false);
+
+  // Auto calculate credibility trust score
+  const reliability = React.useMemo(() => {
+    if (!post) return 93.8;
+    const total = post.upvotes + post.downvotes;
+    if (total === 0) return 93.8;
+    const ratio = post.upvotes / total;
+    return Number((90 + (ratio * 10)).toFixed(1));
+  }, [post?.upvotes, post?.downvotes]);
+
+  // Dynamically calculate excerpt/subtitle for editorial presentation
+  const excerpt = React.useMemo(() => {
+    if (!post) return '';
+    const stripped = stripHtml(post.content);
+    const firstPeriodIndex = stripped.indexOf('.');
+    if (firstPeriodIndex !== -1 && firstPeriodIndex > 20 && firstPeriodIndex < 180) {
+      return stripped.slice(0, firstPeriodIndex + 1);
+    }
+    return stripped.slice(0, 150) + '...';
+  }, [post?.content]);
+
+  // Unified rendered content with highlights applied
+  const renderedContent = React.useMemo(() => {
+    if (!post) return '';
+    const contentWithCaptions = addImageCaptions(post.content);
+    if (isRichHtml(post.content)) {
+      return applyHighlightsToHtml(contentWithCaptions, savedHighlights);
+    } else {
+      const escaped = contentWithCaptions
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br />');
+      return applyHighlightsToHtml(escaped, savedHighlights);
+    }
+  }, [post?.content, savedHighlights]);
 
   useEffect(() => {
     let isMounted = true;
@@ -102,14 +209,6 @@ export const PostDetailScreen: React.FC = () => {
     };
   }, [post]);
 
-  useEffect(() => {
-    if (!post) return;
-    let isMounted = true;
-    backendApi.getRecommendedArticles()
-      .then((articles) => { if (isMounted) setRecommendedArticles(articles.map(backendArticleToPost)); })
-      .catch(() => undefined);
-    return () => { isMounted = false; };
-  }, [post?.backendArticleId]);
 
   useEffect(() => {
     if (!post) return;
@@ -149,13 +248,14 @@ export const PostDetailScreen: React.FC = () => {
 
   if (isPostLoading)
     return (
-      <div className="px-4 py-20">
-        <span className="swiss-loading">
-          <span>.</span> Loading post details
+      <div className="px-6 py-20 flex justify-center items-center">
+        <span className="swiss-loading text-sm">
+          <span>.</span> Loading intelligence ledger...
         </span>
       </div>
     );
-  if (!post) return <div className="px-4 py-20 text-sm italic text-app-muted">Post not found.</div>;
+
+  if (!post) return <div className="px-6 py-20 text-sm italic text-app-faint">Dispatch ledger not found.</div>;
 
   const canDeletePost =
     !post.id.startsWith('article-') && Boolean(user && (user.role === 'ADMIN' || user.id === post.authorId));
@@ -214,7 +314,7 @@ export const PostDetailScreen: React.FC = () => {
       try {
         if (previousSavedState) await backendApi.unsaveArticle(articleId);
         else await backendApi.saveArticle(articleId);
-        toast.success(previousSavedState ? 'Removed from saved articles.' : 'Saved article.');
+        toast.success(previousSavedState ? 'Removed from saved dispatches.' : 'Saved dispatch.');
       } catch (error) {
         setIsPostSaved(previousSavedState);
         toast.error(error instanceof Error ? error.message : 'Unable to update saved article.');
@@ -231,77 +331,12 @@ export const PostDetailScreen: React.FC = () => {
       if (previousSavedState) await backendApi.unsavePost(post.id);
       else await backendApi.savePost(post.id);
       setPost((currentPost) => (currentPost ? { ...currentPost, savedByMe: !previousSavedState } : currentPost));
-      toast.success(previousSavedState ? 'Removed from saved posts.' : 'Saved post.');
+      toast.success(previousSavedState ? 'Removed from saved dispatches.' : 'Saved dispatch.');
     } catch (error) {
       setIsPostSaved(previousSavedState);
       toast.error(error instanceof Error ? error.message : 'Unable to update saved post.');
     } finally {
       setIsSavingPost(false);
-    }
-  };
-
-  const handleSummarize = async () => {
-    setIsSummarizing(true);
-    try {
-      if (post.id.startsWith('article-') && post.backendArticleId) {
-        const updatedArticle = await backendApi.summarizeArticle(Number(post.backendArticleId));
-        setPost(backendArticleToPost(updatedArticle));
-        showSummaryToast(updatedArticle.aiSummary);
-      } else {
-        const updatedPost = await backendApi.summarizePost(Number(post.id));
-        setPost(backendPostToPost(updatedPost));
-        showSummaryToast(updatedPost.aiSummary);
-      }
-    } catch {
-      toast.error('AI summary is currently unavailable. The summarization service may not be running.');
-    } finally {
-      setIsSummarizing(false);
-    }
-  };
-
-  const showSummaryToast = (summary: string) => {
-    const lines = summary.split('\n').map((l) => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
-    toast.custom(
-      (t) => (
-        <div className="w-80 rounded-lg border border-app-border bg-app-bg p-3 shadow-raised">
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-[11px] font-semibold tracking-[-0.01em] text-app-action">AI Summary</p>
-            <button
-              type="button"
-              onClick={() => toast.dismiss(t)}
-              className="shrink-0 text-app-faint hover:text-app-heading"
-              aria-label="Dismiss"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-          <ul className="mt-2 space-y-1">
-            {lines.map((line, i) => (
-              <li key={i} className="flex gap-2 text-[13px] leading-5 text-app-text">
-                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-app-action" />
-                <span>{line}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ),
-      { duration: Infinity, position: 'top-right' },
-    );
-  };
-
-  const handleDeletePost = async () => {
-    if (!canDeletePost || isDeletingPost) return;
-    setIsDeletingPost(true);
-    try {
-      await backendApi.deletePost(post.id);
-      await clearProgress(post.id).catch(() => undefined);
-      toast.success('Post deleted.');
-      navigate('/app');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to delete post.');
-    } finally {
-      setIsDeletingPost(false);
-      setConfirmDelete(false);
     }
   };
 
@@ -347,7 +382,7 @@ export const PostDetailScreen: React.FC = () => {
       setSavedHighlights((current) => [created, ...current]);
       setSelectionMenu(null);
       window.getSelection()?.removeAllRanges();
-      toast.success('Highlight saved.');
+      toast.success('Highlight saved to private notebook.');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Highlight failed.');
     }
@@ -361,239 +396,385 @@ export const PostDetailScreen: React.FC = () => {
     document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const handleGenerateSummary = async () => {
+    if (!post || isSummaryLoading) return;
+    setIsSummaryLoading(true);
+    try {
+      if (post.id.startsWith('article-')) {
+        const articleId = post.backendArticleId ? Number(post.backendArticleId) : null;
+        if (articleId) {
+          const updatedArticle = await backendApi.summarizeArticle(articleId);
+          setActiveSummary(updatedArticle.aiSummary || 'No summary returned.');
+          setPost((current) => (current ? { ...current, aiSummary: updatedArticle.aiSummary || undefined } : current));
+          toast.success('AI summary generated.');
+        }
+      } else {
+        const postId = Number(post.id);
+        if (!Number.isNaN(postId)) {
+          const updatedPost = await backendApi.summarizePost(postId, 5, 'vi', true);
+          setActiveSummary(updatedPost.aiSummary || 'No summary returned.');
+          setPost((current) => (current ? { ...current, aiSummary: updatedPost.aiSummary || undefined } : current));
+          toast.success('AI summary generated.');
+        }
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to generate summary.');
+    } finally {
+      setIsSummaryLoading(false);
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (!canDeletePost || isDeletingPost) return;
+    setIsDeletingPost(true);
+    try {
+      await backendApi.deletePost(post.id);
+      await clearProgress(post.id).catch(() => undefined);
+      toast.success('Dispatch deleted.');
+      navigate('/app');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to delete dispatch.');
+    } finally {
+      setIsDeletingPost(false);
+      setConfirmDelete(false);
+    }
+  };
+
   return (
     <>
-    <div className="grid w-full gap-8 px-4 pb-10 pt-0 sm:px-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:px-10">
-      <main className="min-w-0">
-        {postNotice && (
-          <Alert tone="warning" className="mb-6">
-            {postNotice}
-          </Alert>
-        )}
+      <div className="min-h-screen bg-app-bg text-app-heading">
+        <main className="max-w-[1280px] mx-auto px-6 md:px-10 py-8 flex flex-col lg:flex-row gap-6 relative">
 
-        <div className="sticky top-16 z-30 -mx-4 mb-6 flex items-center border-b border-app-border bg-app-bg px-4 py-3 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
-          <Tooltip label="Return to the previous feed or page." side="bottom">
-            <PostActionButton
-              icon={<ArrowLeft strokeWidth={2.25} />}
-              label="Back"
-              onClick={() => navigate(-1)}
-              ariaLabel="Back to previous page"
-              title="Back"
-              className="border-app-heading bg-app-heading text-app-bg hover:border-app-action hover:bg-app-action hover:text-app-on-action"
-            />
-          </Tooltip>
-        </div>
-
-        <article className="border-b border-app-border pb-8">
-          <div className="grid gap-4 sm:grid-cols-[4rem_minmax(0,1fr)]">
-            <VoteControl label={post.title} score={score} vote={post.userVote} onVote={handleVote} />
-            <div className="min-w-0">
-              <h1 className="text-[30px] font-semibold leading-tight tracking-[-0.01em] text-app-heading sm:text-[32px]">
-                {post.title}
-              </h1>
-              <p className="mt-3 font-mono text-[11px] text-app-muted">
-                @{post.author.username} · {post.channelName} ·{' '}
-                {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · share ·
-                save · report
-              </p>
-              {post.tags && post.tags.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {post.tags.map((tag) => (
-                    <Link
-                      key={tag.id}
-                      to={`/app/tag/${tag.slug}`}
-                      className="inline-block border border-app-border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-app-muted transition-colors hover:border-app-action hover:text-app-action"
-                    >
-                      {tag.name}
-                    </Link>
-                  ))}
-                </div>
-              )}
-              {post.mediaUrl && post.mediaType === 'image' && (
-                <figure className="mt-6">
-                  <img
-                    src={post.mediaUrl}
-                    alt=""
-                    className="aspect-video w-full border border-app-border object-cover"
-                  />
-                  <figcaption className="mt-2 font-mono text-[11px] text-app-muted">
-                    Image attached to dispatch.
-                  </figcaption>
-                </figure>
-              )}
-              <div
-                ref={articleRef}
-                onMouseUp={() => window.setTimeout(inspectSelection, 80)}
-                className="tourane-rich-content mt-8 max-w-[68ch] text-[17px] leading-[1.7] text-app-text"
-              >
-                {isRichHtml(post.content) ? (
-                  <div dangerouslySetInnerHTML={{ __html: addImageCaptions(post.content) }} />
-                ) : (
-                  <p className="whitespace-pre-wrap">{post.content}</p>
-                )}
+          {/* Left Column: Article Content */}
+          <article className="flex-1 max-w-[680px] pb-32 min-w-0">
+            {postNotice && (
+              <div className="mb-6">
+                <Alert tone="warning">{postNotice}</Alert>
               </div>
-              {selectionMenu && (
-                <div
-                  className="fixed z-50 flex w-[286px] gap-4 border border-app-border bg-app-surface p-3 font-mono text-[11px] uppercase tracking-wider shadow-modal"
-                  style={{ left: selectionMenu.x, top: selectionMenu.y }}
+            )}
+
+            {/* Header Back / Action Control Bar */}
+            <div className="flex items-center justify-between mb-8 py-2">
+              <button
+                onClick={() => navigate(-1)}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-app-faint hover:text-app-action uppercase tracking-wider transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleToggleSavedPost}
+                  disabled={isSavingPost}
+                  className={`p-2 rounded-full transition-all hover:bg-app-action-faint ${
+                    isPostSaved
+                      ? 'text-app-action'
+                      : 'text-app-muted hover:text-app-action'
+                  }`}
                 >
-                  <Tooltip label="Save this selected text to your highlights." side="top">
-                    <button type="button" onClick={handleSaveHighlight} className="text-app-action hover:underline">
-                      Highlight
-                    </button>
-                  </Tooltip>
-                  <Tooltip label="Insert this selected text into a comment draft." side="top">
-                    <button type="button" onClick={handleQuoteSelection} className="text-app-action hover:underline">
-                      Quote in comment
-                    </button>
-                  </Tooltip>
-                  <button
-                    type="button"
-                    onClick={() => setSelectionMenu(null)}
-                    className="text-app-muted hover:text-app-heading"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              )}
-              <div className="mt-8 flex flex-wrap items-center gap-2 font-mono text-[11px] uppercase tracking-wider">
-                <Tooltip
-                  label={isPostSaved ? 'Remove this item from your saved list.' : 'Add this item to your saved list.'}
-                  side="top"
-                >
-                  <PostActionButton
-                    icon={<Bookmark strokeWidth={2.25} className={isPostSaved ? 'fill-current' : undefined} />}
-                    label={isPostSaved ? 'Saved' : post.id.startsWith('article-') ? 'Save article' : 'Save post'}
-                    active={isPostSaved}
-                    disabled={isSavingPost}
-                    onClick={handleToggleSavedPost}
-                    ariaLabel={isPostSaved ? 'Remove from saved posts' : 'Save this post'}
-                    title={isPostSaved ? 'Saved' : 'Save post'}
-                  />
-                </Tooltip>
+                  <Bookmark className={`h-4 w-4 ${isPostSaved ? 'fill-current' : ''}`} />
+                </button>
+
                 <ShareButton
                   title={post.title}
                   text={stripHtml(post.content).slice(0, 220)}
                   url={`/app/p/${post.id}`}
                   kind="post"
-                  className="inline-flex min-h-11 select-none items-center gap-2 border border-app-border bg-transparent px-3 font-mono text-[11px] uppercase leading-none tracking-wider text-app-heading transition-colors duration-150 hover:border-app-action hover:text-app-action"
-                  successMessage="Report link copied."
+                  iconOnly={true}
+                  className="p-2 text-app-muted hover:text-app-action hover:bg-app-action-faint rounded-full transition-all"
+                  successMessage="Dispatch link copied to clipboard."
                 />
-                {canDeletePost && !confirmDelete && (
+
+                {canDeletePost && (
                   <button
-                    type="button"
-                    onClick={() => setConfirmDelete(true)}
-                    className="inline-flex min-h-11 items-center px-3 font-mono text-[11px] uppercase leading-none tracking-wider text-app-action hover:underline"
+                    onClick={() => setConfirmDelete(!confirmDelete)}
+                    className="px-3.5 py-1.5 text-red-600 hover:bg-red-50 rounded-full text-xs font-bold transition-all"
                   >
                     Delete
                   </button>
                 )}
               </div>
-              {confirmDelete && (
-                <div role="alert" aria-live="assertive" className="mt-4 border border-app-border p-3">
-                  <p className="text-sm text-app-text">Delete this post and its linked discussion data?</p>
-                  <div className="mt-3 flex gap-4 font-mono text-[11px] uppercase tracking-wider">
-                    <button
-                      type="button"
-                      onClick={handleDeletePost}
-                      disabled={isDeletingPost}
-                      className="text-app-action hover:underline disabled:opacity-40"
-                    >
-                      {isDeletingPost ? 'Deleting' : 'Confirm delete'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDelete(false)}
-                      className="text-app-muted hover:text-app-heading"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+            </div>
+
+            {/* Delete Confirm */}
+            {confirmDelete && (
+              <div className="mb-8 border border-red-200 bg-red-50 p-5 rounded-xl">
+                <p className="text-sm font-semibold text-red-700">Delete this dispatch and its commentary history?</p>
+                <div className="mt-4 flex gap-3 text-xs font-bold uppercase tracking-wider">
+                  <button
+                    type="button"
+                    onClick={handleDeletePost}
+                    disabled={isDeletingPost}
+                    className="bg-red-600 text-app-on-action px-4 py-2 rounded-lg hover:bg-red-700"
+                  >
+                    Confirm Delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(false)}
+                    className="bg-app-surface border border-app-border px-4 py-2 rounded-lg"
+                  >
+                    Cancel
+                  </button>
                 </div>
+              </div>
+            )}
+
+            {/* Metadata Header */}
+            <div className="flex items-center gap-4 mb-8">
+              <div className="flex items-center gap-3">
+                <img
+                  className="w-10 h-10 rounded-full border border-app-border object-cover animate-in fade-in"
+                  src={post.author.avatarUrl || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(post.author.username)}`}
+                  alt=""
+                />
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <Link to={getProfilePath(post.author)} className="font-sans text-sm font-bold text-app-heading hover:text-app-action transition-colors">
+                      {post.author.name}
+                    </Link>
+                    {post.author.isVerified && (
+                      <span className="bg-app-action-soft text-app-action text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide flex items-center gap-0.5">
+                        <ShieldCheck className="h-3 w-3" /> EXPERT
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-app-faint font-semibold uppercase tracking-wider">
+                    Senior Intelligence Analyst • {post.author.trustScore} Karma
+                  </p>
+                </div>
+              </div>
+              <div className="h-4 w-[1px] bg-outline-variant/50"></div>
+              <div className="flex items-center gap-1.5 text-app-muted text-[11px] font-bold uppercase tracking-wider">
+                <span>⏱ 8 MIN READ</span>
+              </div>
+            </div>
+
+            {/* Title */}
+            <h1 className="serif-title text-4xl md:text-5xl font-black text-app-heading leading-tight mb-6 tracking-tight">
+              {post.title}
+            </h1>
+
+            {/* Subtitle/Excerpt */}
+            {excerpt && (
+              <p className="serif-title text-xl text-app-muted italic mb-10 leading-relaxed border-l-4 border-app-action pl-6">
+                {excerpt}
+              </p>
+            )}
+
+            {/* Topic Tags */}
+            {post.tags && post.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-8">
+                {post.tags.map((tag) => (
+                  <Link
+                    key={tag.id}
+                    to={`/app/tag/${tag.slug}`}
+                    className="bg-app-surface border border-app-border px-3 py-1 rounded-full text-xs font-semibold text-app-muted hover:border-app-action transition-colors"
+                  >
+                    #{tag.name}
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {/* Media Attachment */}
+            {post.mediaUrl && post.mediaType === 'image' && (
+              <figure className="my-12 rounded-xl overflow-hidden border border-app-border group relative">
+                <img
+                  src={post.mediaUrl}
+                  alt=""
+                  className="w-full h-[400px] object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-app-surface/80 backdrop-blur-md border-t border-app-border">
+                  <p className="text-[11px] text-app-heading/80 uppercase font-semibold tracking-wider">
+                    Fig 1.0: Real-time intelligence proof attached to ledger.
+                  </p>
+                </div>
+              </figure>
+            )}
+
+            {/* Body Rich Text (Merriweather display) */}
+            <div
+              ref={articleRef}
+              onMouseUp={() => window.setTimeout(inspectSelection, 80)}
+              className="serif-title text-[18px] leading-[32px] text-app-heading space-y-8 select-text"
+            >
+              <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
+            </div>
+
+            {/* Voting Bar in Article Footer */}
+            <div className="mt-12 pt-6 border-t border-app-border flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <VoteControl label={post.title} score={score} vote={post.userVote} onVote={handleVote} orientation="horizontal" />
+                <span className="text-xs text-app-faint font-semibold">Credibility Trust: {reliability}%</span>
+              </div>
+              <p className="text-[10px] text-app-faint font-bold uppercase tracking-widest">
+                Ledger ID: {post.id}
+              </p>
+            </div>
+
+            {/* Nested Commentary Stream */}
+            <div id="comments" className="mt-16 border-t border-app-border pt-10">
+              <div className="flex items-center gap-2 mb-6">
+                <MessageSquare className="h-4 w-4 text-app-action" />
+                <h3 className="font-sans text-sm font-bold text-app-heading uppercase tracking-widest">Nested Commentary</h3>
+              </div>
+              <CommentSection
+                postId={post.id}
+                backendArticleId={post.backendArticleId}
+                postAuthorId={post.authorId}
+                quoteDraft={quoteDraft}
+                onQuoteDraftClear={() => setQuoteDraft(null)}
+              />
+            </div>
+          </article>
+
+          {/* floating select tooltip */}
+          {selectionMenu && (
+            <div
+              className="fixed z-50 flex gap-2 border border-neutral-800 bg-neutral-900 text-app-on-action px-2 py-1.5 rounded-lg shadow-xl font-sans text-xs"
+              style={{ left: selectionMenu.x, top: selectionMenu.y }}
+            >
+              <button
+                type="button"
+                onClick={handleSaveHighlight}
+                className="flex items-center gap-1 px-3 py-1.5 hover:bg-app-surface/10 rounded-md transition-colors text-app-on-action font-bold cursor-pointer"
+              >
+                🖌 Highlight
+              </button>
+              <div className="w-[1px] h-4 bg-app-surface/20 my-auto" />
+              <button
+                type="button"
+                onClick={handleQuoteSelection}
+                className="flex items-center gap-1 px-3 py-1.5 hover:bg-app-surface/10 rounded-md transition-colors text-app-on-action font-bold cursor-pointer"
+              >
+                💬 Quote
+              </button>
+            </div>
+          )}
+
+          {/* Mobile Overlay for AI Drawer */}
+          {!isAiCollapsed && (
+            <div
+              className="fixed inset-0 bg-black/20 backdrop-blur-xs z-40 lg:hidden"
+              onClick={() => setIsAiCollapsed(true)}
+            />
+          )}
+
+          {/* Right Column: AI Copilot Drawer */}
+          <aside
+            className={`fixed inset-y-0 right-0 z-50 lg:z-30 lg:sticky lg:top-24 h-screen lg:h-[calc(100vh-120px)] transition-all duration-300 ease-in-out shrink-0 flex flex-col ${
+              isAiCollapsed
+                ? 'w-0 pointer-events-none lg:w-16 lg:pointer-events-auto overflow-hidden'
+                : 'w-[300px] sm:w-[340px]'
+            }`}
+          >
+            <div className="bg-app-surface-alt border-l lg:border border-app-border lg:rounded-2xl flex flex-col h-full shadow-sm overflow-hidden">
+              {/* Drawer Header */}
+              <div className="p-5 border-b border-app-border flex justify-between items-center bg-app-surface/80">
+                {!isAiCollapsed ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="text-app-action h-4.5 w-4.5" />
+                      <span className="font-sans text-sm font-bold text-app-heading uppercase tracking-widest">AI Copilot</span>
+                    </div>
+                    <button
+                      onClick={() => setIsAiCollapsed(true)}
+                      className="p-1 hover:bg-app-surface-alt rounded-md transition-all text-app-muted hover:text-app-heading"
+                      title="Collapse drawer"
+                    >
+                      <ChevronRight className="h-4.5 w-4.5" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setIsAiCollapsed(false)}
+                    className="w-full flex items-center justify-center py-2 hover:bg-app-surface-alt rounded-md transition-all text-app-muted hover:text-app-heading"
+                    title="Expand drawer"
+                  >
+                    <ChevronLeft className="h-4.5 w-4.5" />
+                  </button>
+                )}
+              </div>
+
+              {!isAiCollapsed && (
+                <>
+                  {/* Scrollable Intelligence Content */}
+                  <div className="flex-1 overflow-y-auto p-5 space-y-8 custom-scrollbar">
+                    {/* AI SUMMARY */}
+                    <section>
+                      <h3 className="font-sans text-[10px] text-app-action mb-4 uppercase tracking-widest flex items-center gap-1 font-bold">
+                        <span className="w-1.5 h-1.5 bg-app-action rounded-full"></span>
+                        AI Summary
+                      </h3>
+                      {activeSummary ? (
+                        <div className="space-y-3">
+                          <div className="text-xs leading-relaxed text-app-muted bg-app-surface p-4 rounded-xl border border-app-border shadow-[0_2px_4px_rgba(0,0,0,0.02)] whitespace-pre-wrap">
+                            {activeSummary}
+                          </div>
+                          <button
+                            onClick={handleGenerateSummary}
+                            disabled={isSummaryLoading}
+                            className="text-[10px] text-app-action hover:underline font-bold flex items-center gap-1 mt-1 disabled:opacity-50"
+                          >
+                            {isSummaryLoading ? 'Regenerating...' : '✦ Regenerate Summary'}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={handleGenerateSummary}
+                          disabled={isSummaryLoading}
+                          className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-app-action text-app-on-action hover:bg-app-action-hover rounded-xl font-bold text-xs transition-all shadow-md active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none"
+                        >
+                          {isSummaryLoading ? (
+                            <>
+                              <span className="animate-spin text-sm">✦</span>
+                              <span>Summarizing Dispatch...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="h-4 w-4" />
+                              <span>Generate AI Summary</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </section>
+
+                    {/* Private Notebook Highlights */}
+                    <section className="bg-app-surface p-4 rounded-xl border border-app-border">
+                      <h3 className="font-sans text-[10px] text-app-action uppercase tracking-widest font-bold mb-3 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 bg-app-action rounded-full"></span>
+                        Notebook Highlights ({savedHighlights.length})
+                      </h3>
+                      {savedHighlights.length > 0 ? (
+                        <div className="space-y-3.5 max-h-48 overflow-y-auto scrollbar-hide">
+                          {savedHighlights.map((hl) => (
+                            <div key={hl.id} className="p-3 bg-app-surface rounded-lg border-l-4 border-app-action text-xs leading-relaxed text-app-muted italic">
+                              "{hl.text}"
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-app-faint italic">Select any text in the article and click "Highlight" to add it to your research notebook.</p>
+                      )}
+                    </section>
+                  </div>
+                </>
               )}
             </div>
-          </div>
-        </article>
+          </aside>
+        </main>
 
-        <CommentSection
-          postId={post.id}
-          backendArticleId={post.backendArticleId}
-          postAuthorId={post.authorId}
-          quoteDraft={quoteDraft}
-          onQuoteDraftClear={() => setQuoteDraft(null)}
-        />
-      </main>
-
-      <aside className="space-y-8 border-t border-app-border py-6 lg:sticky lg:top-16 lg:h-[calc(100dvh-64px)] lg:overflow-y-auto lg:border-l lg:border-t-0 lg:px-4">
-        <section>
-          <h2 className="mono-label mb-4 text-app-muted">Author</h2>
-          <Link to={getProfilePath(post.author)} className="flex gap-3">
-            <img
-              src={
-                post.author.avatarUrl ||
-                `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(post.author.username)}`
-              }
-              alt=""
-              className="h-12 w-12 border border-app-border object-cover"
-            />
-            <span className="min-w-0">
-              <span className="block truncate font-semibold text-app-heading">{post.author.name}</span>
-              <span className="font-mono text-[11px] text-app-muted">{post.author.trustScore} karma</span>
-            </span>
-          </Link>
-        </section>
-        <section>
-          <h2 className="mono-label mb-4 text-app-muted">Highlights</h2>
-          <p className="font-mono text-[24px] font-semibold tabular-nums text-app-heading">{savedHighlights.length}</p>
-          <p className="mt-2 text-sm leading-6 text-app-muted">Saved quotes from this dispatch.</p>
-        </section>
-        <section>
-          <h2 className="mono-label mb-4 text-app-muted">{recommendedArticles.length > 0 ? 'Recommended' : 'Related'}</h2>
-          <ol className="space-y-3">
-            {(recommendedArticles.length > 0 ? recommendedArticles : MOCK_POSTS.filter((c) => c.id !== post.id).slice(0, 5)).map((item, index) => (
-              <li key={item.id} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-2">
-                <span className="font-mono text-[11px] text-app-muted">{String(index + 1).padStart(2, '0')}</span>
-                <Link
-                  to={`/app/p/${item.id}`}
-                  className="truncate text-sm text-app-heading hover:text-app-action"
-                >
-                  {item.title}
-                </Link>
-              </li>
-            ))}
-          </ol>
-        </section>
-      </aside>
-    </div>
-
-    <div
-      style={{
-        position: 'fixed',
-        bottom: '24px',
-        right: '24px',
-        zIndex: 50,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        border: '1px solid var(--color-app-border)',
-        borderRadius: '12px',
-        background: 'var(--color-app-bg)',
-        padding: '6px 8px',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-      }}
-      className="">
-      <VoteControl label={post?.title || ''} score={score} vote={post?.userVote} onVote={handleVote} orientation="horizontal" />
-      <button
-        type="button"
-        onClick={handleSummarize}
-        disabled={isSummarizing}
-        className="flex h-11 w-11 items-center justify-center rounded-full border border-app-border bg-app-bg text-app-action shadow-subtle transition-all hover:border-app-action hover:shadow-raised active:scale-95"
-        aria-label="Generate AI summary"
-        title="Summarize with AI"
-      >
-        <Sparkles className={`h-4 w-4 ${isSummarizing ? 'animate-pulse' : ''}`} strokeWidth={2.25} />
-      </button>
-    </div>
+        {/* Mobile FAB for AI Chat */}
+        <button
+          onClick={() => setIsAiCollapsed(false)}
+          className="lg:hidden fixed bottom-6 right-6 w-14 h-14 bg-app-action text-app-on-action rounded-full shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-40"
+        >
+          <Sparkles className="h-6 w-6" />
+        </button>
+      </div>
     </>
   );
 };

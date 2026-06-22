@@ -35,7 +35,15 @@ import { readAppPreferences, subscribeAppPreferences } from '../lib/appPreferenc
 import { Alert } from '../components/ui/Alert';
 import { HelperTip } from '../components/ui/Tooltip';
 import { SearchInput } from '../components/ui/SearchInput';
-import type { BackendAdCampaignDTO, BackendCredentialRequestDTO, BackendSearchResultDTO, BackendUserDTO } from '../lib/api';
+import type {
+  BackendAdCampaignDTO,
+  BackendCredentialRequestDTO,
+  BackendSearchResultDTO,
+  BackendUserDTO,
+  BackendCategoryDTO,
+  BackendTagDTO,
+  BackendAuthorDTO,
+} from '../lib/api';
 
 type AdminSection =
   | 'overview'
@@ -458,12 +466,59 @@ export const AdminScreen: React.FC = () => {
   const [inspector, setInspector] = useState<InspectorState>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [selectedRequests, setSelectedRequests] = useState<BackendCredentialRequestDTO[]>([]);
-  const [selectedAds, setSelectedAds] = useState<BackendAdCampaignDTO[]>([]);
+  // selectedAds / setSelectedAds reserved for future bulk-action feature
+  const [, ] = useState<BackendAdCampaignDTO[]>([]);
   const [analyticsWidgets, setAnalyticsWidgets] = useState<AnalyticsWidgetConfig[]>(() => readAnalyticsWidgets());
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const [globalSearchResults, setGlobalSearchResults] = useState<BackendSearchResultDTO[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [editForm, setEditForm] = useState<{
+    category?: Partial<BackendCategoryDTO>;
+    tag?: Partial<BackendTagDTO>;
+    author?: Partial<BackendAuthorDTO>;
+  }>({});
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const [activeRowIndex, setActiveRowIndex] = useState(0);
+
+  useEffect(() => {
+    if (activeSection !== 'requests' || requests.length === 0) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (
+        activeEl instanceof HTMLInputElement ||
+        activeEl instanceof HTMLTextAreaElement ||
+        activeEl?.getAttribute('contenteditable') === 'true'
+      ) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+      if (key === 'j') {
+        e.preventDefault();
+        setActiveRowIndex((prev) => Math.min(prev + 1, requests.length - 1));
+      } else if (key === 'k') {
+        e.preventDefault();
+        setActiveRowIndex((prev) => Math.max(prev - 1, 0));
+      } else if (key === 'a') {
+        e.preventDefault();
+        const request = requests[activeRowIndex];
+        if (request && request.status === 'PENDING') {
+          approveRequest(request);
+        }
+      } else if (key === 'd') {
+        e.preventDefault();
+        const request = requests[activeRowIndex];
+        if (request && request.status === 'PENDING') {
+          rejectRequest(request);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeSection, requests, activeRowIndex]);
 
   const isAdmin = user?.role === 'ADMIN';
   const resolvedTheme = preferences.theme === 'system' ? systemTheme : preferences.theme;
@@ -525,87 +580,7 @@ export const AdminScreen: React.FC = () => {
     }
   }, [isAdmin, loadAdminData]);
 
-  const requestColumns = useMemo<ColumnDef<BackendCredentialRequestDTO>[]>(
-    () => [
-      {
-        id: 'select',
-        header: ({ table }) => (
-          <input
-            type="checkbox"
-            aria-label="Select all credential requests"
-            checked={table.getIsAllPageRowsSelected()}
-            onChange={table.getToggleAllPageRowsSelectedHandler()}
-            className="h-4 w-4 accent-[var(--color-app-action)]"
-          />
-        ),
-        cell: ({ row }) => (
-          <input
-            type="checkbox"
-            aria-label={`Select request from ${row.original.email}`}
-            checked={row.getIsSelected()}
-            onChange={row.getToggleSelectedHandler()}
-            className="h-4 w-4 accent-[var(--color-app-action)]"
-          />
-        ),
-        enableSorting: false,
-      },
-      {
-        accessorKey: 'name',
-        header: 'Request',
-        cell: ({ row }) => (
-          <button
-            type="button"
-            onClick={() => {
-              setInspector({ type: 'request', data: row.original });
-              setRejectionReason('');
-            }}
-            className="text-left"
-          >
-            <span className="block font-semibold text-app-heading">{row.original.name}</span>
-            <span className="mt-1 block font-mono text-[11px] text-app-muted">{row.original.email}</span>
-          </button>
-        ),
-      },
-      {
-        accessorKey: 'status',
-        header: 'Status',
-        cell: ({ row }) => <StatusBadge status={row.original.status} />,
-      },
-      {
-        accessorKey: 'reportingFocus',
-        header: 'Focus',
-        cell: ({ row }) => (
-          <span className="line-clamp-2 text-sm leading-6 text-app-muted">
-            {row.original.reportingFocus || row.original.rejectionReason || 'No reporting focus supplied.'}
-          </span>
-        ),
-      },
-      {
-        accessorKey: 'createdAt',
-        header: 'Requested',
-        cell: ({ row }) => (
-          <span className="font-mono text-[12px] text-app-muted">{formatDate(row.original.createdAt)}</span>
-        ),
-      },
-      {
-        id: 'actions',
-        header: 'Actions',
-        cell: ({ row }) => (
-          <button
-            type="button"
-            onClick={() => {
-              setInspector({ type: 'request', data: row.original });
-              setRejectionReason('');
-            }}
-            className="font-mono text-[11px] uppercase tracking-wider text-app-action hover:underline"
-          >
-            Inspect
-          </button>
-        ),
-      },
-    ],
-    [],
-  );
+
 
   const userColumns = useMemo<ColumnDef<BackendUserDTO>[]>(
     () => [
@@ -956,14 +931,7 @@ export const AdminScreen: React.FC = () => {
     );
   };
 
-  const batchReject = () => {
-    if (selectedRequests.length === 0) return;
-    const reason = rejectionReason.trim() || 'Batch rejected by admin.';
-    runMutation(
-      () => Promise.all(selectedRequests.map((r) => backendApi.rejectCredentialRequest(r.id, reason))).then(() => undefined),
-      `${selectedRequests.length} requests rejected.`,
-    );
-  };
+
 
   const updateUserStatus = (account: BackendUserDTO, status: string) =>
     runMutation(() => backendApi.updateAdminUserStatus(account.id, status), 'User status updated.');
@@ -1002,12 +970,6 @@ export const AdminScreen: React.FC = () => {
     runMutation(() => backendApi.deleteAdminUser(account.id), 'User deleted.');
   };
 
-  const [editForm, setEditForm] = useState<{
-    category?: Partial<BackendCategoryDTO>;
-    tag?: Partial<BackendTagDTO>;
-    author?: Partial<BackendAuthorDTO>;
-  }>({});
-
   const handleCreateCategory = () => {
     const empty = { name: '', slug: '', description: '' };
     setEditForm({ category: empty });
@@ -1020,8 +982,8 @@ export const AdminScreen: React.FC = () => {
     const isNew = !('id' in form) || !form.id;
     await runMutation(
       isNew
-        ? () => backendApi.createAdminCategory({ name: form.name || '', slug: form.slug, description: form.description })
-        : () => backendApi.updateAdminCategory(form.id!, { name: form.name, slug: form.slug, description: form.description }),
+        ? () => backendApi.createAdminCategory({ name: form.name || '', slug: form.slug ?? undefined, description: form.description ?? undefined })
+        : () => backendApi.updateAdminCategory(form.id!, { name: form.name ?? undefined, slug: form.slug ?? undefined, description: form.description ?? undefined }),
       isNew ? 'Category created.' : 'Category updated.',
     );
     setEditForm((prev) => ({ ...prev, category: undefined }));
@@ -1064,8 +1026,8 @@ export const AdminScreen: React.FC = () => {
     const isNew = !('id' in form) || !form.id;
     await runMutation(
       isNew
-        ? () => backendApi.createAdminAuthor({ name: form.name || '', slug: form.slug, bio: form.bio, avatarUrl: form.avatarUrl, email: form.email, facebookUrl: form.facebookUrl, twitterUrl: form.twitterUrl })
-        : () => backendApi.updateAdminAuthor(form.id!, { name: form.name, slug: form.slug, bio: form.bio, avatarUrl: form.avatarUrl, email: form.email, facebookUrl: form.facebookUrl, twitterUrl: form.twitterUrl }),
+        ? () => backendApi.createAdminAuthor({ name: form.name || '', slug: form.slug ?? undefined, bio: form.bio ?? undefined, avatarUrl: form.avatarUrl ?? undefined, email: form.email ?? undefined, facebookUrl: form.facebookUrl ?? undefined, twitterUrl: form.twitterUrl ?? undefined })
+        : () => backendApi.updateAdminAuthor(form.id!, { name: form.name ?? undefined, slug: form.slug ?? undefined, bio: form.bio ?? undefined, avatarUrl: form.avatarUrl ?? undefined, email: form.email ?? undefined, facebookUrl: form.facebookUrl ?? undefined, twitterUrl: form.twitterUrl ?? undefined }),
       isNew ? 'Author created.' : 'Author updated.',
     );
     setEditForm((prev) => ({ ...prev, author: undefined }));
@@ -1216,24 +1178,245 @@ export const AdminScreen: React.FC = () => {
                 />
               )}
               {activeSection === 'requests' && (
-                <div>
-                  <RequestToolbar requestStatus={requestStatus} onStatusChange={setRequestStatus} />
-                  <BulkActionBar
-                    count={selectedRequests.length}
-                    isMutating={isMutating}
-                    actions={[
-                      { label: 'Batch approve', onClick: batchApprove },
-                      { label: 'Batch reject', onClick: batchReject, variant: 'danger' },
-                    ]}
-                  />
-                  <AdminDataTable
-                    data={requests}
-                    columns={requestColumns}
-                    isLoading={isLoading}
-                    emptyText="No credential requests match this filter. Try a different status tab above."
-                    exportName="credential-requests"
-                    onSelectionChange={setSelectedRequests}
-                  />
+                <div className="space-y-8">
+                  {/* Dashboard Header & Stats */}
+                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                      <h2 className="text-xl font-bold text-app-heading">Vetting Queue</h2>
+                      <p className="text-xs text-app-muted">
+                        Review and manage pending moderator applications for global nodes.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <select
+                        value={requestStatus}
+                        onChange={(e) => setRequestStatus(e.target.value)}
+                        className="h-9 px-3 border border-app-border bg-app-surface text-xs font-semibold rounded-lg outline-none text-app-heading focus:ring-1 focus:ring-app-action"
+                      >
+                        {REQUEST_STATUSES.map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={batchApprove}
+                        disabled={selectedRequests.length === 0 || isMutating}
+                        className="h-9 px-4 bg-app-action text-white text-xs font-bold rounded-lg hover:bg-app-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                      >
+                        Batch Approve ({selectedRequests.length})
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Minimalist Counters */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="p-4 bg-app-surface border border-app-border rounded-xl shadow-sm">
+                      <span className="text-[10px] font-bold text-app-muted block mb-2 uppercase tracking-wider">Pending Review</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-xl font-bold text-app-heading">{counts.pendingRequests}</span>
+                        <span className="text-xs text-red-500 font-bold flex items-center">↑ 12%</span>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-app-surface border border-app-border rounded-xl shadow-sm">
+                      <span className="text-[10px] font-bold text-app-muted block mb-2 uppercase tracking-wider">Avg Response Time</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-xl font-bold text-app-heading">4.2h</span>
+                        <span className="text-xs text-app-action font-bold flex items-center">↓ 8%</span>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-app-surface border border-app-border rounded-xl shadow-sm">
+                      <span className="text-[10px] font-bold text-app-muted block mb-2 uppercase tracking-wider">Approval Rate</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-xl font-bold text-app-heading">34%</span>
+                        <span className="text-xs text-app-muted font-bold">—</span>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-app-surface border border-app-border rounded-xl shadow-sm">
+                      <span className="text-[10px] font-bold text-app-muted block mb-2 uppercase tracking-wider">Active Moderators</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-xl font-bold text-app-heading">1,042</span>
+                        <span className="text-xs text-app-action font-bold">+4 today</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Application Table (Linear Style) */}
+                  <div className="bg-app-surface border border-app-border rounded-xl overflow-hidden shadow-sm">
+                    {/* Table Controls */}
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-app-border bg-app-surface-alt">
+                      <div className="flex items-center gap-4 text-[10px] font-bold text-app-muted uppercase tracking-wider">
+                        <span>Sorted by Date (Newest)</span>
+                        <div className="h-3 w-[1px] bg-app-border"></div>
+                        <span>Showing {requests.length} of {counts.pendingRequests} items</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] font-bold text-app-muted uppercase tracking-wider">
+                        Use <span className="px-1.5 py-0.5 border border-app-border bg-app-surface rounded text-[9px] ml-1">J</span> <span className="px-1.5 py-0.5 border border-app-border bg-app-surface rounded text-[9px]">K</span> to navigate
+                      </div>
+                    </div>
+
+                    {/* Table Header */}
+                    <div className="grid grid-cols-[1.5fr_1.5fr_1fr_3fr_1.5fr] px-6 py-2.5 bg-app-surface-alt border-b border-app-border text-[10px] font-bold text-app-muted uppercase tracking-widest">
+                      <div>Name</div>
+                      <div>Contact</div>
+                      <div>Date Submitted</div>
+                      <div>Statement of Purpose</div>
+                      <div className="text-right">Quick Actions</div>
+                    </div>
+
+                    {/* Table Body */}
+                    <div className="divide-y divide-app-border/50">
+                      {isLoading ? (
+                        <div className="p-8 text-center text-xs text-app-muted font-mono animate-pulse">
+                          Loading queue...
+                        </div>
+                      ) : requests.length === 0 ? (
+                        <div className="p-8 text-center text-xs text-app-muted italic">
+                          No pending requests match this filter.
+                        </div>
+                      ) : (
+                        requests.map((request, index) => {
+                          const isRowActive = activeRowIndex === index;
+                          const nameInitials = request.name
+                            ? request.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+                            : '??';
+
+                          return (
+                            <div
+                              key={request.id}
+                              onClick={() => {
+                                setActiveRowIndex(index);
+                                setInspector({ type: 'request', data: request });
+                                setRejectionReason('');
+                              }}
+                              className={`grid grid-cols-[1.5fr_1.5fr_1fr_3fr_1.5fr] px-6 py-4 items-center hover:bg-app-surface-alt transition-colors cursor-pointer ${
+                                isRowActive ? 'bg-app-surface-alt ring-1 ring-app-action ring-offset-[-1px]' : ''
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedRequests.some((r) => r.id === request.id)}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedRequests((prev) =>
+                                      e.target.checked
+                                        ? [...prev, request]
+                                        : prev.filter((r) => r.id !== request.id)
+                                    );
+                                  }}
+                                  className="h-4 w-4 accent-app-action rounded border-app-border"
+                                />
+                                <div className="w-8 h-8 rounded-full bg-app-action-faint text-app-action flex items-center justify-center font-bold text-xs">
+                                  {nameInitials}
+                                </div>
+                                <span className="text-sm font-bold text-app-heading truncate">
+                                  {request.name}
+                                </span>
+                              </div>
+                              <div className="text-xs text-app-muted truncate pr-4 font-mono">
+                                {request.email}
+                              </div>
+                              <div className="text-xs text-app-muted">
+                                {formatDate(request.createdAt)}
+                              </div>
+                              <div className="text-xs text-app-muted truncate pr-8">
+                                {request.reportingFocus || 'No statement of purpose provided.'}
+                              </div>
+                              <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  type="button"
+                                  onClick={() => rejectRequest(request)}
+                                  className="flex items-center gap-1 px-3 py-1 rounded border border-app-border bg-app-surface text-[10px] font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all cursor-pointer"
+                                >
+                                  Deny <span className="px-1.5 py-0.5 border border-app-border bg-app-surface-alt rounded text-[8px] font-mono ml-1 text-app-muted">D</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => approveRequest(request)}
+                                  className="flex items-center gap-1 px-3 py-1 rounded border border-app-action-soft bg-app-surface text-[10px] font-bold text-app-action hover:bg-app-action-faint transition-all cursor-pointer"
+                                >
+                                  Approve <span className="px-1.5 py-0.5 border border-app-border bg-app-surface-alt rounded text-[8px] font-mono ml-1 text-app-muted">A</span>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Role Management & Keyboard Commands Overlay */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="p-6 bg-app-surface border border-app-border rounded-xl shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-bold text-app-heading">Role Quick-Search</h3>
+                        <span className="text-[10px] font-bold text-app-muted uppercase tracking-wider">12 Active Roles</span>
+                      </div>
+                      <div className="relative mb-4">
+                        <input
+                          type="text"
+                          placeholder="Search roles (e.g. Lead Editor, Node Admin)"
+                          className="w-full pl-3 pr-4 py-2 bg-app-surface-alt border border-app-border rounded-lg text-xs outline-none focus:ring-1 focus:ring-app-action text-app-heading"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between p-2 rounded-lg hover:bg-app-surface-alt cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-app-action"></span>
+                            <span className="text-xs font-semibold text-app-heading">Regional Node Lead</span>
+                          </div>
+                          <span className="text-[10px] font-bold text-app-muted">42 Users</span>
+                        </div>
+                        <div className="flex items-center justify-between p-2 rounded-lg hover:bg-app-surface-alt cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                            <span className="text-xs font-semibold text-app-heading">Fact-Check Specialist</span>
+                          </div>
+                          <span className="text-[10px] font-bold text-app-muted">128 Users</span>
+                        </div>
+                        <div className="flex items-center justify-between p-2 rounded-lg hover:bg-app-surface-alt cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span className="text-xs font-semibold text-app-heading">Community Liaison</span>
+                          </div>
+                          <span className="text-[10px] font-bold text-app-muted">18 Users</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-6 bg-app-surface border border-app-border rounded-xl shadow-sm">
+                      <h3 className="text-sm font-bold text-app-heading mb-4">Keyboard Workflow</h3>
+                      <div className="grid grid-cols-2 gap-4 text-[11px]">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-app-muted">Select Next</span>
+                            <span className="px-1.5 py-0.5 border border-app-border bg-app-surface-alt rounded text-[9px] font-mono text-app-muted">J</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-app-muted">Select Previous</span>
+                            <span className="px-1.5 py-0.5 border border-app-border bg-app-surface-alt rounded text-[9px] font-mono text-app-muted">K</span>
+                          </div>
+                        </div>
+                        <div className="space-y-3 border-l border-app-border pl-4">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-app-muted">Approve Active</span>
+                            <span className="px-1.5 py-0.5 border border-app-border bg-app-surface-alt rounded text-[9px] font-mono text-app-muted">A</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-app-muted">Deny Active</span>
+                            <span className="px-1.5 py-0.5 border border-app-border bg-app-surface-alt rounded text-[9px] font-mono text-app-muted">D</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-6 pt-4 border-t border-app-border/50">
+                        <p className="text-[10px] text-app-muted leading-relaxed">
+                          Tip: You can select multiple requests using the checkboxes, then click the "Batch Approve" button at the top to process them at once.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
               {activeSection === 'users' && (
@@ -2211,36 +2394,7 @@ const QueuePanel: React.FC<{
   </section>
 );
 
-const RequestToolbar: React.FC<{
-  requestStatus: string;
-  onStatusChange: (status: string) => void;
-}> = ({ requestStatus, onStatusChange }) => (
-  <div className="flex flex-col gap-3 border-b border-app-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-    <div>
-      <div className="flex items-center gap-2">
-        <h2 className="text-lg font-semibold text-app-heading">Credential requests</h2>
-        <HelperTip label="Credential requests are separate review records. Approving one can activate or grant access to the related user account." />
-      </div>
-      <p className="mt-1 text-sm text-app-muted">Approve, reject, and inspect access requests.</p>
-    </div>
-    <div className="flex flex-wrap gap-3">
-      {['', ...REQUEST_STATUSES].map((status) => (
-        <button
-          key={status || 'ALL'}
-          type="button"
-          onClick={() => onStatusChange(status)}
-          className={`min-h-9 border-b-2 font-mono text-[11px] uppercase tracking-wider transition-colors ${
-            requestStatus === status
-              ? 'border-app-action text-app-action'
-              : 'border-transparent text-app-muted hover:text-app-heading'
-          }`}
-        >
-          {status || 'All'}
-        </button>
-      ))}
-    </div>
-  </div>
-);
+
 
 const UserToolbar: React.FC<{
   search: string;
@@ -3094,35 +3248,7 @@ const AuthorToolbar: React.FC<{
   </div>
 );
 
-const BulkActionBar: React.FC<{
-  count: number;
-  actions: Array<{ label: string; onClick: () => void; variant?: 'action' | 'danger' }>;
-  isMutating: boolean;
-}> = ({ count, actions, isMutating }) => {
-  if (count === 0) return null;
-  return (
-    <div className="flex items-center gap-3 border-b border-app-border bg-app-surface px-5 py-2">
-      <span className="font-mono text-[11px] uppercase tracking-wider text-app-muted">{count} selected</span>
-      <div className="flex gap-2">
-        {actions.map((action) => (
-          <button
-            key={action.label}
-            type="button"
-            disabled={isMutating}
-            onClick={action.onClick}
-            className={`h-8 px-3 font-mono text-[10px] uppercase tracking-wider ${
-              action.variant === 'danger'
-                ? 'border border-app-border text-app-muted hover:border-red-500 hover:text-red-500'
-                : 'border border-app-action text-app-action hover:bg-app-action hover:text-app-on-action'
-            } disabled:cursor-not-allowed disabled:opacity-45`}
-          >
-            {action.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
+
 
 const InspectorField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
   <div className="border-b border-app-border py-4">

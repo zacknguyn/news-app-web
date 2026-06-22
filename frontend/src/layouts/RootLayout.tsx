@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
 import { AppTopBar } from '../components/AppTopBar';
 import { BottomNav } from '../components/BottomNav';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { readAppPreferences, subscribeAppPreferences } from '../lib/appPreferences';
 import { useChannels } from '../lib/useChannels';
 import { TopicRail } from '../components/TopicRail';
@@ -34,6 +34,8 @@ export const RootLayout: React.FC = () => {
 
   const resolvedTheme = preferences.theme === 'system' ? systemTheme : preferences.theme;
   const { channels } = useChannels();
+  const location = useLocation();
+  const isFeedPage = location.pathname === '/app' || location.pathname.startsWith('/app/c/') || location.pathname.startsWith('/app/p/');
 
   return (
     <div
@@ -49,15 +51,17 @@ export const RootLayout: React.FC = () => {
       <AppTopBar />
 
       <div className="flex w-full flex-1 bg-[var(--color-app-bg)] pb-20 lg:pb-0">
-        <div
-          className={`sticky top-[64px] hidden h-[calc(100dvh-64px)] shrink-0 border-r border-app-border transition-[width] duration-150 xl:block ${isRailCollapsed ? 'w-16' : 'w-64'}`}
-        >
-          <TopicRail
-            channels={channels}
-            collapsed={isRailCollapsed}
-            onToggleCollapsed={() => setIsRailCollapsed((current) => !current)}
-          />
-        </div>
+        {!isFeedPage && (
+          <div
+            className={`sticky top-[64px] hidden h-[calc(100dvh-64px)] shrink-0 border-r border-app-border transition-[width] duration-150 xl:block ${isRailCollapsed ? 'w-16' : 'w-64'}`}
+          >
+            <TopicRail
+              channels={channels}
+              collapsed={isRailCollapsed}
+              onToggleCollapsed={() => setIsRailCollapsed((current) => !current)}
+            />
+          </div>
+        )}
         <main id="main-content" tabIndex={-1} className="min-w-0 flex-1">
           <Outlet />
         </main>
