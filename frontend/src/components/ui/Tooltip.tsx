@@ -23,7 +23,7 @@ export const Tooltip: React.FC<TooltipProps> = ({ label, children, side = 'botto
     <span
       role="tooltip"
       className={cn(
-        'pointer-events-none absolute z-50 hidden max-w-72 bg-app-heading px-2.5 py-2 text-left font-mono text-[11px] leading-5 text-app-bg shadow-modal group-hover/tooltip:block group-focus-within/tooltip:block',
+        'pointer-events-none absolute z-50 max-w-72 bg-app-heading px-2.5 py-2 text-left font-mono text-[11px] leading-5 text-app-bg shadow-modal opacity-0 transition-opacity duration-150 ease-out group-hover/tooltip:pointer-events-auto group-hover/tooltip:opacity-100 group-focus-within/tooltip:pointer-events-auto group-focus-within/tooltip:opacity-100',
         sideClass[side],
         contentClassName,
       )}
@@ -42,7 +42,7 @@ export const HelperTip: React.FC<{
     <button
       type="button"
       className="inline-flex h-5 w-5 items-center justify-center text-app-faint transition-colors hover:text-app-action focus:text-app-action focus:outline-none focus-visible:shadow-[var(--shadow-focus)]"
-      aria-label="Show helper"
+      aria-label={typeof label === 'string' ? label : 'Show helper'}
     >
       <CircleHelp className="h-3.5 w-3.5" aria-hidden="true" />
     </button>

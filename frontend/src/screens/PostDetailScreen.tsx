@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Bookmark, Sparkles } from 'lucide-react';
+import { ArrowLeft, Bookmark, Sparkles, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { MOCK_POSTS } from '../lib/mockData';
 import { CommentSection } from '../components/CommentSection';
@@ -16,6 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import { clearProgress } from '../lib/readingProgress';
 import { getProfilePath } from '../lib/profileLinks';
 import { getHighlightsForPost, saveHighlight, type SavedHighlight } from '../lib/highlights';
+import { addRecentPost } from '../lib/recentlyViewed';
 import type { Post } from '../types';
 
 type SelectionMenu = {
@@ -109,6 +110,11 @@ export const PostDetailScreen: React.FC = () => {
       .catch(() => undefined);
     return () => { isMounted = false; };
   }, [post?.backendArticleId]);
+
+  useEffect(() => {
+    if (!post) return;
+    addRecentPost(post.id, post.title, post.channelName, post.channelId);
+  }, [post?.id]);
 
   useEffect(() => {
     let isMounted = true;
@@ -240,16 +246,47 @@ export const PostDetailScreen: React.FC = () => {
       if (post.id.startsWith('article-') && post.backendArticleId) {
         const updatedArticle = await backendApi.summarizeArticle(Number(post.backendArticleId));
         setPost(backendArticleToPost(updatedArticle));
+        showSummaryToast(updatedArticle.aiSummary);
       } else {
         const updatedPost = await backendApi.summarizePost(Number(post.id));
         setPost(backendPostToPost(updatedPost));
+        showSummaryToast(updatedPost.aiSummary);
       }
-      toast.success('AI summary generated.');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Summarization failed.');
+    } catch {
+      toast.error('AI summary is currently unavailable. The summarization service may not be running.');
     } finally {
       setIsSummarizing(false);
     }
+  };
+
+  const showSummaryToast = (summary: string) => {
+    const lines = summary.split('\n').map((l) => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
+    toast.custom(
+      (t) => (
+        <div className="w-80 rounded-lg border border-app-border bg-app-bg p-3 shadow-raised">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[11px] font-semibold tracking-[-0.01em] text-app-action">AI Summary</p>
+            <button
+              type="button"
+              onClick={() => toast.dismiss(t)}
+              className="shrink-0 text-app-faint hover:text-app-heading"
+              aria-label="Dismiss"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <ul className="mt-2 space-y-1">
+            {lines.map((line, i) => (
+              <li key={i} className="flex gap-2 text-[13px] leading-5 text-app-text">
+                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-app-action" />
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ),
+      { duration: Infinity, position: 'top-right' },
+    );
   };
 
   const handleDeletePost = async () => {
@@ -325,6 +362,7 @@ export const PostDetailScreen: React.FC = () => {
   };
 
   return (
+    <>
     <div className="grid w-full gap-8 px-4 pb-10 pt-0 sm:px-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:px-10">
       <main className="min-w-0">
         {postNotice && (
@@ -383,23 +421,6 @@ export const PostDetailScreen: React.FC = () => {
                   </figcaption>
                 </figure>
               )}
-              {post.aiSummary && (
-                <div className="mt-8 border-l-2 border-app-action bg-app-surface px-4 py-3">
-                  <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-app-action">AI Summary</p>
-                  <ul className="space-y-1.5">
-                    {post.aiSummary
-                      .split('\n')
-                      .map((line) => line.replace(/^[-•]\s*/, '').trim())
-                      .filter((line) => line.length > 0)
-                      .map((line, i) => (
-                        <li key={i} className="flex gap-2 text-sm leading-6 text-app-text">
-                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-app-action" />
-                          <span>{line}</span>
-                        </li>
-                      ))}
-                  </ul>
-                </div>
-              )}
               <div
                 ref={articleRef}
                 onMouseUp={() => window.setTimeout(inspectSelection, 80)}
@@ -450,18 +471,6 @@ export const PostDetailScreen: React.FC = () => {
                     title={isPostSaved ? 'Saved' : 'Save post'}
                   />
                 </Tooltip>
-{!post.aiSummary && (
-  <Tooltip label="Generate a concise AI summary of this post." side="top">
-    <PostActionButton
-      icon={<Sparkles strokeWidth={2.25} />}
-      label={isSummarizing ? 'Summarizing...' : 'AI Summary'}
-      disabled={isSummarizing}
-      onClick={handleSummarize}
-      ariaLabel="Summarize with AI"
-      title="Summarize"
-    />
-  </Tooltip>
-)}
                 <ShareButton
                   title={post.title}
                   text={stripHtml(post.content).slice(0, 220)}
@@ -556,6 +565,36 @@ export const PostDetailScreen: React.FC = () => {
         </section>
       </aside>
     </div>
+
+    <div
+      style={{
+        position: 'fixed',
+        bottom: '24px',
+        right: '24px',
+        zIndex: 50,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        border: '1px solid var(--color-app-border)',
+        borderRadius: '12px',
+        background: 'var(--color-app-bg)',
+        padding: '6px 8px',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+      }}
+      className="">
+      <VoteControl label={post?.title || ''} score={score} vote={post?.userVote} onVote={handleVote} orientation="horizontal" />
+      <button
+        type="button"
+        onClick={handleSummarize}
+        disabled={isSummarizing}
+        className="flex h-11 w-11 items-center justify-center rounded-full border border-app-border bg-app-bg text-app-action shadow-subtle transition-all hover:border-app-action hover:shadow-raised active:scale-95"
+        aria-label="Generate AI summary"
+        title="Summarize with AI"
+      >
+        <Sparkles className={`h-4 w-4 ${isSummarizing ? 'animate-pulse' : ''}`} strokeWidth={2.25} />
+      </button>
+    </div>
+    </>
   );
 };
 

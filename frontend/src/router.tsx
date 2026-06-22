@@ -11,8 +11,7 @@ const ProfileScreen = lazy(() => import('./screens/ProfileScreen'));
 const SubmitNewsScreen = lazy(() => import('./screens/SubmitNewsScreen'));
 const CreateChannelScreen = lazy(() => import('./screens/CreateChannelScreen'));
 const HighlightsScreen = lazy(() => import('./screens/HighlightsScreen'));
-const TopicsScreen = lazy(() => import('./screens/TopicsScreen'));
-const CategoriesScreen = lazy(() => import('./screens/CategoriesScreen'));
+const BrowseScreen = lazy(() => import('./screens/BrowseScreen'));
 const SubscribeScreen = lazy(() => import('./screens/SubscribeScreen'));
 const TrustScreen = lazy(() => import('./screens/TrustScreen'));
 const AdminScreen = lazy(() => import('./screens/AdminScreen'));
@@ -125,35 +124,27 @@ export const router = createBrowserRouter([
       },
       {
         path: 'topics',
-        element: (
-          <LazyLoad>
-            <TopicsScreen />
-          </LazyLoad>
-        ),
+        element: <Navigate to="/app/browse" replace />,
       },
       {
         path: 'categories',
+        element: <Navigate to="/app/browse" replace />,
+      },
+      {
+        path: 'browse',
         element: (
           <LazyLoad>
-            <CategoriesScreen />
+            <BrowseScreen />
           </LazyLoad>
         ),
       },
       {
         path: 'category/:slug',
-        element: (
-          <LazyLoad>
-            <CategoriesScreen />
-          </LazyLoad>
-        ),
+        element: <Navigate to="/app/browse" replace />,
       },
       {
         path: 'tag/:slug',
-        element: (
-          <LazyLoad>
-            <CategoriesScreen />
-          </LazyLoad>
-        ),
+        element: <Navigate to="/app/browse" replace />,
       },
       {
         path: 'highlights',

@@ -97,7 +97,7 @@ export const TopicsScreen: React.FC = () => {
       const updated = topic.joined ? await backendApi.leaveTopic(topic.id) : await backendApi.joinTopic(topic.id);
       const nextTopic = backendTopicToChannel(updated);
       setTopics((current) => current.map((candidate) => (candidate.id === nextTopic.id ? nextTopic : candidate)));
-      toast.success(topic.joined ? 'Community removed from following.' : 'Community added to your front page.');
+      toast.success(topic.joined ? 'Community removed from following.' : 'Community added to your feed.');
     } catch (error) {
       setTopics((current) => current.map((candidate) => (candidate.id === topic.id ? topic : candidate)));
       toast.error(error instanceof Error ? error.message : 'Unable to update community.');
@@ -120,7 +120,7 @@ export const TopicsScreen: React.FC = () => {
             <p className="mono-label mb-3 text-app-action">Topics</p>
             <h1 className="text-[32px] font-semibold leading-tight text-app-heading">Reading communities</h1>
             <p className="mt-3 max-w-[65ch] text-sm leading-6 text-app-muted">
-              Choose the beats that shape your front page.
+              Follow communities to shape your feed.
             </p>
           </div>
           {isAuthenticated && (

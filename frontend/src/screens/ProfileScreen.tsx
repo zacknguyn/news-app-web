@@ -355,7 +355,7 @@ export const ProfileScreen: React.FC = () => {
                 {userPosts[0] ? (
                   <PostCard post={userPosts[0]} />
                 ) : (
-                  <p className="text-sm italic text-app-muted">No dispatches yet. <Link to="/app/submit" className="text-app-action hover:underline">Write the first one</Link>.</p>
+                  <p className="text-sm italic text-app-muted">No posts yet. <Link to="/app/submit" className="text-app-action hover:underline">Write the first one</Link>.</p>
                 )}
               </section>
             </div>
@@ -365,7 +365,7 @@ export const ProfileScreen: React.FC = () => {
                 userPosts.map((post) => <PostCard key={post.id} post={post} />)
               ) : (
                 <p className="py-6 text-sm italic text-app-muted">
-                  No dispatches yet. The first story is the hardest to file.
+                  No posts yet. The first story is the hardest to file.
                 </p>
               )}
             </div>
@@ -394,7 +394,13 @@ export const ProfileScreen: React.FC = () => {
             <h2 className={`mono-label mb-4 ${accentClass.label}`}>Activity</h2>
             <div className="grid grid-cols-3 border-y border-app-border">
               <Stat label="Reports" value={userPosts.length} />
-              <Stat label="Karma" value={profileUser.trustScore} />
+              <div className="border-r border-app-border px-2 py-3">
+                <p className="font-mono text-[16px] font-semibold tabular-nums text-app-heading">{profileUser.trustScore.toLocaleString('en-US')}</p>
+                <p className="mt-1 inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-app-muted">
+                  Karma
+                  <HelperTip label="Trust score based on account age, post quality, comments, profile completeness, and subscription tier. Max 1000." side="top" />
+                </p>
+              </div>
               <Stat label="Comments" value={0} />
             </div>
           </section>

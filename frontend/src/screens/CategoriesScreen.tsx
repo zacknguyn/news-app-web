@@ -61,7 +61,7 @@ export const CategoriesScreen: React.FC = () => {
   if (isLoading) {
     return (
       <div className="app-page px-4 py-20">
-        <span className="swiss-loading"><span>.</span> Loading categories</span>
+        <span className="text-[12px] font-medium text-app-muted">Loading categories…</span>
       </div>
     );
   }
@@ -71,8 +71,8 @@ export const CategoriesScreen: React.FC = () => {
     const backLabel = isTagRoute ? 'All topics' : 'All categories';
     return (
       <div className="app-page">
-        <div className="border-b border-app-border px-4 py-4 lg:px-10">
-          <Link to={backLink} className="mono-label text-app-action hover:underline">
+        <div className="border-b border-app-border px-5 py-4 lg:px-10">
+          <Link to={backLink} className="text-[12px] font-medium text-app-action hover:underline">
             &larr; {backLabel}
           </Link>
           <h1 className="mt-2 text-[22px] font-semibold text-app-heading">
@@ -84,7 +84,7 @@ export const CategoriesScreen: React.FC = () => {
 
         <div className="px-4 lg:px-10">
           {articles.length === 0 ? (
-            <p className="py-8 text-sm italic text-app-muted">No articles found in this category. Try browsing <Link to="/app" className="text-app-action hover:underline">the front page</Link> or <Link to="/app/explore" className="text-app-action hover:underline">explore</Link>.</p>
+            <p className="py-8 text-sm italic text-app-muted">No articles found in this category. Try browsing <Link to="/app" className="text-app-action hover:underline">the feed</Link> or <Link to="/app/explore" className="text-app-action hover:underline">explore</Link>.</p>
           ) : (
             articles.map((post) => <PostCard key={post.id} post={post} onVote={undefined} />)
           )}
@@ -94,33 +94,55 @@ export const CategoriesScreen: React.FC = () => {
   }
 
   return (
-    <div className="app-page px-4 pb-10 lg:px-10">
-      <div className="border-b border-app-border pb-5">
-        <p className="mono-label mb-3 text-app-action">Categories</p>
+    <div className="app-page px-5 pb-10 lg:px-10">
+      <div className="border-b border-app-border pb-6">
+        <p className="mb-2 text-[12px] font-semibold tracking-wider text-app-muted">Categories</p>
         <h1 className="text-[32px] font-semibold leading-tight text-app-heading">Browse by category</h1>
-        <p className="mt-3 max-w-[65ch] text-sm leading-6 text-app-muted">
+        <p className="mt-3 max-w-[65ch] text-[14px] leading-6 text-app-muted">
           Explore articles organized by topic area.
         </p>
       </div>
 
       {notice && <Alert tone="error" className="mt-5">{notice}</Alert>}
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {sortedCategories.map((category) => (
-          <Link
-            key={category.id}
-            to={`/app/category/${category.slug}`}
-            className="border border-app-border p-4 transition-colors hover:border-app-action"
-          >
-            <h2 className="text-lg font-semibold text-app-heading">{category.name}</h2>
-            {category.description && (
-              <p className="mt-2 line-clamp-2 text-sm leading-6 text-app-text">{category.description}</p>
-            )}
-            <p className="mt-3 font-mono text-[11px] text-app-muted">
-              {(category.articleCount || 0).toLocaleString()} articles
-            </p>
-          </Link>
-        ))}
+      <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {sortedCategories.map((category) => {
+          const count = category.articleCount || 0;
+          const isPopular = count > 50;
+          const isActive = count > 10;
+          return (
+            <Link
+              key={category.id}
+              to={`/app/category/${category.slug}`}
+              className={`group border transition-all ${
+                isPopular
+                  ? 'border-app-action bg-app-action-faint hover:bg-app-action-soft'
+                  : isActive
+                    ? 'border-app-border bg-app-bg hover:border-app-action'
+                    : 'border-app-border bg-app-surface-alt hover:border-app-action'
+              } ${isPopular ? 'p-5' : 'p-4'}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <h2 className={`font-semibold text-app-heading group-hover:text-app-action ${
+                  isPopular ? 'text-xl' : 'text-lg'
+                }`}>
+                  {category.name}
+                </h2>
+                {isPopular && (
+                  <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-app-action">Popular</span>
+                )}
+              </div>
+              {category.description && (
+                <p className={`line-clamp-2 text-sm leading-6 text-app-text ${
+                  isPopular ? 'mt-2' : 'mt-2'
+                }`}>{category.description}</p>
+              )}
+              <p className={`text-[12px] text-app-muted ${isPopular ? 'mt-4' : 'mt-3'}`}>
+                {count.toLocaleString()} articles
+              </p>
+            </Link>
+          );
+        })}
       </div>
 
       {sortedCategories.length === 0 && (

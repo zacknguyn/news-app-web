@@ -137,7 +137,7 @@ const TopicRail: React.FC<TopicRailProps> = ({
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-[20px] font-semibold leading-none tracking-[-0.01em] text-app-heading">Communities</h2>
-            <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-app-muted">
+            <p className="mt-1.5 text-[12px] text-app-muted">
               {filteredChannels.length} indexed
             </p>
           </div>
@@ -168,14 +168,14 @@ const TopicRail: React.FC<TopicRailProps> = ({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Filter communities"
-            className="h-full min-w-0 flex-1 bg-transparent font-mono text-[11px] uppercase tracking-wider text-app-heading outline-none placeholder:text-app-faint"
+            className="h-full min-w-0 flex-1 bg-transparent text-[13px] text-app-heading outline-none placeholder:text-app-faint"
           />
         </label>
       </div>
 
       <nav className="min-h-0 flex-1 overflow-y-auto" aria-label="Community index">
         {pinnedChannels.length > 0 && (
-          <RailSection label="Pinned" count={pinnedChannels.length}>
+          <RailSection label="Pinned" count={pinnedChannels.length} accent="var(--color-gold-500)">
             {pinnedChannels.map((channel, index) => (
               <ChannelRow
                 key={channel.id}
@@ -183,6 +183,7 @@ const TopicRail: React.FC<TopicRailProps> = ({
                 channel={channel}
                 active={currentSlug === channel.slug}
                 pinned
+                accent="var(--color-gold-500)"
                 onPinToggle={togglePinned}
                 onOpen={rememberRecent}
               />
@@ -191,7 +192,7 @@ const TopicRail: React.FC<TopicRailProps> = ({
         )}
 
         {recentChannels.length > 0 && !query.trim() && (
-          <RailSection label="Recent">
+          <RailSection label="Recent" accent="var(--color-emerald-500)">
             {recentChannels.map((channel, index) => (
               <ChannelRow
                 key={channel.id}
@@ -199,6 +200,7 @@ const TopicRail: React.FC<TopicRailProps> = ({
                 channel={channel}
                 active={currentSlug === channel.slug}
                 pinned={pinnedIds.includes(channel.id)}
+                accent="var(--color-emerald-500)"
                 onPinToggle={togglePinned}
                 onOpen={rememberRecent}
               />
@@ -206,7 +208,7 @@ const TopicRail: React.FC<TopicRailProps> = ({
           </RailSection>
         )}
 
-        <RailSection label="Your communities" count={joinedChannels.length}>
+        <RailSection label="Your communities" count={joinedChannels.length} accent="var(--color-app-action)">
           {visibleJoined.length === 0 ? (
             <p className="px-4 py-3 text-[12px] italic text-app-muted">
               {query.trim() ? 'No followed communities match.' : 'Join a community to see it here.'}
@@ -219,6 +221,7 @@ const TopicRail: React.FC<TopicRailProps> = ({
                 channel={channel}
                 active={currentSlug === channel.slug}
                 pinned={pinnedIds.includes(channel.id)}
+                accent="var(--color-app-action)"
                 onPinToggle={togglePinned}
                 onOpen={rememberRecent}
               />
@@ -228,15 +231,14 @@ const TopicRail: React.FC<TopicRailProps> = ({
             <button
               type="button"
               onClick={() => setShowAllJoined(!showAllJoined)}
-              className="grid min-h-10 w-full grid-cols-[2rem_minmax(0,1fr)] items-center border-t border-app-border px-4 text-left font-mono text-[11px] uppercase tracking-wider text-app-action hover:bg-app-surface-alt"
+              className="mt-1 flex min-h-9 w-full items-center justify-center gap-1.5 px-4 text-[13px] font-medium text-app-action hover:bg-app-surface-alt"
             >
-              <span aria-hidden="true">+</span>
               <span>{showAllJoined ? 'Show less' : `Show ${hiddenJoinedCount} more`}</span>
             </button>
           )}
         </RailSection>
 
-        <RailSection label="Discover">
+        <RailSection label="Discover" accent="var(--color-navy-500)">
           {discover.length === 0 ? (
             <p className="px-4 py-3 text-[12px] italic text-app-muted">
               {query.trim() ? 'No discoverable communities match.' : 'No new communities.'}
@@ -249,6 +251,7 @@ const TopicRail: React.FC<TopicRailProps> = ({
                 channel={channel}
                 active={currentSlug === channel.slug}
                 pinned={pinnedIds.includes(channel.id)}
+                accent="var(--color-navy-500)"
                 onPinToggle={togglePinned}
                 onOpen={rememberRecent}
               />
@@ -258,31 +261,43 @@ const TopicRail: React.FC<TopicRailProps> = ({
       </nav>
 
       <div className="border-t border-app-border px-4 py-4">
-        <Link
-          to="/app/c/new"
-          className="font-mono text-[11px] uppercase tracking-wider text-app-action hover:underline"
-        >
-          Create community
-        </Link>
+        <div className="flex items-center gap-5">
+          <Link
+            to="/app/c/new"
+            className="text-[13px] font-semibold text-app-action hover:underline"
+          >
+            Create
+          </Link>
+          <Link
+            to="/app/browse"
+            className="text-[13px] text-app-muted hover:text-app-heading"
+          >
+            Browse all
+          </Link>
+        </div>
         {totalPostCount !== undefined && (
-          <p className="mt-3 font-mono text-[10px] text-app-muted">{formatCount(totalPostCount)} reports in rotation</p>
+          <p className="mt-2 text-[12px] text-app-muted">{formatCount(totalPostCount)} reports in rotation</p>
         )}
       </div>
     </aside>
   );
 };
 
-const RailSection: React.FC<{ label: string; count?: number; children: React.ReactNode }> = ({
+const RailSection: React.FC<{ label: string; count?: number; accent?: string; children: React.ReactNode }> = ({
   label,
   count,
+  accent,
   children,
 }) => (
-  <section className="border-b border-app-border py-4">
-    <div className="mb-2 flex items-center justify-between px-4">
-      <h3 className="mono-label text-app-muted">{label}</h3>
-      {count !== undefined && <span className="font-mono text-[10px] tabular-nums text-app-muted">{count}</span>}
+  <section className="py-4">
+    <div className="mb-3 flex items-center justify-between px-4">
+      <h3 className="text-[14px] font-semibold leading-none tracking-[-0.01em] text-app-heading">
+        {accent && <span className="mr-2 inline-block h-2 w-2 rounded-full align-[-1px]" style={{ backgroundColor: accent }} />}
+        {label}
+      </h3>
+      {count !== undefined && <span className="font-mono text-[11px] tabular-nums text-app-muted">{count}</span>}
     </div>
-    <div>{children}</div>
+    <div className="space-y-px">{children}</div>
   </section>
 );
 
@@ -291,23 +306,21 @@ const ChannelRow: React.FC<{
   active: boolean;
   index: number;
   pinned?: boolean;
+  accent?: string;
   onPinToggle: (channelId: string) => void;
   onOpen: (channel: Channel) => void;
-}> = ({ channel, active, index, pinned = false, onPinToggle, onOpen }) => (
+}> = ({ channel, active, index, pinned = false, accent, onPinToggle, onOpen }) => (
   <div
-    className={`grid min-h-12 grid-cols-[2rem_minmax(0,1fr)_2.25rem] items-center gap-2 border-t border-app-border px-4 text-[13px] transition-colors hover:bg-app-surface-alt ${
+    className={`grid min-h-11 grid-cols-[2rem_minmax(0,1fr)_2rem] items-center gap-2 px-4 text-[14px] transition-colors hover:bg-app-surface-alt ${
       active ? 'text-app-heading' : 'text-app-muted'
     }`}
   >
-    <span className={`font-mono text-[10px] tabular-nums ${active ? 'text-app-action' : 'text-app-faint'}`}>
+    <span className={`font-mono text-[11px] tabular-nums ${active ? 'text-app-action' : ''}`} style={{ color: !active && accent ? accent : undefined }}>
       {String(index).padStart(2, '0')}
     </span>
     <Link to={`/app/c/${channel.slug}`} onClick={() => onOpen(channel)} className="min-w-0 hover:text-app-heading">
-      <span className={`block truncate ${active ? 'font-semibold text-app-heading' : 'font-medium'}`}>
+      <span className={`block truncate ${active ? 'font-semibold text-app-heading' : ''}`}>
         {channel.name}
-      </span>
-      <span className="block truncate font-mono text-[10px] tabular-nums text-app-muted">
-        {formatCount(channel.memberCount || 0)} members / {formatCount(channel.postCount || 0)} reports
       </span>
     </Link>
     <Tooltip label={pinned ? 'Remove this community from pinned.' : 'Pin this community to the top.'} side="left">

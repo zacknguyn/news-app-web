@@ -17,9 +17,9 @@ const downActive = 'text-app-muted';
 const idle = 'text-app-faint hover:text-app-action';
 const downIdle = 'text-app-faint hover:text-app-muted';
 
-const arrowClass = 'inline-flex items-center justify-center transition-colors duration-150 active:translate-y-px';
+const arrowClass = 'inline-flex items-center justify-center transition-[color,transform] duration-150 ease-out hover:scale-110 active:scale-90';
 
-export const VoteControl: React.FC<VoteControlProps> = ({
+const VoteControlInner: React.FC<VoteControlProps> = ({
   label,
   score,
   vote,
@@ -84,8 +84,12 @@ export const VoteControl: React.FC<VoteControlProps> = ({
       </Tooltip>
       <span
         className={cn(
-          'grid h-7 min-w-7 place-items-center border border-app-border px-1 font-mono text-[13px] font-semibold tabular-nums transition-colors duration-150',
-          vote === 'up' ? 'text-app-action' : vote === 'down' ? 'text-app-muted' : 'text-app-heading',
+          'grid h-7 min-w-7 place-items-center border px-1 font-mono text-[13px] font-semibold tabular-nums transition-[color,background-color,border-color] duration-150',
+          vote === 'up'
+            ? 'border-app-action bg-app-action-faint text-app-action'
+            : vote === 'down'
+              ? 'border-app-border text-app-muted'
+              : 'border-app-border text-app-heading',
         )}
       >
         {score}
@@ -104,3 +108,5 @@ export const VoteControl: React.FC<VoteControlProps> = ({
     </div>
   );
 };
+
+export const VoteControl = React.memo(VoteControlInner);

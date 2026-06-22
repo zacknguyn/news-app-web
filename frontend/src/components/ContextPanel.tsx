@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import type { Channel, Post } from '../types';
+import { getRecentPosts } from '../lib/recentlyViewed';
 
 type ContextMode =
   | { kind: 'front-page'; trendingPosts: Post[]; savedCount: number; highlightsCount: number; latestArticles?: Post[]; editorsPicks?: Post[]; featuredArticles?: Post[] }
@@ -16,7 +17,7 @@ const ContextPanel: React.FC<ContextPanelProps> = ({ mode }) => {
   return (
     <aside
       aria-label="Context"
-      className="sticky top-[64px] hidden h-[calc(100dvh-64px)] w-72 overflow-y-auto bg-app-bg py-6 lg:block"
+      className="sticky top-[64px] hidden h-[calc(100dvh-64px)] w-72 overflow-y-auto bg-app-bg py-6 lg:block animate-fade-in"
     >
       <div className="space-y-8 px-4">
         {mode.kind === 'front-page' && <FrontPagePanel {...mode} />}
@@ -27,8 +28,11 @@ const ContextPanel: React.FC<ContextPanelProps> = ({ mode }) => {
   );
 };
 
-const PanelHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h3 className="mono-label mb-3 text-app-muted">{children}</h3>
+const PanelHeader: React.FC<{ children: React.ReactNode; accent?: string }> = ({ children, accent }) => (
+  <h3 className="mb-3 text-[13px] font-semibold leading-none tracking-[-0.01em] text-app-heading">
+    {accent && <span className="mr-2 inline-block h-2 w-2 rounded-full align-[-1px]" style={{ backgroundColor: accent }} />}
+    {children}
+  </h3>
 );
 
 const FrontPagePanel: React.FC<Extract<ContextMode, { kind: 'front-page' }>> = ({
@@ -41,7 +45,7 @@ const FrontPagePanel: React.FC<Extract<ContextMode, { kind: 'front-page' }>> = (
 }) => (
   <>
     <section>
-      <PanelHeader>Today</PanelHeader>
+      <PanelHeader accent="var(--color-app-action)">Today</PanelHeader>
       <p className="text-[13px] italic leading-snug text-app-muted">
         The day&apos;s most reported, verified, and discussed stories.
       </p>
@@ -51,12 +55,14 @@ const FrontPagePanel: React.FC<Extract<ContextMode, { kind: 'front-page' }>> = (
       </div>
     </section>
 
+    <RecentSection />
+
     <section>
-      <PanelHeader>Most read</PanelHeader>
+      <PanelHeader accent="var(--color-gold-500)">Most read</PanelHeader>
       <ol className="space-y-2.5">
         {trendingPosts.slice(0, 5).map((post, index) => (
           <li key={post.id} className="flex items-start gap-2.5">
-            <span className="font-mono text-[11px] tabular-nums text-app-faint">
+            <span className="font-mono text-[11px] tabular-nums" style={{ color: 'var(--color-gold-500)' }}>
               {String(index + 1).padStart(2, '0')}
             </span>
             <Link
@@ -72,7 +78,7 @@ const FrontPagePanel: React.FC<Extract<ContextMode, { kind: 'front-page' }>> = (
 
     {editorsPicks && editorsPicks.length > 0 && (
       <section>
-        <PanelHeader>Editor&apos;s picks</PanelHeader>
+        <PanelHeader accent="var(--color-gold-500)">Editor&apos;s picks</PanelHeader>
         <ol className="space-y-2.5">
           {editorsPicks.slice(0, 4).map((post) => (
             <li key={post.id} className="flex items-start gap-2.5">
@@ -90,7 +96,7 @@ const FrontPagePanel: React.FC<Extract<ContextMode, { kind: 'front-page' }>> = (
 
     {featuredArticles && featuredArticles.length > 0 && (
       <section>
-        <PanelHeader>Featured</PanelHeader>
+        <PanelHeader accent="var(--color-navy-500)">Featured</PanelHeader>
         <ol className="space-y-2.5">
           {featuredArticles.slice(0, 4).map((post) => (
             <li key={post.id} className="flex items-start gap-2.5">
@@ -108,7 +114,7 @@ const FrontPagePanel: React.FC<Extract<ContextMode, { kind: 'front-page' }>> = (
 
     {latestArticles && latestArticles.length > 0 && (
       <section>
-        <PanelHeader>Latest</PanelHeader>
+        <PanelHeader accent="var(--color-navy-500)">Latest</PanelHeader>
         <ol className="space-y-2.5">
           {latestArticles.slice(0, 4).map((post) => (
             <li key={post.id} className="flex items-start gap-2.5">
@@ -140,7 +146,7 @@ const FrontPagePanel: React.FC<Extract<ContextMode, { kind: 'front-page' }>> = (
         />
         <button
           type="submit"
-          className="inline-flex h-11 items-center border border-app-action bg-app-action px-2.5 font-mono text-[11px] text-app-on-action transition-colors hover:bg-app-action-hover"
+          className="inline-flex h-11 items-center border border-app-action bg-app-action px-2.5 text-[12px] font-medium text-app-on-action transition-colors hover:bg-app-action-hover"
         >
           Subscribe
         </button>
@@ -152,7 +158,7 @@ const FrontPagePanel: React.FC<Extract<ContextMode, { kind: 'front-page' }>> = (
 const ChannelPanel: React.FC<Extract<ContextMode, { kind: 'channel' }>> = ({ channel, topPosts }) => (
   <>
     <section>
-      <PanelHeader>About r/{channel.slug}</PanelHeader>
+      <PanelHeader accent="var(--color-app-action)">About r/{channel.slug}</PanelHeader>
       <p className="text-[13px] italic leading-snug text-app-muted">
         {channel.description || 'A community for discussion and reporting on this beat.'}
       </p>
@@ -162,7 +168,7 @@ const ChannelPanel: React.FC<Extract<ContextMode, { kind: 'channel' }>> = ({ cha
       </div>
       <Link
         to={`/app/c/${channel.slug}/submit`}
-        className="mt-4 inline-flex h-9 w-full items-center justify-center border border-app-heading bg-app-heading px-3 font-mono text-[11px] text-app-bg transition-colors hover:border-app-action hover:bg-app-action"
+        className="mt-4 inline-flex h-9 w-full items-center justify-center border border-app-heading bg-app-heading px-3 text-[12px] font-medium text-app-bg transition-colors hover:border-app-action hover:bg-app-action"
       >
         Submit to r/{channel.slug}
       </Link>
@@ -183,11 +189,11 @@ const ChannelPanel: React.FC<Extract<ContextMode, { kind: 'channel' }>> = ({ cha
 
     {topPosts.length > 0 && (
       <section>
-        <PanelHeader>Top in this community</PanelHeader>
+        <PanelHeader accent="var(--color-gold-500)">Top in this community</PanelHeader>
         <ol className="space-y-2.5">
           {topPosts.slice(0, 4).map((post, index) => (
             <li key={post.id} className="flex items-start gap-2.5">
-              <span className="font-mono text-[11px] tabular-nums text-app-faint">
+              <span className="font-mono text-[11px] tabular-nums" style={{ color: 'var(--color-gold-500)' }}>
                 {String(index + 1).padStart(2, '0')}
               </span>
               <Link
@@ -214,13 +220,13 @@ const ChannelPanel: React.FC<Extract<ContextMode, { kind: 'channel' }>> = ({ cha
 const PostDetailPanel: React.FC<Extract<ContextMode, { kind: 'post-detail' }>> = ({ post, relatedPosts, recommendedArticles }) => (
   <>
     <section>
-      <PanelHeader>More from r/{post.channelName || 'community'}</PanelHeader>
+      <PanelHeader accent="var(--color-app-action)">More from r/{post.channelName || 'community'}</PanelHeader>
       <ol className="space-y-2.5">
         {relatedPosts.slice(0, 5).map((related, index) => (
           <li key={related.id} className="flex items-start gap-2.5">
-            <span className="font-mono text-[11px] tabular-nums text-app-faint">
-              {String(index + 1).padStart(2, '0')}
-            </span>
+          <span className="font-mono text-[11px] tabular-nums" style={{ color: 'var(--color-app-action)' }}>
+            {String(index + 1).padStart(2, '0')}
+          </span>
             <Link
               to={`/app/p/${related.id}`}
               className="min-w-0 text-[13px] font-semibold leading-snug text-app-heading transition-colors duration-150 hover:text-app-action"
@@ -248,7 +254,7 @@ const PostDetailPanel: React.FC<Extract<ContextMode, { kind: 'post-detail' }>> =
 
     {recommendedArticles && recommendedArticles.length > 0 && (
       <section>
-        <PanelHeader>Recommended</PanelHeader>
+        <PanelHeader accent="var(--color-emerald-500)">Recommended</PanelHeader>
         <ol className="space-y-2.5">
           {recommendedArticles.slice(0, 4).map((article) => (
             <li key={article.id} className="flex items-start gap-2.5">
@@ -266,10 +272,35 @@ const PostDetailPanel: React.FC<Extract<ContextMode, { kind: 'post-detail' }>> =
   </>
 );
 
+const RecentSection: React.FC = () => {
+  const recentPosts = getRecentPosts().slice(0, 5);
+  if (recentPosts.length === 0) return null;
+  return (
+    <section>
+      <PanelHeader accent="var(--color-emerald-500)">Continue reading</PanelHeader>
+      <ol className="space-y-2.5">
+        {recentPosts.map((item) => (
+          <li key={item.id} className="flex items-start gap-2.5">
+            <Link
+              to={`/app/p/${item.id}`}
+              className="min-w-0 text-[13px] font-semibold leading-snug text-app-heading transition-colors duration-150 hover:text-app-action"
+            >
+              {item.title}
+            </Link>
+            <span className="shrink-0 font-mono text-[10px] text-app-faint">
+              r/{item.channelName}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+};
+
 const Stat: React.FC<{ label: string; value: number }> = ({ label, value }) => (
   <span>
-    <span className="font-mono text-base font-bold tabular-nums text-app-heading">{formatCount(value)}</span>
-    <span className="ml-1 text-[11px] text-app-muted">{label}</span>
+    <span className="text-base font-bold tabular-nums text-app-heading">{formatCount(value)}</span>
+    <span className="ml-1 text-[12px] text-app-muted">{label}</span>
   </span>
 );
 

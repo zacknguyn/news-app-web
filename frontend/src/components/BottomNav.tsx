@@ -20,16 +20,16 @@ export const BottomNav: React.FC = () => {
       aria-label="Mobile primary"
     >
       <NavLink to="/app" end className={bottomLinkClass}>
-        Front
+        Home
       </NavLink>
       <NavLink to="/app/submit" className={bottomLinkClass}>
-        File
+        Submit
+      </NavLink>
+      <NavLink to="/app/browse" className={bottomLinkClass}>
+        Browse
       </NavLink>
       <NavLink to="/app/highlights" className={bottomLinkClass}>
         Notes
-      </NavLink>
-      <NavLink to="/app/topics" className={bottomLinkClass}>
-        Topics
       </NavLink>
       <NavLink to={profilePath} className={bottomLinkClass}>
         Me
