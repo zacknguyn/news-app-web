@@ -62,7 +62,7 @@ const FrontPagePanel: React.FC<Extract<ContextMode, { kind: 'front-page' }>> = (
       <ol className="space-y-2.5">
         {trendingPosts.slice(0, 5).map((post, index) => (
           <li key={post.id} className="flex items-start gap-2.5">
-            <span className="font-mono text-[11px] tabular-nums" style={{ color: 'var(--color-gold-500)' }}>
+            <span className="font-mono text-[11px] tabular-nums text-gold-500">
               {String(index + 1).padStart(2, '0')}
             </span>
             <Link
@@ -193,7 +193,7 @@ const ChannelPanel: React.FC<Extract<ContextMode, { kind: 'channel' }>> = ({ cha
         <ol className="space-y-2.5">
           {topPosts.slice(0, 4).map((post, index) => (
             <li key={post.id} className="flex items-start gap-2.5">
-              <span className="font-mono text-[11px] tabular-nums" style={{ color: 'var(--color-gold-500)' }}>
+              <span className="font-mono text-[11px] tabular-nums text-gold-500">
                 {String(index + 1).padStart(2, '0')}
               </span>
               <Link

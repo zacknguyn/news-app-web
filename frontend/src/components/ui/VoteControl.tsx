@@ -28,12 +28,12 @@ const VoteControlInner: React.FC<VoteControlProps> = ({
   onVote,
 }) => {
   const isHorizontal = orientation === 'horizontal';
-  const size = compact ? 'h-7 w-7' : 'h-8 w-8';
+  const size = 'h-11 w-11';
   const iconSize = compact ? 'h-3.5 w-3.5' : 'h-4 w-4';
 
   if (isHorizontal) {
     return (
-      <div className={cn('inline-flex items-center font-mono', compact ? 'h-7 gap-0' : 'h-9 gap-0.5')}>
+      <div className="inline-flex items-center font-mono h-11 gap-0">
         <Tooltip label="Upvote" side="top">
           <button
             type="button"
@@ -77,7 +77,7 @@ const VoteControlInner: React.FC<VoteControlProps> = ({
           aria-label={`Upvote ${label}`}
           aria-pressed={vote === 'up'}
           onClick={() => onVote?.('up')}
-          className={cn(arrowClass, 'h-7 w-7', vote === 'up' ? upActive : idle)}
+          className={cn(arrowClass, 'h-11 w-11', vote === 'up' ? upActive : idle)}
         >
           <ChevronUp className="h-4 w-4" strokeWidth={2.25} />
         </button>
@@ -100,7 +100,7 @@ const VoteControlInner: React.FC<VoteControlProps> = ({
           aria-label={`Downvote ${label}`}
           aria-pressed={vote === 'down'}
           onClick={() => onVote?.('down')}
-          className={cn(arrowClass, 'h-7 w-7', vote === 'down' ? downActive : downIdle)}
+          className={cn(arrowClass, 'h-11 w-11', vote === 'down' ? downActive : downIdle)}
         >
           <ChevronDown className="h-4 w-4" strokeWidth={2.25} />
         </button>

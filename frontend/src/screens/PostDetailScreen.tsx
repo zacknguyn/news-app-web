@@ -4,10 +4,11 @@ import { ArrowLeft, Bookmark, Sparkles, ShieldCheck, MessageSquare, ChevronLeft,
 import { toast } from 'sonner';
 import { MOCK_POSTS } from '../lib/mockData';
 import { CommentSection } from '../components/CommentSection';
+import { AdCard } from '../components/AdCard';
 import { Alert } from '../components/ui/Alert';
 import { VoteControl } from '../components/ui/VoteControl';
 import { ShareButton } from '../components/ui/ShareButton';
-import { backendApi } from '../lib/api';
+import { backendApi, type BackendAdCampaignDTO } from '../lib/api';
 import { backendArticleToPost, backendPostToPost } from '../lib/backendAdapters';
 import { addImageCaptions, isRichHtml, stripHtml } from '../lib/richContent';
 import { useAuth } from '../context/AuthContext';
@@ -112,12 +113,24 @@ export const PostDetailScreen: React.FC = () => {
   const [isSavingPost, setIsSavingPost] = useState(false);
   const [isDeletingPost, setIsDeletingPost] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
   const [savedHighlights, setSavedHighlights] = useState<SavedHighlight[]>([]);
   const [selectionMenu, setSelectionMenu] = useState<SelectionMenu | null>(null);
 
   const [activeSummary, setActiveSummary] = useState<string | null>(null);
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [isAiCollapsed, setIsAiCollapsed] = useState(false);
+  const [sidebarAds, setSidebarAds] = useState<BackendAdCampaignDTO[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    backendApi.getActiveAds('feed', 0, 10).then((result) => {
+      if (active) setSidebarAds(result.content ?? []);
+    }).catch(() => {
+      if (active) setSidebarAds([]);
+    });
+    return () => { active = false; };
+  }, []);
 
   // Auto calculate credibility trust score
   const reliability = React.useMemo(() => {
@@ -258,7 +271,7 @@ export const PostDetailScreen: React.FC = () => {
   if (!post) return <div className="px-6 py-20 text-sm italic text-app-faint">Dispatch ledger not found.</div>;
 
   const canDeletePost =
-    !post.id.startsWith('article-') && Boolean(user && (user.role === 'ADMIN' || user.id === post.authorId));
+    !post.id.startsWith('article-') && Boolean(user && (user.role === 'ADMIN' || user.id === post.authorId || post.canModerate));
   const score = post.upvotes - post.downvotes;
 
   const handleVote = async (vote: 'up' | 'down') => {
@@ -428,7 +441,7 @@ export const PostDetailScreen: React.FC = () => {
     if (!canDeletePost || isDeletingPost) return;
     setIsDeletingPost(true);
     try {
-      await backendApi.deletePost(post.id);
+      await backendApi.deletePost(post.id, deleteReason || undefined);
       await clearProgress(post.id).catch(() => undefined);
       toast.success('Dispatch deleted.');
       navigate('/app');
@@ -437,13 +450,14 @@ export const PostDetailScreen: React.FC = () => {
     } finally {
       setIsDeletingPost(false);
       setConfirmDelete(false);
+      setDeleteReason('');
     }
   };
 
   return (
     <>
       <div className="min-h-screen bg-app-bg text-app-heading">
-        <main className="max-w-[1280px] mx-auto px-6 md:px-10 py-8 flex flex-col lg:flex-row gap-6 relative">
+        <main className="max-w-[1280px] mx-auto px-6 md:px-10 py-8 flex flex-col lg:flex-row gap-6 relative overflow-x-hidden">
 
           {/* Left Column: Article Content */}
           <article className="flex-1 max-w-[680px] pb-32 min-w-0">
@@ -501,6 +515,15 @@ export const PostDetailScreen: React.FC = () => {
             {confirmDelete && (
               <div className="mb-8 border border-red-200 bg-red-50 p-5 rounded-xl">
                 <p className="text-sm font-semibold text-red-700">Delete this dispatch and its commentary history?</p>
+                {user && user.id !== post.authorId && (
+                  <textarea
+                    value={deleteReason}
+                    onChange={e => setDeleteReason(e.target.value)}
+                    placeholder="Reason for removal (sent to author)..."
+                    rows={2}
+                    className="mt-3 w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-red-400"
+                  />
+                )}
                 <div className="mt-4 flex gap-3 text-xs font-bold uppercase tracking-wider">
                   <button
                     type="button"
@@ -512,7 +535,7 @@ export const PostDetailScreen: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setConfirmDelete(false)}
+                    onClick={() => { setConfirmDelete(false); setDeleteReason(''); }}
                     className="bg-app-surface border border-app-border px-4 py-2 rounded-lg"
                   >
                     Cancel
@@ -524,7 +547,7 @@ export const PostDetailScreen: React.FC = () => {
             {/* Metadata Header */}
             <div className="flex items-center gap-4 mb-8">
               <div className="flex items-center gap-3">
-                <img
+                <img loading="lazy"
                   className="w-10 h-10 rounded-full border border-app-border object-cover animate-in fade-in"
                   src={post.author.avatarUrl || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(post.author.username)}`}
                   alt=""
@@ -546,8 +569,8 @@ export const PostDetailScreen: React.FC = () => {
                 </div>
               </div>
               <div className="h-4 w-[1px] bg-outline-variant/50"></div>
-              <div className="flex items-center gap-1.5 text-app-muted text-[11px] font-bold uppercase tracking-wider">
-                <span>⏱ 8 MIN READ</span>
+              <div className="flex items-center gap-1.5 text-app-muted text-[11px] font-bold tracking-wide">
+                <span>⏱ 8 min read</span>
               </div>
             </div>
 
@@ -558,7 +581,7 @@ export const PostDetailScreen: React.FC = () => {
 
             {/* Subtitle/Excerpt */}
             {excerpt && (
-              <p className="serif-title text-xl text-app-muted italic mb-10 leading-relaxed border-l-4 border-app-action pl-6">
+              <p className="text-xl text-app-muted italic mb-10 leading-relaxed bg-app-action-faint px-5 py-4 rounded-lg">
                 {excerpt}
               </p>
             )}
@@ -581,7 +604,7 @@ export const PostDetailScreen: React.FC = () => {
             {/* Media Attachment */}
             {post.mediaUrl && post.mediaType === 'image' && (
               <figure className="my-12 rounded-xl overflow-hidden border border-app-border group relative">
-                <img
+                <img loading="lazy"
                   src={post.mediaUrl}
                   alt=""
                   className="w-full h-[400px] object-cover transition-transform duration-700 group-hover:scale-105"
@@ -598,7 +621,7 @@ export const PostDetailScreen: React.FC = () => {
             <div
               ref={articleRef}
               onMouseUp={() => window.setTimeout(inspectSelection, 80)}
-              className="serif-title text-[18px] leading-[32px] text-app-heading space-y-8 select-text"
+              className="serif-title text-[18px] leading-[32px] text-app-heading space-y-8 select-text break-words"
             >
               <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
             </div>
@@ -667,7 +690,7 @@ export const PostDetailScreen: React.FC = () => {
             className={`fixed inset-y-0 right-0 z-50 lg:z-30 lg:sticky lg:top-24 h-screen lg:h-[calc(100vh-120px)] transition-all duration-300 ease-in-out shrink-0 flex flex-col ${
               isAiCollapsed
                 ? 'w-0 pointer-events-none lg:w-16 lg:pointer-events-auto overflow-hidden'
-                : 'w-[300px] sm:w-[340px]'
+                : 'w-[85vw] max-w-[340px]'
             }`}
           >
             <div className="bg-app-surface-alt border-l lg:border border-app-border lg:rounded-2xl flex flex-col h-full shadow-sm overflow-hidden">
@@ -742,6 +765,17 @@ export const PostDetailScreen: React.FC = () => {
                       )}
                     </section>
 
+                    {/* Sponsored */}
+                    {sidebarAds.length > 0 && (
+                      <section>
+                        <h3 className="font-sans text-[10px] text-app-action mb-4 uppercase tracking-widest flex items-center gap-1 font-bold">
+                          <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                          Sponsored
+                        </h3>
+                        <AdCard ad={sidebarAds[0]} compact />
+                      </section>
+                    )}
+
                     {/* Private Notebook Highlights */}
                     <section className="bg-app-surface p-4 rounded-xl border border-app-border">
                       <h3 className="font-sans text-[10px] text-app-action uppercase tracking-widest font-bold mb-3 flex items-center gap-1">
@@ -751,7 +785,7 @@ export const PostDetailScreen: React.FC = () => {
                       {savedHighlights.length > 0 ? (
                         <div className="space-y-3.5 max-h-48 overflow-y-auto scrollbar-hide">
                           {savedHighlights.map((hl) => (
-                            <div key={hl.id} className="p-3 bg-app-surface rounded-lg border-l-4 border-app-action text-xs leading-relaxed text-app-muted italic">
+                            <div key={hl.id} className="p-3 bg-app-action-faint rounded-lg text-xs leading-relaxed text-app-muted italic">
                               "{hl.text}"
                             </div>
                           ))}

@@ -1,9 +1,10 @@
-import type { Channel, Comment, Post, User } from '../types';
+import type { Channel, Comment, NotificationItem, Post, User } from '../types';
 import type {
   BackendArticleDTO,
   BackendAuthorDTO,
   BackendCategoryDTO,
   BackendCommentDTO,
+  BackendNotificationDTO,
   BackendPostDTO,
   BackendTopicDTO,
   BackendUserDTO,
@@ -67,11 +68,13 @@ export const backendTopicToChannel = (dto: BackendTopicDTO): Channel => ({
   avatarUrl: dto.avatar || undefined,
   bannerUrl: dto.banner || undefined,
   rules: dto.rules || undefined,
+  visibility: (dto.visibility as Channel['visibility']) || undefined,
   ownerId: dto.ownerId ? String(dto.ownerId) : undefined,
   ownerName: dto.ownerName || undefined,
   memberCount: dto.memberCount || 0,
   postCount: dto.postCount || 0,
   joined: Boolean(dto.joined),
+  canPost: dto.canPost ?? undefined,
 });
 
 export const backendCategoryToChannel = (dto: BackendCategoryDTO): Channel => ({
@@ -117,6 +120,7 @@ export const backendPostToPost = (dto: BackendPostDTO): Post => {
     backendArticleId: dto.articleId ? String(dto.articleId) : undefined,
     savedByMe: Boolean(dto.savedByMe),
     aiSummary: dto.aiSummary || undefined,
+    canModerate: dto.canModerate,
   };
 };
 
@@ -149,7 +153,7 @@ export const backendArticleToPost = (dto: BackendArticleDTO): Post => {
     createdAt: dto.publishedAt || new Date().toISOString(),
     userVote: null,
     backendArticleId: String(dto.id),
-    savedByMe: false,
+    savedByMe: Boolean(dto.savedByMe),
     aiSummary: dto.aiSummary || undefined,
     tags: (dto.tags || []).map((t) => ({ id: t.id, name: t.name, slug: t.slug || '' })),
   };
@@ -184,3 +188,17 @@ export const backendCommentToComment = (dto: BackendCommentDTO, postId: string):
     likedByMe: Boolean(dto.likedByMe),
   };
 };
+
+export const backendNotificationToNotification = (dto: BackendNotificationDTO): NotificationItem => ({
+  id: String(dto.id),
+  type: (dto.type?.toLowerCase() as NotificationItem['type']) || 'mention',
+  title: dto.title,
+  body: dto.body || undefined,
+  actorName: dto.actorName || undefined,
+  actorAvatar: dto.actorAvatar || undefined,
+  refType: (dto.refType?.toLowerCase() as NotificationItem['refType']) || undefined,
+  refId: dto.refId ? String(dto.refId) : undefined,
+  refSlug: dto.refSlug || undefined,
+  isRead: dto.isRead,
+  createdAt: dto.createdAt,
+});

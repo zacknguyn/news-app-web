@@ -161,7 +161,7 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
           </div>
 
           {comment.quote && (
-            <blockquote className="my-2 max-w-[68ch] border-l-2 border-app-action px-3 py-2 text-sm italic text-app-text">
+            <blockquote className="my-2 max-w-[68ch] rounded-lg bg-app-action-soft px-4 py-3 text-sm italic text-app-text">
               {comment.quote}
             </blockquote>
           )}

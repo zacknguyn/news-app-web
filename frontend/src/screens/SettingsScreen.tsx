@@ -1,40 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { User, Palette, Bell, Shield, LogOut } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { Palette, Bell, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { readAppPreferences, saveAppPreferences, subscribeAppPreferences } from '../lib/appPreferences';
 
 export const SettingsScreen: React.FC = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'customization' | 'notifications' | 'privacy'>('customization');
 
-  // Active tab state
-  const [activeTab, setActiveTab] = useState<'account' | 'customization' | 'notifications' | 'privacy'>('account');
-
-  // Customize/Preference states
   const [preferences, setPreferences] = useState(() => readAppPreferences());
   const theme = preferences.theme === 'dark' ? 'dark' : 'light';
   const [fontSize, setFontSize] = useState(16);
   const [containerWidth, setContainerWidth] = useState<'standard' | 'wide'>('standard');
   const [autoAi, setAutoAi] = useState(true);
-
-  // Profile Edit fields
-  const [name, setName] = useState(user?.name || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-
-  const handleSaveProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsEditingProfile(false);
-    toast.success('Profile details updated successfully.');
-  };
-
-  const handleLogout = () => {
-    logout();
-    toast.message('Session closed.');
-    navigate('/');
-  };
 
   useEffect(() => subscribeAppPreferences(setPreferences), []);
 
@@ -64,20 +40,6 @@ export const SettingsScreen: React.FC = () => {
           {/* Left Navigation Tabs */}
           <aside>
             <nav className="space-y-1.5 sticky top-20">
-              <span className="block text-[10px] font-bold uppercase tracking-widest text-app-faint px-3 mb-3">Personal</span>
-              <button
-                type="button"
-                onClick={() => setActiveTab('account')}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                  activeTab === 'account'
-                    ? 'bg-app-action-soft text-app-action'
-                    : 'text-app-muted hover:bg-app-surface-alt'
-                }`}
-              >
-                <User className="h-4 w-4" />
-                <span>Account Profile</span>
-              </button>
-
               <button
                 type="button"
                 onClick={() => setActiveTab('customization')}
@@ -104,9 +66,6 @@ export const SettingsScreen: React.FC = () => {
                 <span>Notifications</span>
               </button>
 
-              <div className="h-px bg-outline-variant/30 my-6" />
-
-              <span className="block text-[10px] font-bold uppercase tracking-widest text-app-faint px-3 mb-3">System Security</span>
               <button
                 type="button"
                 onClick={() => setActiveTab('privacy')}
@@ -124,109 +83,6 @@ export const SettingsScreen: React.FC = () => {
 
           {/* Right Area: Dynamic tab content */}
           <main className="bg-app-surface border border-app-border rounded-2xl p-6 md:p-8 shadow-sm">
-
-            {activeTab === 'account' && (
-              <div className="space-y-8 animate-fadeIn">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-app-border">
-                  <div className="flex items-center gap-4">
-                    <img
-                      className="w-16 h-16 rounded-full border border-app-border object-cover"
-                      src={user?.avatarUrl || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(user?.username || 'user')}`}
-                      alt=""
-                    />
-                    <div>
-                      <h3 className="text-base font-bold text-app-heading">{user?.name}</h3>
-                      <p className="text-xs text-app-faint font-semibold">@{user?.username} • ID: {user?.id}</p>
-                    </div>
-                  </div>
-                  {!isEditingProfile && (
-                    <button
-                      onClick={() => setIsEditingProfile(true)}
-                      className="text-xs font-bold text-app-heading border border-app-border hover:border-app-action px-4 py-2 rounded-full transition-all"
-                    >
-                      Edit Profile
-                    </button>
-                  )}
-                </div>
-
-                {isEditingProfile ? (
-                  <form onSubmit={handleSaveProfile} className="space-y-4 max-w-md">
-                    <label className="block">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-app-faint">Full Name</span>
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full mt-1.5 px-3.5 py-2 border border-app-border rounded-lg text-xs outline-none focus:border-app-action focus:ring-2 focus:ring-primary/20"
-                        required
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-app-faint">Email Address</span>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full mt-1.5 px-3.5 py-2 border border-app-border rounded-lg text-xs outline-none focus:border-app-action focus:ring-2 focus:ring-primary/20"
-                        required
-                      />
-                    </label>
-                    <div className="flex gap-2.5 pt-2">
-                      <button
-                        type="submit"
-                        className="bg-app-action text-app-on-action text-xs font-bold px-4 py-2 rounded-lg hover:brightness-110"
-                      >
-                        Save Settings
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setName(user?.name || '');
-                          setEmail(user?.email || '');
-                          setIsEditingProfile(false);
-                        }}
-                        className="border border-app-border text-xs font-bold px-4 py-2 rounded-lg"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <span className="block text-[10px] uppercase tracking-wider text-app-faint font-bold">Email Address</span>
-                        <span className="text-xs font-bold text-app-heading mt-1 block">{user?.email}</span>
-                      </div>
-                      <div>
-                        <span className="block text-[10px] uppercase tracking-wider text-app-faint font-bold">Registered Account</span>
-                        <span className="text-xs font-bold text-app-heading mt-1 block">Contributor Badge</span>
-                      </div>
-                    </div>
-
-                    <div className="bg-app-surface-alt p-4 rounded-xl border border-app-border flex justify-between items-center">
-                      <div>
-                        <span className="block text-xs font-bold text-app-heading uppercase tracking-wider">Premium Access Status</span>
-                        <span className="text-[10px] text-app-faint font-semibold">Active annual plan tier</span>
-                      </div>
-                      <span className="bg-app-action-soft text-app-action text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
-                        Intelligence Pro
-                      </span>
-                    </div>
-
-                    <div className="pt-6 border-t border-app-border">
-                      <button
-                        onClick={handleLogout}
-                        className="inline-flex items-center gap-2 text-xs font-bold text-red-600 hover:text-red-700 uppercase tracking-wider group"
-                      >
-                        <LogOut className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
-                        <span>Sign out of session</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {activeTab === 'customization' && (
               <div className="space-y-8 animate-fadeIn">
@@ -278,6 +134,7 @@ export const SettingsScreen: React.FC = () => {
                       max="24"
                       value={fontSize}
                       onChange={(e) => setFontSize(Number(e.target.value))}
+                      aria-label="Font size"
                       className="w-full accent-[var(--color-app-action)] h-1 rounded-lg bg-outline-variant/30 cursor-pointer"
                     />
                     <span className="text-sm font-bold text-app-heading">{fontSize}px</span>

@@ -50,7 +50,7 @@ export const HighlightsScreen: React.FC = () => {
         setHighlights(nextHighlights);
         setSavedPosts([
           ...nextSavedPosts.map((saved) => backendPostToPost(saved.post)),
-          ...nextSavedArticles.map((saved) => backendArticleToPost(saved.article)),
+          ...nextSavedArticles.map((saved) => ({ ...backendArticleToPost(saved.article), savedByMe: true })),
         ]);
         setNoteDrafts(
           nextHighlights.reduce<Record<string, string>>((drafts, highlight) => {
@@ -182,20 +182,20 @@ export const HighlightsScreen: React.FC = () => {
     if (text.includes('#strategy') || text.includes('#growth') || text.includes('#fintech') || text.includes('#plan')) {
       return {
         label: 'STRATEGY',
-        colorClass: 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]',
+        colorClass: 'bg-app-accent-soft text-app-accent',
         icon: Lightbulb
       };
     }
     if (text.includes('#risk') || text.includes('#warning') || text.includes('#security') || text.includes('#bug')) {
       return {
         label: 'RISK',
-        colorClass: 'bg-red-500/10 text-[var(--color-error)]',
+        colorClass: 'bg-red-500/10 text-state-error',
         icon: AlertTriangle
       };
     }
     return {
       label: 'INSIGHT',
-      colorClass: 'bg-[var(--color-action-soft)] text-[var(--color-action)]',
+      colorClass: 'bg-app-action-soft text-app-action',
       icon: Sparkles
     };
   };
@@ -243,33 +243,34 @@ export const HighlightsScreen: React.FC = () => {
 
 
   return (
-    <div className="flex flex-1 h-[calc(100vh-64px)] overflow-hidden w-full bg-[var(--color-bg)]">
+    <div className="flex flex-1 h-[calc(100vh-64px)] overflow-hidden w-full bg-app-bg">
       {/* Left side: Main Content Area */}
       <section className="flex-1 flex flex-col h-full overflow-hidden px-4 md:px-8 py-8">
         {/* Raycast-style Search Bar */}
         <div className="relative w-full max-w-3xl mx-auto mb-8 group shrink-0">
           <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-            <Search className="w-5 h-5 text-[var(--color-muted)]" />
+            <Search className="w-5 h-5 text-app-muted" />
           </div>
           <input
             id="search-input"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-14 pl-12 pr-16 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl text-sm focus:ring-2 focus:ring-[var(--color-action-soft)] focus:border-[var(--color-action)] outline-none transition-all shadow-sm text-[var(--color-text)]"
+            className="w-full h-14 pl-12 pr-16 bg-app-surface border border-app-border rounded-xl text-sm focus:ring-2 focus:ring-app-action-soft focus:border-app-action outline-none transition-all shadow-sm text-app-text"
             placeholder={activeTab === 'highlights' ? "Search highlights, tags, or sources..." : "Search saved posts..."}
             type="text"
+            aria-label={activeTab === 'highlights' ? "Search highlights, tags, or sources" : "Search saved posts"}
           />
           <div className="absolute inset-y-0 right-4 flex items-center gap-2 pointer-events-none">
-            <kbd className="px-2 py-1 bg-[var(--color-surface-alt)] rounded text-[10px] text-[var(--color-muted)] font-mono border border-[var(--color-border)]">⌘</kbd>
-            <kbd className="px-2 py-1 bg-[var(--color-surface-alt)] rounded text-[10px] text-[var(--color-muted)] font-mono border border-[var(--color-border)]">K</kbd>
+            <kbd className="px-2 py-1 bg-app-surface-alt rounded text-[10px] text-app-muted font-mono border border-app-border">⌘</kbd>
+            <kbd className="px-2 py-1 bg-app-surface-alt rounded text-[10px] text-app-muted font-mono border border-app-border">K</kbd>
           </div>
         </div>
 
         {/* Dashboard Headers */}
         <div className="flex justify-between items-end mb-6 shrink-0">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-[var(--color-text)] mb-1">Knowledge Highlights</h1>
-            <p className="text-[var(--color-muted)] text-sm">
+            <h1 className="text-xl md:text-2xl font-bold text-app-text mb-1">Knowledge Highlights</h1>
+            <p className="text-app-muted text-sm">
               {activeTab === 'highlights'
                 ? `${filteredHighlights.length} active notes from your intelligence feed`
                 : `${filteredPosts.length} saved articles and posts`}
@@ -288,8 +289,8 @@ export const HighlightsScreen: React.FC = () => {
                 onClick={() => setActiveTab(id as NotebookTab)}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${
                   activeTab === id
-                    ? 'bg-[var(--color-action)] text-[var(--color-on-action)] border-[var(--color-action)]'
-                    : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-muted)] hover:bg-[var(--color-surface-alt)]'
+                    ? 'bg-app-action text-app-on-action border-app-action'
+                    : 'bg-app-surface border-app-border text-app-muted hover:bg-app-surface-alt'
                 }`}
               >
                 {label}
@@ -308,9 +309,9 @@ export const HighlightsScreen: React.FC = () => {
         <div className="flex-1 overflow-y-auto pr-2 -mr-2 hide-scrollbar pb-12">
           {activeTab === 'highlights' ? (
             filteredHighlights.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-48 border border-dashed border-[var(--color-border)] rounded-xl p-6 text-center">
-                <BookOpen className="w-8 h-8 text-[var(--color-muted)] mb-2" />
-                <p className="text-sm italic text-[var(--color-muted)]">
+              <div className="flex flex-col items-center justify-center h-48 border border-dashed border-app-border rounded-xl p-6 text-center">
+                <BookOpen className="w-8 h-8 text-app-muted mb-2" />
+                <p className="text-sm italic text-app-muted">
                   {searchQuery ? 'No highlights found matching search query.' : 'You have not saved any quotes yet. Highlight text in any post to save it here.'}
                 </p>
               </div>
@@ -325,10 +326,10 @@ export const HighlightsScreen: React.FC = () => {
                     <div
                       key={hl.id}
                       onClick={() => setSelectedHighlight(hl)}
-                      className={`group bg-[var(--color-surface)] border rounded-xl p-6 shadow-sm cursor-pointer transition-all duration-200 ${
+                      className={`group bg-app-surface border rounded-xl p-6 shadow-sm cursor-pointer transition-all duration-200 ${
                         isSelected
-                          ? 'border-[var(--color-action)] ring-2 ring-[var(--color-action-soft)]'
-                          : 'border-[var(--color-border)] hover:border-[var(--color-action-soft)] hover:-translate-y-0.5'
+                          ? 'border-app-action ring-2 ring-app-action-soft'
+                          : 'border-app-border hover:border-app-action-soft hover:-translate-y-0.5'
                       }`}
                     >
                       <div className="flex justify-between items-start mb-4">
@@ -336,18 +337,18 @@ export const HighlightsScreen: React.FC = () => {
                           <CatIcon className="w-3 h-3" />
                           <span>{category.label}</span>
                         </div>
-                        <span className="text-[11px] text-[var(--color-muted)] opacity-80">{formatTime(hl.createdAt)}</span>
+                        <span className="text-[11px] text-app-muted opacity-80">{formatTime(hl.createdAt)}</span>
                       </div>
-                      <p className="font-serif text-[15px] leading-relaxed text-[var(--color-text)] mb-4 line-clamp-3 italic">
+                      <p className="font-serif text-[15px] leading-relaxed text-app-text mb-4 line-clamp-3 italic">
                         "{hl.text}"
                       </p>
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-md bg-[var(--color-surface-alt)] flex items-center justify-center border border-[var(--color-border)]">
-                          <FileText className="w-4 h-4 text-[var(--color-muted)]" />
+                        <div className="w-8 h-8 rounded-md bg-app-surface-alt flex items-center justify-center border border-app-border">
+                          <FileText className="w-4 h-4 text-app-muted" />
                         </div>
                         <div className="min-w-0">
-                          <h3 className="text-xs font-bold text-[var(--color-text)] truncate max-w-[200px]">{hl.postTitle}</h3>
-                          <p className="text-[10px] text-[var(--color-muted)] uppercase tracking-wider font-semibold">{hl.channelName || 'Global Intelligence'}</p>
+                          <h3 className="text-xs font-bold text-app-text truncate max-w-[200px]">{hl.postTitle}</h3>
+                          <p className="text-[10px] text-app-muted uppercase tracking-wider font-semibold">{hl.channelName || 'Global Intelligence'}</p>
                         </div>
                       </div>
                     </div>
@@ -357,9 +358,9 @@ export const HighlightsScreen: React.FC = () => {
             )
           ) : (
             filteredPosts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-48 border border-dashed border-[var(--color-border)] rounded-xl p-6 text-center">
-                <BookOpen className="w-8 h-8 text-[var(--color-muted)] mb-2" />
-                <p className="text-sm italic text-[var(--color-muted)]">
+              <div className="flex flex-col items-center justify-center h-48 border border-dashed border-app-border rounded-xl p-6 text-center">
+                <BookOpen className="w-8 h-8 text-app-muted mb-2" />
+                <p className="text-sm italic text-app-muted">
                   {searchQuery ? 'No saved posts found matching search query.' : 'No saved posts yet.'}
                 </p>
               </div>
@@ -376,22 +377,22 @@ export const HighlightsScreen: React.FC = () => {
 
       {/* Right side: Sliding Detail Panel */}
       {activeTab === 'highlights' && selectedHighlight && (
-        <aside className="w-full max-w-md bg-[var(--color-surface)] border-l border-[var(--color-border)] h-full flex flex-col shadow-lg shrink-0">
+        <aside className="w-full max-w-md bg-app-surface border-l border-app-border h-full flex flex-col shadow-lg shrink-0">
           {/* Panel Header */}
-          <div className="p-6 border-b border-[var(--color-border)] flex justify-between items-center bg-[var(--color-surface-alt)]/50 backdrop-blur-sm sticky top-0 shrink-0">
-            <h2 className="text-sm font-bold text-[var(--color-text)] uppercase tracking-wider">Highlight Detail</h2>
+          <div className="p-6 border-b border-app-border flex justify-between items-center bg-app-surface-alt/50 backdrop-blur-sm sticky top-0 shrink-0">
+            <h2 className="text-sm font-bold text-app-text uppercase tracking-wider">Highlight Detail</h2>
             <div className="flex gap-2">
               <button
                 onClick={handleShareHighlight}
                 title="Share highlight link"
-                className="p-2 hover:bg-[var(--color-surface-container-high)] rounded-lg transition-colors text-[var(--color-muted)] hover:text-[var(--color-text)]"
+                className="p-2 hover:bg-app-surface-alt rounded-lg transition-colors text-app-muted hover:text-app-text"
               >
                 <Share2 className="w-4 h-4" />
               </button>
               <button
                 onClick={() => handleDeleteHighlight(selectedHighlight.id)}
                 title="Delete highlight"
-                className="p-2 hover:bg-red-500/10 hover:text-[var(--color-error)] rounded-lg transition-colors text-[var(--color-muted)]"
+                className="p-2 hover:bg-red-500/10 hover:text-state-error rounded-lg transition-colors text-app-muted"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -402,20 +403,20 @@ export const HighlightsScreen: React.FC = () => {
           <div className="flex-1 overflow-y-auto p-6 hide-scrollbar space-y-8">
             {/* Full Quote Area */}
             <section>
-              <span className="text-[10px] text-[var(--color-action)] font-bold tracking-widest block mb-3 uppercase">Original Highlight</span>
+              <span className="text-[10px] text-app-action font-bold tracking-widest block mb-3 uppercase">Original Highlight</span>
               <div className="relative pl-6">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--color-action)] rounded-full"></div>
-                <blockquote className="font-serif text-[17px] text-[var(--color-text)] italic leading-relaxed">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-app-action rounded-full"></div>
+                <blockquote className="font-serif text-[17px] text-app-text italic leading-relaxed">
                   "{selectedHighlight.text}"
                 </blockquote>
               </div>
-              <div className="mt-4 flex flex-wrap gap-4 text-xs text-[var(--color-muted)] font-semibold">
+              <div className="mt-4 flex flex-wrap gap-4 text-xs text-app-muted font-semibold">
                 <span className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5" /> {formatTime(selectedHighlight.createdAt)}
                 </span>
                 <Link
                   to={`/app/p/${selectedHighlight.postId}`}
-                  className="flex items-center gap-1 hover:text-[var(--color-action)] hover:underline"
+                  className="flex items-center gap-1 hover:text-app-action hover:underline"
                 >
                   <Link2 className="w-3.5 h-3.5" /> Source: {selectedHighlight.postTitle}
                 </Link>
@@ -425,20 +426,20 @@ export const HighlightsScreen: React.FC = () => {
             {/* Editable Annotations */}
             <section>
               <div className="flex justify-between items-center mb-3">
-                <span className="text-[10px] text-[var(--color-muted)] font-bold uppercase tracking-wider block">Personal Annotations</span>
-                <span className="text-[9px] bg-[var(--color-surface-alt)] px-1.5 py-0.5 rounded text-[var(--color-muted)] font-semibold border border-[var(--color-border)]">HASHTAGS SUPPORTED</span>
+                <span className="text-[10px] text-app-muted font-bold uppercase tracking-wider block">Personal Annotations</span>
+                <span className="text-[9px] bg-app-surface-alt px-1.5 py-0.5 rounded text-app-muted font-semibold border border-app-border">HASHTAGS SUPPORTED</span>
               </div>
               <textarea
                 value={noteDrafts[selectedHighlight.id] ?? ''}
                 onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [selectedHighlight.id]: e.target.value }))}
-                className="w-full h-64 p-4 bg-[var(--color-surface-alt)] border border-[var(--color-border)] rounded-xl font-mono text-xs focus:ring-2 focus:ring-[var(--color-action-soft)] focus:border-[var(--color-action)] outline-none resize-none transition-all text-[var(--color-text)]"
+                className="w-full h-64 p-4 bg-app-surface-alt border border-app-border rounded-xl font-mono text-xs focus:ring-2 focus:ring-app-action-soft focus:border-app-action outline-none resize-none transition-all text-app-text"
                 placeholder="Add your thoughts, hashtags, or action items here... (e.g., #strategy, #risk)"
               />
               <div className="mt-4 flex flex-wrap gap-2 items-center">
                 {parsedTags.map((tag) => (
                   <span
                     key={tag}
-                    className="px-2 py-1 rounded bg-[var(--color-surface-alt)] text-[10px] font-bold text-[var(--color-muted)] border border-[var(--color-border)] flex items-center gap-1"
+                    className="px-2 py-1 rounded bg-app-surface-alt text-[10px] font-bold text-app-muted border border-app-border flex items-center gap-1"
                   >
                     {tag}
                     <button
@@ -453,7 +454,7 @@ export const HighlightsScreen: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleAddTag}
-                  className="px-2 py-1 rounded bg-[var(--color-action-soft)] text-[var(--color-action)] text-[10px] font-bold border border-[var(--color-action-soft)] flex items-center gap-1 hover:bg-[var(--color-action-faint)] transition-colors"
+                  className="px-2 py-1 rounded bg-app-action-soft text-app-action text-[10px] font-bold border border-app-action-soft flex items-center gap-1 hover:bg-app-action-faint transition-colors"
                 >
                   <Plus className="w-3 h-3" /> Add Tag
                 </button>
@@ -462,24 +463,24 @@ export const HighlightsScreen: React.FC = () => {
 
             {/* AI Extraction / Metadata */}
             {aiAnalysis && (
-              <section className="p-4 rounded-xl bg-[var(--color-action-faint)] border border-[var(--color-action-soft)]">
+              <section className="p-4 rounded-xl bg-app-action-faint border border-app-action-soft">
                 <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-[var(--color-action)]" />
-                  <span className="text-[10px] text-[var(--color-action)] font-bold tracking-widest uppercase">AI Intelligence</span>
+                  <Sparkles className="w-4 h-4 text-app-action" />
+                  <span className="text-[10px] text-app-action font-bold tracking-widest uppercase">AI Intelligence</span>
                 </div>
                 <ul className="space-y-2">
                   <li className="flex justify-between text-xs font-semibold">
-                    <span className="text-[var(--color-muted)]">Sentiment</span>
-                    <span className="text-[var(--color-action)] font-bold">{aiAnalysis.sentiment}</span>
+                    <span className="text-app-muted">Sentiment</span>
+                    <span className="text-app-action font-bold">{aiAnalysis.sentiment}</span>
                   </li>
                   <li className="flex justify-between text-xs font-semibold items-center">
-                    <span className="text-[var(--color-muted)]">Confidence Score</span>
+                    <span className="text-app-muted">Confidence Score</span>
                     <div className="flex gap-0.5">
                       {[1, 2, 3, 4, 5].map((dot) => (
                         <span
                           key={dot}
                           className={`w-3 h-1.5 rounded-full ${
-                            dot <= aiAnalysis.filledDots ? 'bg-[var(--color-action)]' : 'bg-[var(--color-border)]'
+                            dot <= aiAnalysis.filledDots ? 'bg-app-action' : 'bg-[var(--color-app-border)]'
                           }`}
                         ></span>
                       ))}
@@ -491,16 +492,16 @@ export const HighlightsScreen: React.FC = () => {
           </div>
 
           {/* Footer Actions */}
-          <div className="p-6 bg-[var(--color-surface)] border-t border-[var(--color-border)] sticky bottom-0 flex gap-3 shrink-0">
+          <div className="p-6 bg-app-surface border-t border-app-border sticky bottom-0 flex gap-3 shrink-0">
             <button
               onClick={handleSaveChanges}
-              className="flex-1 px-4 py-2.5 bg-[var(--color-action)] text-[var(--color-on-action)] rounded-lg text-xs font-bold shadow-md hover:bg-[var(--color-action-hover)] hover:shadow-lg transition-all active:scale-[0.98]"
+              className="flex-1 px-4 py-2.5 bg-app-action text-app-on-action rounded-lg text-xs font-bold shadow-md hover:bg-app-action-hover hover:shadow-lg transition-all active:scale-[0.98]"
             >
               Save Changes
             </button>
             <button
               onClick={handleExport}
-              className="px-4 py-2.5 bg-[var(--color-surface-alt)] text-[var(--color-muted)] rounded-lg text-xs font-bold border border-[var(--color-border)] hover:bg-[var(--color-surface-container-high)] hover:text-[var(--color-text)] transition-all"
+              className="px-4 py-2.5 bg-app-surface-alt text-app-muted rounded-lg text-xs font-bold border border-app-border hover:bg-app-surface-alt hover:text-app-text transition-all"
             >
               Export
             </button>

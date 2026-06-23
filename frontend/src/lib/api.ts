@@ -76,12 +76,23 @@ export type BackendTopicDTO = {
   avatar?: string | null;
   banner?: string | null;
   rules?: string | null;
+  visibility?: string | null;
   ownerId?: number | null;
   ownerName?: string | null;
   memberCount?: number | null;
   postCount?: number | null;
   joined?: boolean | null;
+  canPost?: boolean | null;
   createdAt?: string | null;
+};
+
+export type BackendTopicMemberDTO = {
+  id: number;
+  name: string;
+  email: string;
+  avatar?: string | null;
+  role: string;
+  canPost: boolean;
 };
 
 export type BackendPostDTO = {
@@ -98,6 +109,8 @@ export type BackendPostDTO = {
   authorName: string;
   topicId: number;
   topicName: string;
+  topicSlug: string;
+  canModerate: boolean;
   articleId?: number | null;
   aiSummary?: string | null;
   createdAt: string;
@@ -138,6 +151,7 @@ export type BackendArticleDTO = {
   authorAvatar?: string | null;
   categories?: Array<{ id: number; name: string; slug?: string | null }>;
   tags?: Array<{ id: number; name: string; slug?: string | null }>;
+  savedByMe?: boolean | null;
 };
 
 export type BackendAuthorDTO = {
@@ -257,16 +271,23 @@ export type BackendReadingProgressDTO = {
   updatedAt: string;
 };
 
-export type BackendMediaDTO = {
+export type BackendNotificationDTO = {
   id: number;
-  url: string;
-  objectKey: string;
-  storageProvider: string;
-  originalFilename?: string | null;
-  contentType: string;
-  sizeBytes: number;
-  altText?: string | null;
+  type: string;
+  title: string;
+  body?: string | null;
+  actorName?: string | null;
+  actorAvatar?: string | null;
+  actorId?: number | null;
+  refType?: string | null;
+  refId?: number | null;
+  refSlug?: string | null;
+  isRead: boolean;
   createdAt: string;
+};
+
+export type UnreadCountResponse = {
+  count: number;
 };
 
 type RequestOptions = RequestInit & {
@@ -369,7 +390,7 @@ export const backendApi = {
 
   getTopicBySlug: (slug: string) => apiRequest<BackendTopicDTO>(`/topics/slug/${encodeURIComponent(slug)}`),
 
-  createTopic: (input: { name: string; description?: string; avatar?: string; banner?: string; rules?: string }) =>
+  createTopic: (input: { name: string; description?: string; avatar?: string; banner?: string; rules?: string; visibility?: string }) =>
     apiRequest<BackendTopicDTO>('/topics', {
       method: 'POST',
       body: JSON.stringify(input),
@@ -383,6 +404,35 @@ export const backendApi = {
   leaveTopic: (id: string | number) =>
     apiRequest<BackendTopicDTO>(`/topics/${id}/join`, {
       method: 'DELETE',
+    }),
+
+  inviteToTopic: (topicId: string | number, email: string) =>
+    apiRequest<void>(`/topics/${topicId}/invite`, {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  acceptTopicInvite: (inviteId: string | number) =>
+    apiRequest<BackendTopicDTO>(`/topics/invites/${inviteId}/accept`, {
+      method: 'POST',
+    }),
+
+  declineTopicInvite: (inviteId: string | number) =>
+    apiRequest<void>(`/topics/invites/${inviteId}/decline`, {
+      method: 'POST',
+    }),
+
+  getTopicMembers: (topicId: string | number, query?: string) =>
+    apiRequest<BackendTopicMemberDTO[]>(`/topics/${topicId}/members${query ? `?q=${encodeURIComponent(query)}` : ''}`),
+
+  setMemberRole: (topicId: string | number, userId: string | number, role: string) =>
+    apiRequest<BackendTopicDTO>(`/topics/${topicId}/members/${userId}/role?role=${encodeURIComponent(role)}`, {
+      method: 'PUT',
+    }),
+
+  setMemberCanPost: (topicId: string | number, userId: string | number, canPost: boolean) =>
+    apiRequest<BackendTopicDTO>(`/topics/${topicId}/members/${userId}/canPost?canPost=${canPost}`, {
+      method: 'PUT',
     }),
 
   getAdminCredentialRequests: (status = '', page = 0, size = 20) =>
@@ -536,6 +586,9 @@ export const backendApi = {
       method: 'PATCH',
     }),
 
+  getActiveAds: (placement = 'feed', page = 0, size = 20) =>
+    apiRequest<PaginatedResponse<BackendAdCampaignDTO>>(`/ads?placement=${encodeURIComponent(placement)}&page=${page}&size=${size}`, { skipAuth: true }),
+
   getCurrentUser: () => apiRequest<BackendUserDTO>('/users/me'),
 
   getMyTrust: () => apiRequest<BackendTrustResponse>('/users/me/trust'),
@@ -686,6 +739,9 @@ export const backendApi = {
 
   getPost: (postId: string) => apiRequest<BackendPostDTO>(`/posts/${postId}`),
 
+  getPostsByUser: (userId: number, page = 0, size = 20) =>
+    apiRequest<PaginatedResponse<BackendPostDTO>>(`/posts/by-user/${userId}?page=${page}&size=${size}`, { skipAuth: true }),
+
   createPost: (input: {
     title: string;
     content: string;
@@ -699,8 +755,8 @@ export const backendApi = {
       body: JSON.stringify(input),
     }),
 
-  deletePost: (postId: string | number) =>
-    apiRequest<void>(`/posts/${postId}`, {
+  deletePost: (postId: string | number, reason?: string) =>
+    apiRequest<void>(`/posts/${postId}${reason ? `?reason=${encodeURIComponent(reason)}` : ''}`, {
       method: 'DELETE',
     }),
 
@@ -801,4 +857,18 @@ export const backendApi = {
     apiRequest<void>(`/comments/${commentId}`, {
       method: 'DELETE',
     }),
+
+  // ── Notifications ──
+
+  getNotifications: (page = 0, size = 20) =>
+    apiRequest<PaginatedResponse<BackendNotificationDTO>>(`/notifications?page=${page}&size=${size}`),
+
+  getUnreadNotificationCount: () =>
+    apiRequest<UnreadCountResponse>('/notifications/unread-count'),
+
+  markNotificationRead: (id: number) =>
+    apiRequest<void>(`/notifications/${id}/read`, { method: 'PUT' }),
+
+  markAllNotificationsRead: () =>
+    apiRequest<void>('/notifications/read-all', { method: 'PUT' }),
 };

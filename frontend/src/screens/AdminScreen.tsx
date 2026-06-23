@@ -2846,7 +2846,7 @@ const AdInspector: React.FC<{
     {campaign.imageUrl && (
       <div className="border-b border-app-border py-4">
         <p className="mono-label text-app-muted">Creative</p>
-        <img
+        <img loading="lazy"
           src={campaign.imageUrl}
           alt=""
           className="mt-3 aspect-video w-full border border-app-border object-cover"

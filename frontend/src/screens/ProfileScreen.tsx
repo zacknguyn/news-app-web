@@ -10,7 +10,7 @@ import {
   Share2,
 } from 'lucide-react';
 import { backendApi, type BackendReadingProgressDTO } from '../lib/api';
-import { backendArticleToPost, backendAuthorToUser, backendUserToUser } from '../lib/backendAdapters';
+import { backendPostToPost, backendAuthorToUser, backendUserToUser } from '../lib/backendAdapters';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from '../components/ui/Alert';
 import { Field, Input, TextArea } from '../components/ui/Input';
@@ -134,13 +134,13 @@ export const ProfileScreen: React.FC = () => {
       try {
         if (authUser && (username === authUser.username || username === authUser.id)) {
           const currentUser = await backendApi.getCurrentUser();
-          const articles = await backendApi.getArticlesByUser(currentUser.id, 0, 10).catch(() => null);
+          const posts = await backendApi.getPostsByUser(currentUser.id, 0, 20).catch(() => null);
           const hl = await getHighlights().catch(() => []);
           const history = await backendApi.getReadingProgress().catch(() => []);
 
           if (!isMounted) return;
           setProfileUser(backendUserToUser(currentUser));
-          setUserPosts(articles?.content.map(backendArticleToPost) || []);
+          setUserPosts(posts?.content.map(backendPostToPost) || []);
           setHighlights(hl);
           setHighlightsCount(hl.length);
           setReadingHistory(history);
@@ -148,10 +148,10 @@ export const ProfileScreen: React.FC = () => {
         }
         if (profileUserId) {
           const profile = await backendApi.getUserProfile(profileUserId);
-          const articles = await backendApi.getArticlesByUser(profile.id, 0, 10).catch(() => null);
+          const posts = await backendApi.getPostsByUser(profile.id, 0, 20).catch(() => null);
           if (!isMounted) return;
           setProfileUser(backendUserToUser(profile));
-          setUserPosts(articles?.content.map(backendArticleToPost) || []);
+          setUserPosts(posts?.content.map(backendPostToPost) || []);
           return;
         }
         const author = await backendApi.getAuthorBySlug(username || '');
@@ -244,7 +244,7 @@ export const ProfileScreen: React.FC = () => {
   if (isLoading)
     return (
       <div className="px-4 py-20 flex justify-center items-center h-64">
-        <span className="animate-pulse text-sm text-[var(--color-muted)] font-mono">
+        <span className="animate-pulse text-sm text-app-muted font-mono">
           Loading profile...
         </span>
       </div>
@@ -256,8 +256,8 @@ export const ProfileScreen: React.FC = () => {
       {/* Profile Header */}
       <section className="flex flex-col items-center text-center mb-12">
         <div className="relative mb-6">
-          <img
-            className="w-32 h-32 rounded-full object-cover border-4 border-[var(--color-border)] shadow-lg"
+          <img loading="lazy"
+            className="w-32 h-32 rounded-full object-cover border-4 border-app-border shadow-lg"
             src={
               profileUser.avatarUrl ||
               `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(profileUser.username)}`
@@ -265,16 +265,16 @@ export const ProfileScreen: React.FC = () => {
             alt=""
           />
           {profileUser.isVerified && (
-            <div className="absolute bottom-1 right-1 bg-[var(--color-action)] p-1.5 rounded-full border-2 border-white flex items-center justify-center shadow-md">
+            <div className="absolute bottom-1 right-1 bg-app-action p-1.5 rounded-full border-2 border-white flex items-center justify-center shadow-md">
               <ShieldCheck className="w-3.5 h-3.5 text-white" />
             </div>
           )}
         </div>
-        <h1 className="font-serif text-3xl font-bold text-[var(--color-text)] mb-2">
+        <h1 className="font-serif text-3xl font-bold text-app-text mb-2">
           {profileUser.name}
         </h1>
-        <div className="flex items-center justify-center gap-2 mb-4 text-xs font-semibold text-[var(--color-muted)]">
-          <span className="px-3 py-1 rounded-full bg-[var(--color-action-soft)] text-[var(--color-action)] font-bold uppercase tracking-wider">
+        <div className="flex items-center justify-center gap-2 mb-4 text-xs font-semibold text-app-muted">
+          <span className="px-3 py-1 rounded-full bg-app-action-soft text-app-action font-bold uppercase tracking-wider">
             {profileUser.role === 'ADMIN' ? 'Senior Editor' : 'Contributor'}
           </span>
           <span>•</span>
@@ -283,12 +283,12 @@ export const ProfileScreen: React.FC = () => {
           </span>
         </div>
         {profileUser.profileHeadline && (
-          <p className="font-mono text-[10px] text-[var(--color-action)] uppercase tracking-widest mb-3 font-bold">
+          <p className="text-[10px] text-app-muted uppercase tracking-wider mb-3 font-bold">
             {profileUser.profileHeadline}
           </p>
         )}
         {(profileUser.profileBio || profileUser.bio) && (
-          <p className="font-serif text-[15px] leading-relaxed text-[var(--color-text)] max-w-md mx-auto italic">
+          <p className="font-serif text-[15px] leading-relaxed text-app-text max-w-md mx-auto italic">
             "{profileUser.profileBio || profileUser.bio}"
           </p>
         )}
@@ -299,14 +299,14 @@ export const ProfileScreen: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsSettingsOpen(true)}
-              className="px-4 py-2 bg-[var(--color-action)] text-[var(--color-on-action)] rounded-lg text-xs font-bold shadow hover:bg-[var(--color-action-hover)] transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2 bg-app-action text-app-on-action rounded-lg text-xs font-bold shadow hover:bg-app-action-hover transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Settings className="w-3.5 h-3.5" /> Edit Profile
             </button>
           ) : (
             <a
               href={`mailto:${profileUser.email || ''}`}
-              className="px-4 py-2 bg-[var(--color-action)] text-[var(--color-on-action)] rounded-lg text-xs font-bold shadow hover:bg-[var(--color-action-hover)] transition-all flex items-center gap-1.5"
+              className="px-4 py-2 bg-app-action text-app-on-action rounded-lg text-xs font-bold shadow hover:bg-app-action-hover transition-all flex items-center gap-1.5"
             >
               <Mail className="w-3.5 h-3.5" /> Pitch Contributor
             </a>
@@ -317,9 +317,9 @@ export const ProfileScreen: React.FC = () => {
               navigator.clipboard?.writeText(window.location.href);
               toast.success('Profile link copied to clipboard.');
             }}
-            className="px-4 py-2 bg-[var(--color-surface-alt)] text-[var(--color-text)] border border-[var(--color-border)] rounded-lg text-xs font-bold hover:bg-[var(--color-surface-container-high)] transition-all flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-2 bg-app-surface-alt text-app-text border border-app-border rounded-lg text-xs font-bold hover:bg-app-surface-alt transition-all flex items-center gap-1.5 cursor-pointer"
           >
-            <Share2 className="w-3.5 h-3.5 text-[var(--color-muted)]" /> Share
+            <Share2 className="w-3.5 h-3.5 text-app-muted" /> Share
           </button>
         </div>
       </section>
@@ -332,35 +332,35 @@ export const ProfileScreen: React.FC = () => {
 
       {/* Stats Grid */}
       <section className="grid grid-cols-3 gap-4 mb-12">
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] p-5 rounded-xl text-center shadow-sm hover:border-[var(--color-action-soft)] hover:-translate-y-0.5 transition-all duration-200">
-          <div className="text-[10px] font-bold text-[var(--color-muted)] mb-1 tracking-wider uppercase">REPUTATION</div>
-          <div className="font-serif text-[28px] font-bold text-[var(--color-text)]">{profileUser.trustScore}</div>
-          <div className="flex items-center justify-center text-[10px] text-[var(--color-action)] mt-1 font-bold">
+        <div className="bg-app-surface border border-app-border p-5 rounded-xl text-center shadow-sm hover:border-app-action-soft hover:-translate-y-0.5 transition-all duration-200">
+          <div className="text-[10px] font-bold text-app-muted mb-1 tracking-wider uppercase">REPUTATION</div>
+          <div className="font-serif text-[28px] font-bold text-app-text">{profileUser.trustScore}</div>
+          <div className="flex items-center justify-center text-[10px] text-app-action mt-1 font-bold">
             <TrendingUp className="w-3.5 h-3.5 mr-1" /> TOP {profileUser.trustScore > 500 ? '2%' : profileUser.trustScore > 200 ? '10%' : '25%'}
           </div>
         </div>
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] p-5 rounded-xl text-center shadow-sm hover:border-[var(--color-action-soft)] hover:-translate-y-0.5 transition-all duration-200">
-          <div className="text-[10px] font-bold text-[var(--color-muted)] mb-1 tracking-wider uppercase">DISPATCHES</div>
-          <div className="font-serif text-[28px] font-bold text-[var(--color-text)]">{userPosts.length}</div>
-          <div className="text-[10px] text-[var(--color-muted)] mt-1 font-bold tracking-widest uppercase">BYLINES</div>
+        <div className="bg-app-surface border border-app-border p-5 rounded-xl text-center shadow-sm hover:border-app-action-soft hover:-translate-y-0.5 transition-all duration-200">
+          <div className="text-[10px] font-bold text-app-muted mb-1 tracking-wider uppercase">DISPATCHES</div>
+          <div className="font-serif text-[28px] font-bold text-app-text">{userPosts.length}</div>
+          <div className="text-[10px] text-app-muted mt-1 font-bold tracking-widest uppercase">BYLINES</div>
         </div>
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] p-5 rounded-xl text-center shadow-sm hover:border-[var(--color-action-soft)] hover:-translate-y-0.5 transition-all duration-200">
-          <div className="text-[10px] font-bold text-[var(--color-muted)] mb-1 tracking-wider uppercase">SNIPPETS</div>
-          <div className="font-serif text-[28px] font-bold text-[var(--color-text)]">{isOwnProfile ? highlightsCount : Math.floor(profileUser.trustScore / 8) || 12}</div>
-          <div className="text-[10px] text-[var(--color-muted)] mt-1 font-bold tracking-widest uppercase">HIGHLIGHTS</div>
+        <div className="bg-app-surface border border-app-border p-5 rounded-xl text-center shadow-sm hover:border-app-action-soft hover:-translate-y-0.5 transition-all duration-200">
+          <div className="text-[10px] font-bold text-app-muted mb-1 tracking-wider uppercase">SNIPPETS</div>
+          <div className="font-serif text-[28px] font-bold text-app-text">{isOwnProfile ? highlightsCount : Math.floor(profileUser.trustScore / 8) || 12}</div>
+          <div className="text-[10px] text-app-muted mt-1 font-bold tracking-widest uppercase">HIGHLIGHTS</div>
         </div>
       </section>
 
       {/* Tabs Navigation */}
-      <div className="flex border-b border-[var(--color-border)] mb-8 overflow-x-auto no-scrollbar">
+      <div className="flex border-b border-app-border mb-8 overflow-x-auto no-scrollbar">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as ProfileTab)}
             className={`px-6 py-4 text-sm font-semibold transition-all border-b-2 whitespace-nowrap cursor-pointer ${
               activeTab === tab.id
-                ? 'border-[var(--color-action)] text-[var(--color-action)] font-bold'
-                : 'border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)]'
+                ? 'border-app-action text-app-action font-bold'
+                : 'border-transparent text-app-muted hover:text-app-text'
             }`}
           >
             {tab.label}
@@ -372,15 +372,15 @@ export const ProfileScreen: React.FC = () => {
       <section className="space-y-12">
         {activeTab === 'articles' && (
           Object.keys(groupedPosts).length === 0 ? (
-            <p className="py-6 text-sm italic text-[var(--color-muted)] text-center">
+            <p className="py-6 text-sm italic text-app-muted text-center">
               No reports filed yet.
             </p>
           ) : (
             Object.entries(groupedPosts).map(([groupName, posts]) => (
-              <div key={groupName} className="relative pl-8 border-l border-[var(--color-border)] ml-2">
+              <div key={groupName} className="relative pl-8 border-l border-app-border ml-2">
                 {/* Small bullet indicator on the line */}
-                <div className="absolute left-[-6px] top-1.5 w-3 h-3 rounded-full bg-[var(--color-action)] ring-4 ring-[var(--color-surface)]"></div>
-                <div className="text-[11px] font-bold text-[var(--color-muted)] uppercase tracking-widest mb-6">
+                <div className="absolute left-[-6px] top-1.5 w-3 h-3 rounded-full bg-app-action ring-4 ring-[var(--color-app-surface)]"></div>
+                <div className="text-[11px] font-bold text-app-muted uppercase tracking-widest mb-6">
                   {groupName}
                 </div>
                 <div className="space-y-8">
@@ -389,18 +389,18 @@ export const ProfileScreen: React.FC = () => {
                       <Link to={`/app/p/${post.id}`} className="flex justify-between gap-6">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="w-2 h-2 rounded-full bg-[var(--color-action-soft)]"></span>
-                            <span className="text-[10px] font-bold tracking-wider text-[var(--color-action)] uppercase">
+                            <span className="w-2 h-2 rounded-full bg-app-action-soft"></span>
+                            <span className="text-[10px] font-bold tracking-wider text-app-action uppercase">
                               {post.channelName}
                             </span>
                           </div>
-                          <h3 className="font-serif text-[18px] font-bold text-[var(--color-text)] group-hover:text-[var(--color-action)] transition-colors mb-2 leading-snug">
+                          <h3 className="font-serif text-[18px] font-bold text-app-text group-hover:text-app-action transition-colors mb-2 leading-snug">
                             {post.title}
                           </h3>
-                          <p className="text-sm text-[var(--color-muted)] line-clamp-2 leading-relaxed">
+                          <p className="text-sm text-app-muted line-clamp-2 leading-relaxed">
                             {stripHtml(post.content)}
                           </p>
-                          <div className="mt-4 flex items-center gap-4 text-xs text-[var(--color-muted)] font-bold">
+                          <div className="mt-4 flex items-center gap-4 text-xs text-app-muted font-bold">
                             <span>{Math.max(1, Math.ceil(stripHtml(post.content).split(/\s+/).length / 200))} MIN READ</span>
                             <span>•</span>
                             <div className="flex items-center gap-1">
@@ -409,8 +409,8 @@ export const ProfileScreen: React.FC = () => {
                           </div>
                         </div>
                         {post.mediaUrl && (
-                          <div className="w-24 h-24 rounded-lg bg-[var(--color-surface-alt)] overflow-hidden flex-shrink-0 border border-[var(--color-border)]">
-                            <img className="w-full h-full object-cover" src={post.mediaUrl} alt="" />
+                          <div className="w-24 h-24 rounded-lg bg-app-surface-alt overflow-hidden flex-shrink-0 border border-app-border">
+                            <img loading="lazy" className="w-full h-full object-cover" src={post.mediaUrl} alt="" />
                           </div>
                         )}
                       </Link>
@@ -424,18 +424,18 @@ export const ProfileScreen: React.FC = () => {
 
         {activeTab === 'quotes' && (
           highlights.length === 0 ? (
-            <p className="py-6 text-sm italic text-[var(--color-muted)] text-center">
+            <p className="py-6 text-sm italic text-app-muted text-center">
               No quotes saved yet. Highlight text inside any report to save a quote here.
             </p>
           ) : (
             <div className="space-y-6">
               {highlights.map((hl) => (
-                <div key={hl.id} className="border border-[var(--color-border)] rounded-xl p-5 bg-[var(--color-surface)] shadow-sm">
-                  <p className="font-serif text-[15px] text-[var(--color-text)] italic leading-relaxed mb-4">
+                <div key={hl.id} className="border border-app-border rounded-xl p-5 bg-app-surface shadow-sm">
+                  <p className="font-serif text-[15px] text-app-text italic leading-relaxed mb-4">
                     "{hl.text}"
                   </p>
-                  <div className="flex items-center justify-between text-xs text-[var(--color-muted)] font-semibold">
-                    <Link to={`/app/p/${hl.postId}`} className="hover:text-[var(--color-action)] hover:underline">
+                  <div className="flex items-center justify-between text-xs text-app-muted font-semibold">
+                    <Link to={`/app/p/${hl.postId}`} className="hover:text-app-action hover:underline">
                       Source: {hl.postTitle}
                     </Link>
                     <span>{formatTime(hl.createdAt)}</span>
@@ -448,27 +448,27 @@ export const ProfileScreen: React.FC = () => {
 
         {activeTab === 'history' && (
           readingHistory.length === 0 ? (
-            <p className="py-6 text-sm italic text-[var(--color-muted)] text-center">
+            <p className="py-6 text-sm italic text-app-muted text-center">
               No reading history recorded. Reading progress will be tracked as you read articles.
             </p>
           ) : (
             <div className="space-y-6">
               {readingHistory.map((history) => (
-                <div key={history.id} className="border border-[var(--color-border)] rounded-xl p-5 bg-[var(--color-surface)] shadow-sm">
+                <div key={history.id} className="border border-app-border rounded-xl p-5 bg-app-surface shadow-sm">
                   <div className="flex justify-between items-start mb-2">
-                    <h4 className="text-sm font-bold text-[var(--color-text)] max-w-[80%]">
-                      <Link to={`/app/p/${history.postId}`} className="hover:text-[var(--color-action)] hover:underline">
+                    <h4 className="text-sm font-bold text-app-text max-w-[80%]">
+                      <Link to={`/app/p/${history.postId}`} className="hover:text-app-action hover:underline">
                         {history.title}
                       </Link>
                     </h4>
-                    <span className="text-[10px] font-bold text-[var(--color-action)] bg-[var(--color-action-soft)] px-2 py-0.5 rounded border border-[var(--color-action-soft)]">
+                    <span className="text-[10px] font-bold text-app-action bg-app-action-soft px-2 py-0.5 rounded border border-app-action-soft">
                       {history.progress}% READ
                     </span>
                   </div>
-                  <div className="w-full h-1 bg-[var(--color-border)] rounded-full overflow-hidden mb-3">
-                    <div className="h-full bg-[var(--color-action)]" style={{ width: `${history.progress}%` }}></div>
+                  <div className="w-full h-1 bg-[var(--color-app-border)] rounded-full overflow-hidden mb-3">
+                    <div className="h-full bg-app-action" style={{ width: `${history.progress}%` }}></div>
                   </div>
-                  <div className="flex justify-between text-[10px] text-[var(--color-muted)] font-semibold">
+                  <div className="flex justify-between text-[10px] text-app-muted font-semibold">
                     <span>{history.channelName || 'Global Intelligence'}</span>
                     <span>Last read: {formatTime(history.updatedAt)}</span>
                   </div>
@@ -486,16 +486,16 @@ export const ProfileScreen: React.FC = () => {
             className="absolute inset-0 bg-transparent"
             onClick={() => setIsSettingsOpen(false)}
           />
-          <div className="relative z-10 max-h-[min(90dvh,52rem)] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-2xl sm:p-6">
-            <div className="flex items-start justify-between gap-4 border-b border-[var(--color-border)] pb-4 mb-6">
+          <div className="relative z-10 max-h-[min(90dvh,52rem)] w-full max-w-2xl overflow-y-auto rounded-2xl border border-app-border bg-app-surface p-5 shadow-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-4 border-b border-app-border pb-4 mb-6">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-action)]">Account settings</p>
-                <h2 id="profile-settings-title" className="mt-1 text-xl font-bold text-[var(--color-text)]">Customize profile</h2>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-app-action">Account settings</p>
+                <h2 id="profile-settings-title" className="mt-1 text-xl font-bold text-app-text">Customize profile</h2>
               </div>
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(false)}
-                className="w-8 h-8 rounded-lg hover:bg-[var(--color-surface-container-high)] flex items-center justify-center text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg hover:bg-app-surface-alt flex items-center justify-center text-app-muted hover:text-app-text transition-colors cursor-pointer"
                 aria-label="Close account settings"
               >
                 x
@@ -538,7 +538,7 @@ export const ProfileScreen: React.FC = () => {
                 />
               </Field>
 
-              <div className="border-y border-[var(--color-border)] py-4">
+              <div className="border-y border-app-border py-4">
                 <UnlockRow
                   title="Selected badge"
                   copy={canUseBadges ? 'Badge near your name.' : 'Unlock with Reader Plus.'}
@@ -551,7 +551,7 @@ export const ProfileScreen: React.FC = () => {
                     onChange={(event) =>
                       setProfileDraft((current) => ({ ...current, selectedBadge: event.target.value }))
                     }
-                    className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 text-xs font-semibold text-[var(--color-text)] rounded-lg disabled:opacity-45"
+                    className="h-10 w-full border border-app-border bg-app-surface-alt px-3 text-xs font-semibold text-app-text rounded-lg disabled:opacity-45"
                   >
                     <option value="">No badge</option>
                     {(profileUser.unlockedBadges || []).map((badge) => (
@@ -574,7 +574,7 @@ export const ProfileScreen: React.FC = () => {
                         Accent preview: {profileDraft.profileAccent || 'None'}
                       </p>
                       <div className="mt-3 flex items-center gap-3">
-                        <img
+                        <img loading="lazy"
                           src={
                             profileUser.avatarUrl ||
                             `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(profileUser.username)}`
@@ -611,21 +611,21 @@ export const ProfileScreen: React.FC = () => {
                             setProfileDraft((current) => ({ ...current, profileAccent: option.value }));
                           }}
                           className={`border p-3 text-left rounded-lg transition-colors ${
-                            isLocked ? 'cursor-not-allowed opacity-45' : 'hover:bg-[var(--color-surface-alt)]'
-                          } ${isSelected ? optionAccentClass : 'border-[var(--color-border)]'}`}
+                            isLocked ? 'cursor-not-allowed opacity-45' : 'hover:bg-app-surface-alt'
+                          } ${isSelected ? optionAccentClass : 'border-app-border'}`}
                         >
                           <span className="flex items-center gap-2">
                             <span className={`h-3 w-3 border rounded-full ${swatchClass}`} aria-hidden="true" />
-                            <span className="font-mono text-[11px] uppercase tracking-wider text-[var(--color-text)] font-semibold">
+                            <span className="font-mono text-[11px] uppercase tracking-wider text-app-text font-semibold">
                               {option.label}
                             </span>
                             {isSelected && (
-                              <span className="ml-auto font-mono text-[10px] uppercase tracking-wider text-[var(--color-action)] font-bold">
+                              <span className="ml-auto font-mono text-[10px] uppercase tracking-wider text-app-action font-bold">
                                 Active
                               </span>
                             )}
                           </span>
-                          <span className="mt-1 block text-xs text-[var(--color-muted)]">{option.description}</span>
+                          <span className="mt-1 block text-xs text-app-muted">{option.description}</span>
                         </button>
                       );
                     })}
@@ -635,17 +635,17 @@ export const ProfileScreen: React.FC = () => {
 
               <Link
                 to="/app/subscribe"
-                className="text-xs font-bold text-[var(--color-action)] hover:underline inline-block"
+                className="text-xs font-bold text-app-action hover:underline inline-block"
               >
                 Manage subscription
               </Link>
 
-              <div className="sticky bottom-0 -mx-5 -mb-5 mt-6 border-t border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-4 sm:-mx-6 sm:-mb-6 sm:px-6">
+              <div className="sticky bottom-0 -mx-5 -mb-5 mt-6 border-t border-app-border bg-app-surface px-5 py-4 sm:-mx-6 sm:-mb-6 sm:px-6">
                 <button
                   type="button"
                   onClick={handleSaveCustomization}
                   disabled={isSavingCustomization}
-                  className="inline-flex h-11 w-full items-center justify-center bg-[var(--color-action)] px-6 text-xs font-bold text-white rounded-lg hover:bg-[var(--color-action-hover)] disabled:cursor-not-allowed disabled:opacity-45 cursor-pointer shadow-md transition-all"
+                  className="inline-flex h-11 w-full items-center justify-center bg-app-action px-6 text-xs font-bold text-white rounded-lg hover:bg-app-action-hover disabled:cursor-not-allowed disabled:opacity-45 cursor-pointer shadow-md transition-all"
                 >
                   {isSavingCustomization ? 'Saving...' : 'Save Profile'}
                 </button>
@@ -667,14 +667,14 @@ const UnlockRow: React.FC<{
   locked: boolean;
   children: React.ReactNode;
 }> = ({ title, copy, helper, locked, children }) => (
-  <div className="grid gap-3 border-b border-[var(--color-border)] py-4 last:border-b-0">
+  <div className="grid gap-3 border-b border-app-border py-4 last:border-b-0">
     <div>
       <div className="flex items-center gap-2">
-        <p className="text-sm font-bold text-[var(--color-text)]">{title}</p>
+        <p className="text-sm font-bold text-app-text">{title}</p>
         {helper && <HelperTip label={helper} side="right" />}
       </div>
-      <p className="mt-1 text-xs text-[var(--color-muted)] leading-relaxed">{copy}</p>
-      {locked && <p className="mt-2 text-[10px] font-bold uppercase tracking-wider text-[var(--color-action)]">Locked</p>}
+      <p className="mt-1 text-xs text-app-muted leading-relaxed">{copy}</p>
+      {locked && <p className="mt-2 text-[10px] font-bold uppercase tracking-wider text-app-action">Locked</p>}
     </div>
     <div>{children}</div>
   </div>

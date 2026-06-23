@@ -43,6 +43,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
   const { user } = useAuth();
   const [commentText, setCommentText] = useState('');
   const [commentNotice, setCommentNotice] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const hasCommentContent = Boolean(commentText.trim() || quoteDraft?.trim());
 
   useEffect(() => {
@@ -89,11 +90,13 @@ setCommentNotice(error instanceof Error ? error.message : 'Comments are currentl
   };
 
   const handleAddComment = async () => {
+    if (isSubmitting) return;
     const body = commentText.trim();
     const quote = quoteDraft?.trim();
     const content = quote ? `> ${quote.replace(/\n+/g, '\n> ')}${body ? `\n\n${body}` : ''}` : body;
     if (!content) return;
 
+    setIsSubmitting(true);
     try {
       const createdComment = await createComment({ content });
       setComments((prev) => [backendCommentToComment(createdComment, postId), ...prev]);
@@ -102,10 +105,14 @@ setCommentNotice(error instanceof Error ? error.message : 'Comments are currentl
       toast.success('Comment posted.');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Comment failed.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleAddReply = async (parentId: string, content: string) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const createdReply = await createComment({ content, parentId: Number(parentId) });
       const reply = backendCommentToComment(createdReply, postId);
@@ -113,6 +120,8 @@ setCommentNotice(error instanceof Error ? error.message : 'Comments are currentl
       toast.success('Reply posted.');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Reply failed.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -172,7 +181,7 @@ setCommentNotice(error instanceof Error ? error.message : 'Comments are currentl
 
       <div className={comments.length ? 'mb-10' : 'mb-0'}>
         {quoteDraft && (
-          <aside className="mb-4 border-l-2 border-app-action px-4 py-3">
+          <aside className="mb-4 rounded-lg bg-app-action-soft px-4 py-3">
             <div className="mb-2 flex items-center justify-between gap-4">
               <span className="mono-label text-app-action">Quote</span>
               <button
@@ -201,14 +210,14 @@ setCommentNotice(error instanceof Error ? error.message : 'Comments are currentl
           <p className="font-mono text-[11px] text-app-muted">
             Markdown supported. Be specific. Back claims with evidence.
           </p>
-          <button
-            type="button"
-            onClick={handleAddComment}
-            disabled={!hasCommentContent || !canUseBackendComments}
-            className="inline-flex h-10 items-center justify-center border border-app-action bg-app-action px-6 font-mono text-[11px] uppercase tracking-wider text-app-on-action transition-colors hover:bg-app-action-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Post response
-          </button>
+            <button
+              type="button"
+              onClick={handleAddComment}
+              disabled={!hasCommentContent || !canUseBackendComments || isSubmitting}
+              className="inline-flex h-9 items-center justify-center border border-app-action bg-app-action px-5 font-mono text-[11px] uppercase tracking-wider text-app-on-action transition-colors hover:bg-app-action-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {isSubmitting ? 'Posting...' : 'Post response'}
+            </button>
         </div>
       </div>
 

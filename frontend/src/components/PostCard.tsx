@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Post } from '../types';
-import { ShieldCheck, MessageSquare, Bookmark, Share2, Sparkles, ChevronDown } from 'lucide-react';
+import { ShieldCheck, MessageSquare, Bookmark, Share2, Sparkles, ChevronDown, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { VoteControl } from './ui/VoteControl';
 import { getProfilePath } from '../lib/profileLinks';
@@ -10,13 +10,17 @@ import { toast } from 'sonner';
 
 interface PostCardProps {
   post: Post;
+  currentUserId?: string;
   onVote?: (postId: string, vote: 'up' | 'down') => void;
+  onDelete?: (postId: string, reason?: string) => void;
 }
 
-const PostCardInner: React.FC<PostCardProps> = ({ post, onVote }) => {
+const PostCardInner: React.FC<PostCardProps> = ({ post, currentUserId, onVote, onDelete }) => {
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(() => Boolean(post.savedByMe));
   const [isSaving, setIsSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
 
   const handleToggleSave = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -50,7 +54,7 @@ const PostCardInner: React.FC<PostCardProps> = ({ post, onVote }) => {
           await backendApi.savePost(post.id);
         }
       }
-      toast.success(previousSaved ? 'Removed from saved dispatches.' : 'Saved dispatch.');
+      toast.success(previousSaved ? 'Removed from saved posts.' : 'Post saved.');
     } catch (error) {
       setIsSaved(previousSaved);
       toast.error(error instanceof Error ? error.message : 'Unable to update saved state.');
@@ -89,7 +93,7 @@ const PostCardInner: React.FC<PostCardProps> = ({ post, onVote }) => {
         {/* Top Header Row */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <img
+            <img loading="lazy"
               className="w-10 h-10 rounded-full border border-app-border object-cover"
               src={post.author.avatarUrl || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(post.author.username)}`}
               alt=""
@@ -132,7 +136,7 @@ const PostCardInner: React.FC<PostCardProps> = ({ post, onVote }) => {
         {/* Optional Media Image */}
         {post.mediaUrl && (
           <div className="w-full h-48 rounded-lg mb-4 overflow-hidden border border-app-border">
-            <img src={post.mediaUrl} alt="" className="w-full h-full object-cover" />
+            <img loading="lazy" src={post.mediaUrl} alt="" className="w-full h-full object-cover" />
           </div>
         )}
 
@@ -204,6 +208,51 @@ const PostCardInner: React.FC<PostCardProps> = ({ post, onVote }) => {
             >
               <Share2 className="h-4 w-4" />
             </button>
+            {(post.canModerate || currentUserId === post.authorId) && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDeleteConfirm(!showDeleteConfirm); }}
+                  className="text-red-400 hover:text-red-600 transition-colors"
+                  aria-label="Delete"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+                {showDeleteConfirm && (
+                  <div
+                    className="absolute right-0 top-6 z-50 w-72 rounded-xl border border-red-200 bg-white p-4 shadow-xl"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <p className="text-xs font-semibold text-red-700">Delete this post?</p>
+                    {currentUserId !== post.authorId && (
+                      <textarea
+                        value={deleteReason}
+                        onChange={(e) => setDeleteReason(e.target.value)}
+                        placeholder="Reason for removal..."
+                        rows={2}
+                        className="mt-2 w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-xs resize-none outline-none focus:ring-2 focus:ring-red-400"
+                      />
+                    )}
+                    <div className="mt-3 flex gap-2 text-xs font-bold">
+                      <button
+                        type="button"
+                        onClick={() => { onDelete?.(post.id, deleteReason || undefined); setShowDeleteConfirm(false); setDeleteReason(''); }}
+                        className="rounded-lg bg-red-600 px-3 py-1.5 text-white hover:bg-red-700"
+                      >
+                        Delete
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setShowDeleteConfirm(false); setDeleteReason(''); }}
+                        className="rounded-lg border border-app-border px-3 py-1.5 text-app-muted hover:bg-app-surface-alt"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

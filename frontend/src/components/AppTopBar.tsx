@@ -26,7 +26,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 const navItems = [
   { to: '/app', label: 'Home', end: true },
-  { to: '/app/browse', label: 'Browse' },
+  { to: '/app/topics', label: 'Communities' },
   { to: '/app/highlights', label: 'Notebook' },
   { to: '/app/subscribe', label: 'Subscribe' },
 ];
@@ -78,12 +78,10 @@ export const AppTopBar: React.FC = () => {
   const isAdmin = user?.role === 'ADMIN';
   const isPartner = user?.role === 'PARTNER' || isAdmin;
   const profilePath = user ? getProfilePath(user) : '/login';
-  const settingsMenuRef = useRef<HTMLDivElement>(null);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const railDrawerRef = useRef<HTMLDivElement>(null);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isRailOpen, setIsRailOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -91,6 +89,7 @@ export const AppTopBar: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [preferences, setPreferences] = useState<AppPreferences>(() => readAppPreferences());
+  const [unreadCount, setUnreadCount] = useState(0);
   const { channels } = useChannels();
 
   useEffect(() => {
@@ -104,12 +103,23 @@ export const AppTopBar: React.FC = () => {
   useEffect(() => subscribeAppPreferences(setPreferences), []);
 
   useEffect(() => {
-    if (!isSettingsOpen && !isAccountOpen && !isSearchOpen && !isRailOpen) return;
+    if (!user) { setUnreadCount(0); return; }
+    let mounted = true;
+    const fetchCount = () =>
+      backendApi.getUnreadNotificationCount()
+        .then(res => { if (mounted) setUnreadCount(res.count); })
+        .catch(() => {});
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000);
+    return () => { mounted = false; clearInterval(interval); };
+  }, [user]);
+
+  useEffect(() => {
+    if (!isAccountOpen && !isSearchOpen && !isRailOpen) return;
 
     const closeMenus = (event: KeyboardEvent | MouseEvent) => {
       if (event instanceof KeyboardEvent) {
         if (event.key === 'Escape') {
-          setIsSettingsOpen(false);
           setIsAccountOpen(false);
           setIsSearchOpen(false);
           setIsRailOpen(false);
@@ -119,13 +129,11 @@ export const AppTopBar: React.FC = () => {
 
       const target = event.target as Node;
       if (
-        settingsMenuRef.current?.contains(target) ||
         accountMenuRef.current?.contains(target) ||
         searchRef.current?.contains(target)
       )
         return;
       if (railDrawerRef.current?.contains(target)) return;
-      setIsSettingsOpen(false);
       setIsAccountOpen(false);
       setIsSearchOpen(false);
       setIsRailOpen(false);
@@ -138,7 +146,7 @@ export const AppTopBar: React.FC = () => {
       document.removeEventListener('keydown', closeMenus);
       document.removeEventListener('mousedown', closeMenus);
     };
-  }, [isSettingsOpen, isAccountOpen, isSearchOpen, isRailOpen]);
+  }, [isAccountOpen, isSearchOpen, isRailOpen]);
 
   useEffect(() => {
     const keyword = searchQuery.trim();
@@ -332,103 +340,7 @@ export const AppTopBar: React.FC = () => {
           >
             File
           </Link>
-          <div ref={settingsMenuRef} className="relative">
-            <button
-              type="button"
-              onClick={() => {
-                setIsSettingsOpen((open) => !open);
-                setIsAccountOpen(false);
-              }}
-              className="hidden h-9 items-center border border-transparent px-2.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[var(--color-app-muted)] transition-colors hover:border-[var(--color-app-border)] hover:text-[var(--color-app-heading)] sm:inline-flex"
-              aria-haspopup="dialog"
-              aria-expanded={isSettingsOpen}
-              aria-label="Open display preferences"
-            >
-              View
-            </button>
-
-            {isSettingsOpen && (
-              <div
-                className="absolute right-0 top-12 z-50 w-[min(92vw,22rem)] border border-[var(--color-app-border)] bg-[var(--color-app-bg)] p-4 shadow-[var(--shadow-modal)]"
-                role="dialog"
-                aria-label="Display preferences"
-              >
-                <div className="mb-4 flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="font-mono text-[11px] font-semibold uppercase tracking-wider text-[var(--color-app-heading)]">
-                      View settings
-                    </h2>
-                    <p className="mt-1 text-xs leading-5 text-[var(--color-app-muted)]">
-                      App-wide controls for this device.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsSettingsOpen(false)}
-                    className="font-mono text-[10px] font-semibold uppercase tracking-wider text-[var(--color-app-muted)] hover:text-[var(--color-app-action)]"
-                  >
-                    Close
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  <SegmentedControl
-                    label="App theme"
-                    value={preferences.theme}
-                    options={[
-                      { value: 'system', label: 'System' },
-                      { value: 'light', label: 'Light' },
-                      { value: 'dark', label: 'Dark' },
-                    ]}
-                    onChange={(theme) => setPreferences((current) => ({ ...current, theme }))}
-                  />
-                  <SegmentedControl
-                    label="Density"
-                    value={preferences.density}
-                    options={[
-                      { value: 'comfortable', label: 'Comfort' },
-                      { value: 'compact', label: 'Compact' },
-                    ]}
-                    onChange={(density) => setPreferences((current) => ({ ...current, density }))}
-                  />
-                  <SegmentedControl
-                    label="Motion"
-                    value={preferences.motion}
-                    options={[
-                      { value: 'system', label: 'System' },
-                      { value: 'reduced', label: 'Reduced' },
-                    ]}
-                    onChange={(motion) => setPreferences((current) => ({ ...current, motion }))}
-                  />
-                  <div className="flex min-h-14 items-center justify-between gap-4 border border-[var(--color-app-border)] px-3">
-                    <span>
-                      <span className="block text-sm font-semibold text-[var(--color-app-heading)]">Trust signals</span>
-                      <span className="block text-xs leading-5 text-[var(--color-app-muted)]">
-                        Evidence details on reports.
-                      </span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setPreferences((current) => ({ ...current, trustAlerts: !current.trustAlerts }))}
-                      aria-pressed={preferences.trustAlerts}
-                      className={`relative h-7 w-12 shrink-0 border transition-colors ${
-                        preferences.trustAlerts
-                          ? 'border-[var(--color-app-action)] bg-[var(--color-app-action)]'
-                          : 'border-[var(--color-app-border)] bg-[var(--color-app-surface-alt)]'
-                      }`}
-                      aria-label="Toggle trust signals"
-                    >
-                      <span
-                        className={`absolute top-1 h-5 w-5 bg-[var(--color-app-bg)] transition-transform ${
-                          preferences.trustAlerts ? 'translate-x-5' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          
           <div ref={accountMenuRef} className="relative">
             <button
               type="button"
@@ -449,17 +361,6 @@ export const AppTopBar: React.FC = () => {
                 className="absolute right-0 top-12 z-50 w-56 border border-[var(--color-app-border)] bg-[var(--color-app-bg)] p-1 shadow-[var(--shadow-modal)]"
                 role="menu"
               >
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsAccountOpen(false);
-                    setIsSettingsOpen(true);
-                  }}
-                  className="flex min-h-10 w-full items-center px-3 text-left text-sm font-semibold text-[var(--color-app-heading)] hover:bg-[var(--color-app-surface-alt)] sm:hidden"
-                  role="menuitem"
-                >
-                  View settings
-                </button>
                 <Link
                   to={profilePath}
                   onClick={() => setIsAccountOpen(false)}
@@ -479,10 +380,15 @@ export const AppTopBar: React.FC = () => {
                 <Link
                   to="/app/notifications"
                   onClick={() => setIsAccountOpen(false)}
-                  className="flex min-h-10 items-center px-3 text-sm font-semibold text-[var(--color-app-heading)] hover:bg-[var(--color-app-surface-alt)]"
+                  className="flex min-h-10 items-center gap-2 px-3 text-sm font-semibold text-[var(--color-app-heading)] hover:bg-[var(--color-app-surface-alt)]"
                   role="menuitem"
                 >
                   Inbox
+                  {unreadCount > 0 && (
+                    <span className="rounded-full bg-[var(--color-app-action)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--color-app-on-action)]">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
                 </Link>
                 <Link
                   to="/app/settings"

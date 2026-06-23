@@ -10,8 +10,10 @@ import { TopicRail } from '../components/TopicRail';
 export const RootLayout: React.FC = () => {
   const [preferences, setPreferences] = useState(() => readAppPreferences());
   const [isRailCollapsed, setIsRailCollapsed] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.localStorage.getItem('tourane-left-rail') === 'collapsed';
+    if (typeof window === 'undefined') return true;
+    const stored = window.localStorage.getItem('tourane-left-rail');
+    if (stored === 'expanded') return false;
+    return true;
   });
   const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window === 'undefined') return 'light';
@@ -51,17 +53,15 @@ export const RootLayout: React.FC = () => {
       <AppTopBar />
 
       <div className="flex w-full flex-1 bg-[var(--color-app-bg)] pb-20 lg:pb-0">
-        {!isFeedPage && (
-          <div
-            className={`sticky top-[64px] hidden h-[calc(100dvh-64px)] shrink-0 border-r border-app-border transition-[width] duration-150 xl:block ${isRailCollapsed ? 'w-16' : 'w-64'}`}
-          >
-            <TopicRail
-              channels={channels}
-              collapsed={isRailCollapsed}
-              onToggleCollapsed={() => setIsRailCollapsed((current) => !current)}
-            />
-          </div>
-        )}
+        <div
+          className={`sticky top-[64px] hidden h-[calc(100dvh-64px)] shrink-0 border-r border-app-border transition-[width] duration-150 xl:block ${isRailCollapsed ? 'w-16' : 'w-64'}`}
+        >
+          <TopicRail
+            channels={channels}
+            collapsed={isRailCollapsed}
+            onToggleCollapsed={() => setIsRailCollapsed((current) => !current)}
+          />
+        </div>
         <main id="main-content" tabIndex={-1} className="min-w-0 flex-1">
           <Outlet />
         </main>

@@ -46,6 +46,7 @@ export type Post = {
   backendArticleId?: string;
   savedByMe?: boolean;
   aiSummary?: string;
+  canModerate?: boolean;
   tags?: TagInfo[];
 };
 
@@ -79,4 +80,20 @@ export type Channel = {
   memberCount?: number;
   postCount?: number;
   joined?: boolean;
+  visibility?: 'PUBLIC' | 'PRIVATE';
+  canPost?: boolean;
+};
+
+export type NotificationItem = {
+  id: string;
+  type: 'reply' | 'mention' | 'vote' | 'trust_change' | 'briefing_ready' | 'invite' | 'post_removed';
+  title: string;
+  body?: string;
+  actorName?: string;
+  actorAvatar?: string;
+  refType?: 'post' | 'comment' | 'topic' | 'article' | 'invite';
+  refId?: string;
+  refSlug?: string;
+  isRead: boolean;
+  createdAt: string;
 };

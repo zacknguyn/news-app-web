@@ -100,7 +100,7 @@ export const CategoriesScreen: React.FC = () => {
   return (
     <div className="app-page mx-auto max-w-[1280px]">
       <header className="mb-12">
-        <p className="mb-3 font-mono text-[10px] font-semibold uppercase tracking-widest text-app-action">Sector intelligence</p>
+        <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-app-muted">Categories</p>
         <h1 className="text-[34px] font-bold tracking-tight text-app-heading md:text-5xl">Category Directories</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-app-muted">Browse curated dispatches organized by primary impact sectors and operational themes.</p>
       </header>
