@@ -728,11 +728,11 @@ export const backendApi = {
   getTags: (keyword?: string) =>
     apiRequest<BackendTagDTO[]>(`/tags${keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''}`, { skipAuth: true }),
 
-  getHotPosts: (page = 0, size = 20) =>
-    apiRequest<PaginatedResponse<BackendPostDTO>>(`/posts/hot?page=${page}&size=${size}`),
+  getHotPosts: (page = 0, size = 20, sort = 'hot') =>
+    apiRequest<PaginatedResponse<BackendPostDTO>>(`/posts/hot?page=${page}&size=${size}&sort=${sort}`),
 
-  getPostsByTopic: (topicId: number, page = 0, size = 20) =>
-    apiRequest<PaginatedResponse<BackendPostDTO>>(`/posts/topic/${topicId}?page=${page}&size=${size}`),
+  getPostsByTopic: (topicId: number, page = 0, size = 20, sort = 'new') =>
+    apiRequest<PaginatedResponse<BackendPostDTO>>(`/posts/topic/${topicId}?page=${page}&size=${size}&sort=${sort}`),
 
   searchPosts: (keyword: string, page = 0, size = 20) =>
     apiRequest<PaginatedResponse<BackendPostDTO>>(`/posts/search?keyword=${encodeURIComponent(keyword)}&page=${page}&size=${size}`),

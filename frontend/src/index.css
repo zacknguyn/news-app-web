@@ -890,3 +890,38 @@ input[type=range]::-webkit-slider-thumb {
   border-radius: 4px;
 }
 
+.ProseMirror p {
+  margin: 0.75em 0;
+}
+.serif-title p {
+  margin: 0.75em 0;
+  line-height: 1.75;
+}
+.serif-title h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.3;
+  margin: 1.5em 0 0.5em;
+}
+.serif-title h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 1.25em 0 0.4em;
+}
+.serif-title blockquote {
+  border-left: 3px solid var(--color-app-action, #888);
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  color: var(--color-app-muted, #666);
+  font-style: italic;
+}
+.serif-title ul,
+.serif-title ol {
+  padding-left: 1.5em;
+  margin: 0.75em 0;
+}
+.serif-title li {
+  margin: 0.25em 0;
+}
+

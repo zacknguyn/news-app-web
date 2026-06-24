@@ -62,6 +62,27 @@ const toolbarButtonClass = (active = false) =>
       : 'text-on-surface-variant hover:text-primary hover:bg-primary/5'
   }`;
 
+const editorCssId = 'rpe-prosemirror-styles';
+const injectEditorStyles = () => {
+  if (document.getElementById(editorCssId)) return;
+  const css = document.createElement('style');
+  css.id = editorCssId;
+  css.textContent = `
+.ProseMirror { position: relative; word-wrap: break-word; white-space: pre-wrap; white-space: break-spaces; font-variant-ligatures: none; font-feature-settings: "liga" 0; min-height: 1em; }
+.ProseMirror-hideselection *::selection { background: transparent; }
+.ProseMirror-hideselection *::-moz-selection { background: transparent; }
+.ProseMirror-hideselection { caret-color: transparent; }
+.ProseMirror-selectednode { outline: 2px solid #8cf; }
+.ProseMirror p { margin: 1em 0 !important; line-height: 1.75 !important; min-height: 1.2em !important; padding: 0.25em 0 !important; }
+.ProseMirror h2 { font-size: 1.5rem; font-weight: 800; line-height: 1.3; margin: 1.5em 0 0.5em; }
+.ProseMirror h3 { font-size: 1.25rem; font-weight: 700; line-height: 1.35; margin: 1.25em 0 0.4em; }
+.ProseMirror blockquote { border-left: 3px solid var(--color-app-action, #888); margin: 1em 0; padding: 0.5em 1em; color: var(--color-app-muted, #666); font-style: italic; }
+.ProseMirror ul, .ProseMirror ol { padding-left: 1.5em; margin: 0.75em 0; }
+.ProseMirror li { margin: 0.25em 0; }
+`.trim();
+  document.head.appendChild(css);
+};
+
 const toolbarGroupClass = 'flex shrink-0 items-center gap-1 bg-surface-container-low border border-outline-variant/30 rounded-xl p-1';
 const toolbarLabelClass = 'px-2 text-[9px] font-bold uppercase tracking-widest text-outline select-none';
 const selectClass =
@@ -302,10 +323,12 @@ export const RichPostEditor: React.FC<RichPostEditorProps> = ({
     return () => onControlsReady?.(null);
   }, [editor, fontSize]);
 
+  useEffect(injectEditorStyles, []);
+
   if (!editor || editor.isDestroyed) return null;
 
   return (
-    <div className="bg-white rounded-2xl border border-outline-variant/30 overflow-hidden shadow-sm">
+    <div className="bg-white rounded-2xl border border-outline-variant/30 shadow-sm">
       <BubbleMenu
         editor={editor}
         updateDelay={120}

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Image as ImageIcon, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Image as ImageIcon, Upload, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { backendApi } from '../lib/api';
 import { backendTopicToChannel } from '../lib/backendAdapters';
 import type { Channel } from '../types';
@@ -17,6 +17,40 @@ type SubmitDraft = {
   thumbnailUrl: string;
   selectedChannel: string;
   updatedAt: string;
+};
+
+const CoverUploadButton: React.FC<{ onUpload: (url: string) => void }> = ({ onUpload }) => {
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const media = await backendApi.uploadMedia(file, 'cover image');
+      onUpload(media.url);
+    } catch {
+      // silent
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <>
+      <input ref={fileRef} type="file" accept="image/*" className="sr-only" onChange={handleFile} />
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        disabled={uploading}
+        className="flex items-center gap-1.5 px-3.5 py-2 border border-app-border rounded-lg text-xs font-semibold text-app-muted hover:border-app-action hover:text-app-action disabled:cursor-not-allowed disabled:opacity-45 bg-app-surface"
+      >
+        <Upload className="h-3.5 w-3.5" />
+        {uploading ? 'Uploading...' : 'Upload'}
+      </button>
+    </>
+  );
 };
 
 export const SubmitNewsScreen: React.FC = () => {
@@ -225,18 +259,21 @@ export const SubmitNewsScreen: React.FC = () => {
                   <ImageIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <span className="block text-xs font-bold text-app-heading uppercase tracking-wider">Cover Image Link</span>
-                  <span className="text-[10px] text-app-faint font-semibold">Optionally attach illustration media</span>
+                  <span className="block text-xs font-bold text-app-heading uppercase tracking-wider">Cover Image</span>
+                  <span className="text-[10px] text-app-faint font-semibold">Upload or paste a link</span>
                 </div>
               </div>
-              <input
-                type="url"
-                value={thumbnailUrl}
-                onChange={(e) => setThumbnailUrl(e.target.value)}
-                placeholder="https://images.unsplash.com/..."
-                aria-label="Cover image URL"
-                className="w-full md:w-80 px-3.5 py-2 border border-app-border rounded-lg text-xs outline-none focus:border-app-action focus:ring-2 focus:ring-[var(--color-app-action-soft)] bg-app-surface"
-              />
+              <div className="flex w-full md:w-auto gap-2">
+                <input
+                  type="url"
+                  value={thumbnailUrl}
+                  onChange={(e) => setThumbnailUrl(e.target.value)}
+                  placeholder="https://images.unsplash.com/..."
+                  aria-label="Cover image URL"
+                  className="flex-1 md:w-64 px-3.5 py-2 border border-app-border rounded-lg text-xs outline-none focus:border-app-action focus:ring-2 focus:ring-[var(--color-app-action-soft)] bg-app-surface"
+                />
+                <CoverUploadButton onUpload={(url) => setThumbnailUrl(url)} />
+              </div>
             </div>
             {thumbnailUrl && (
               <div className="mt-4 rounded-xl overflow-hidden border border-app-border">

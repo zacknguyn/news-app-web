@@ -76,9 +76,10 @@ export const PostFeed: React.FC = () => {
           }
         }
 
+        const sortParam = activeSort.toLowerCase();
         const backendPosts = activeChannel
-          ? await backendApi.getPostsByTopic(Number(activeChannel.id), 0, HOME_FEED_PAGE_SIZE)
-          : await backendApi.getHotPosts(0, HOME_FEED_PAGE_SIZE);
+          ? await backendApi.getPostsByTopic(Number(activeChannel.id), 0, HOME_FEED_PAGE_SIZE, sortParam)
+          : await backendApi.getHotPosts(0, HOME_FEED_PAGE_SIZE, sortParam);
 
         if (!isMounted) return;
         setChannels(nextChannels);
@@ -100,7 +101,7 @@ export const PostFeed: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [slug, retryKey]);
+  }, [slug, retryKey, activeSort]);
 
   useEffect(() => {
     let active = true;
@@ -172,7 +173,7 @@ export const PostFeed: React.FC = () => {
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [feedSentinelRef.current, hasMorePosts, isLoadingMore, activeChannel?.id]);
+  }, [feedSentinelRef.current, hasMorePosts, isLoadingMore, activeChannel?.id, activeSort]);
 
   const dismissProgress = async () => {
     if (!visibleProgress) return;
@@ -244,9 +245,10 @@ export const PostFeed: React.FC = () => {
     setIsLoadingMore(true);
 
     try {
+      const sortParam = activeSort.toLowerCase();
       const response = activeChannel
-        ? await backendApi.getPostsByTopic(Number(activeChannel.id), nextPage, LOAD_MORE_PAGE_SIZE)
-        : await backendApi.getHotPosts(nextPage, LOAD_MORE_PAGE_SIZE);
+        ? await backendApi.getPostsByTopic(Number(activeChannel.id), nextPage, LOAD_MORE_PAGE_SIZE, sortParam)
+        : await backendApi.getHotPosts(nextPage, LOAD_MORE_PAGE_SIZE, sortParam);
 
       setPosts((currentPosts) => [...currentPosts, ...response.content.map(backendPostToPost)]);
       setFeedPage(nextPage);
@@ -592,6 +594,29 @@ export const PostFeed: React.FC = () => {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Home feed sort tabs */}
+        {!activeChannel && !feedNotice && !isLoadingPosts && (
+          <div className="flex items-center justify-between pb-4 border-b border-app-border mb-6">
+            <h1 className="text-xl font-serif font-bold text-app-heading">Feed</h1>
+            <div className="flex border border-app-border rounded-full p-0.5 bg-app-surface">
+              {sortTabs.map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveSort(tab)}
+                  className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wide transition-all active:scale-[0.97] ${
+                    activeSort === tab
+                      ? 'bg-app-action text-app-on-action shadow-sm'
+                      : 'text-app-muted hover:text-app-action'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
             </div>
           </div>
         )}

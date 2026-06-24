@@ -37,56 +37,47 @@ const applyHighlightsToHtml = (htmlContent: string, highlights: SavedHighlight[]
 
   if (!root) return htmlContent;
 
+  const withOffsets = highlights.filter(h => h.start != null && h.end != null && h.start < h.end)
+    .sort((a, b) => a.start! - b.start!);
+  if (withOffsets.length === 0) return htmlContent;
+
+  let globalOffset = 0;
+
   const walk = (node: Node) => {
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent || '';
-      if (!text.trim()) return;
+      const nodeStart = globalOffset;
+      const nodeEnd = globalOffset + text.length;
+      globalOffset = nodeEnd;
 
-      let hasReplacements = false;
+      const overlapping = withOffsets.filter(h => h.start! < nodeEnd && h.end! > nodeStart);
+      if (overlapping.length === 0) return;
+
       const fragment = document.createDocumentFragment();
-      const sortedHighlights = [...highlights].sort((a, b) => b.text.length - a.text.length);
+      let cursor = 0;
 
-      const processText = (str: string) => {
-        if (!str) return;
+      for (const hl of overlapping) {
+        const hlStartInNode = Math.max(0, hl.start! - nodeStart);
+        const hlEndInNode = Math.min(text.length, hl.end! - nodeStart);
 
-        let earliestMatchIndex = -1;
-        let earliestMatchLen = -1;
-        let matchedHighlight: SavedHighlight | null = null;
-
-        for (const hl of sortedHighlights) {
-          const idx = str.indexOf(hl.text);
-          if (idx !== -1) {
-            if (earliestMatchIndex === -1 || idx < earliestMatchIndex) {
-              earliestMatchIndex = idx;
-              earliestMatchLen = hl.text.length;
-              matchedHighlight = hl;
-            }
-          }
+        if (hlStartInNode > cursor) {
+          fragment.appendChild(document.createTextNode(text.substring(cursor, hlStartInNode)));
         }
 
-        if (matchedHighlight && earliestMatchIndex !== -1) {
-          hasReplacements = true;
-          if (earliestMatchIndex > 0) {
-            fragment.appendChild(document.createTextNode(str.substring(0, earliestMatchIndex)));
-          }
+        const mark = document.createElement('mark');
+        mark.className = 'reader-highlight-mark';
+        mark.setAttribute('data-highlight-id', hl.id);
+        mark.textContent = text.substring(hlStartInNode, hlEndInNode);
+        fragment.appendChild(mark);
 
-          const mark = document.createElement('mark');
-          mark.className = 'reader-highlight-mark';
-          mark.setAttribute('data-highlight-id', matchedHighlight.id);
-          mark.textContent = str.substring(earliestMatchIndex, earliestMatchIndex + earliestMatchLen);
-          fragment.appendChild(mark);
-
-          processText(str.substring(earliestMatchIndex + earliestMatchLen));
-        } else {
-          fragment.appendChild(document.createTextNode(str));
-        }
-      };
-
-      processText(text);
-
-      if (hasReplacements && node.parentNode) {
-        node.parentNode.replaceChild(fragment, node);
+        cursor = hlEndInNode;
       }
+
+      if (cursor < text.length) {
+        fragment.appendChild(document.createTextNode(text.substring(cursor)));
+      }
+
+      node.parentNode?.replaceChild(fragment, node);
     } else {
       const children = Array.from(node.childNodes);
       for (const child of children) {

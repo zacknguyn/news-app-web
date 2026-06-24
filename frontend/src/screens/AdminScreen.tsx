@@ -43,6 +43,7 @@ import type {
   BackendCategoryDTO,
   BackendTagDTO,
   BackendAuthorDTO,
+  BackendTopicDTO,
 } from '../lib/api';
 
 type AdminSection =
@@ -65,6 +66,7 @@ type InspectorState =
   | { type: 'category'; data: BackendCategoryDTO }
   | { type: 'tag'; data: BackendTagDTO }
   | { type: 'author'; data: BackendAuthorDTO }
+  | { type: 'topic'; data: BackendTopicDTO }
   | null;
 type TrendMetric = 'users' | 'requests' | 'combined';
 type AnalyticsMetric = 'users' | 'requests' | 'ads' | 'paidSubscribers' | 'restrictedUsers';
@@ -158,7 +160,7 @@ const adminNavGroups: Array<{
       { id: 'categories', label: 'Categories' },
       { id: 'tags', label: 'Tags' },
       { id: 'authors', label: 'Authors' },
-      { id: 'topics', label: 'Topics' },
+      { id: 'topics', label: 'Communities' },
     ],
   },
   {
@@ -454,12 +456,14 @@ export const AdminScreen: React.FC = () => {
   const [categorySearch, setCategorySearch] = useState('');
   const [tagSearch, setTagSearch] = useState('');
   const [authorSearch, setAuthorSearch] = useState('');
+  const [topicSearch, setTopicSearch] = useState('');
   const [requests, setRequests] = useState<BackendCredentialRequestDTO[]>([]);
   const [users, setUsers] = useState<BackendUserDTO[]>([]);
   const [ads, setAds] = useState<BackendAdCampaignDTO[]>([]);
   const [categories, setCategories] = useState<BackendCategoryDTO[]>([]);
   const [tags, setTags] = useState<BackendTagDTO[]>([]);
   const [authors, setAuthors] = useState<BackendAuthorDTO[]>([]);
+  const [topics, setTopics] = useState<BackendTopicDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState('');
@@ -476,6 +480,7 @@ export const AdminScreen: React.FC = () => {
     category?: Partial<BackendCategoryDTO>;
     tag?: Partial<BackendTagDTO>;
     author?: Partial<BackendAuthorDTO>;
+    topic?: Partial<BackendTopicDTO>;
   }>({});
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -553,13 +558,14 @@ export const AdminScreen: React.FC = () => {
     setIsLoading(true);
     setError('');
     try {
-      const [requestPage, userPage, adPage, catPage, tagPage, authorPage] = await Promise.all([
+      const [requestPage, userPage, adPage, catPage, tagPage, authorPage, topicPage] = await Promise.all([
         backendApi.getAdminCredentialRequests(requestStatus, 0, 40),
         backendApi.getAdminUsers({ search, status: userStatus, page: 0, size: 40 }),
         backendApi.getAdminAdCampaigns(adStatus, 0, 40),
         backendApi.getAdminCategories(categorySearch, 0, 40),
         backendApi.getAdminTags(tagSearch, 0, 40),
         backendApi.getAdminAuthors(authorSearch, 0, 40),
+        backendApi.getAdminTopics(topicSearch, 0, 40),
       ]);
       setRequests(requestPage.content || []);
       setUsers(userPage.content || []);
@@ -567,12 +573,13 @@ export const AdminScreen: React.FC = () => {
       setCategories(catPage.content || []);
       setTags(tagPage.content || []);
       setAuthors(authorPage.content || []);
+      setTopics(topicPage.content || []);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Admin data could not be loaded.');
     } finally {
       setIsLoading(false);
     }
-  }, [adStatus, requestStatus, search, userStatus, categorySearch, tagSearch, authorSearch]);
+  }, [adStatus, requestStatus, search, userStatus, categorySearch, tagSearch, authorSearch, topicSearch]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -894,6 +901,73 @@ export const AdminScreen: React.FC = () => {
     [],
   );
 
+  const topicColumns = useMemo<ColumnDef<BackendTopicDTO>[]>(
+    () => [
+      {
+        accessorKey: 'name',
+        header: 'Name',
+        cell: ({ row }) => (
+          <button
+            type="button"
+            onClick={() => setInspector({ type: 'topic', data: row.original })}
+            className="text-left"
+          >
+            <span className="block font-semibold text-app-heading">{row.original.name}</span>
+            <span className="mt-1 block font-mono text-[11px] text-app-muted">{row.original.slug}</span>
+          </button>
+        ),
+      },
+      {
+        accessorKey: 'ownerName',
+        header: 'Owner',
+        cell: ({ row }) => (
+          <span className="text-[13px] text-app-muted">{row.original.ownerName || '—'}</span>
+        ),
+      },
+      {
+        accessorKey: 'visibility',
+        header: 'Visibility',
+        cell: ({ row }) => (
+          <span className="font-mono text-[11px] uppercase tracking-wider text-app-muted">
+            {row.original.visibility || 'PUBLIC'}
+          </span>
+        ),
+      },
+      {
+        accessorKey: 'memberCount',
+        header: 'Members',
+        cell: ({ row }) => (
+          <span className="font-mono text-[13px] tabular-nums text-app-muted">
+            {(row.original.memberCount || 0).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        accessorKey: 'postCount',
+        header: 'Posts',
+        cell: ({ row }) => (
+          <span className="font-mono text-[13px] tabular-nums text-app-muted">
+            {(row.original.postCount || 0).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => (
+          <button
+            type="button"
+            onClick={() => setInspector({ type: 'topic', data: row.original })}
+            className="font-mono text-[11px] uppercase tracking-wider text-app-action hover:underline"
+          >
+            Edit
+          </button>
+        ),
+      },
+    ],
+    [],
+  );
+
   if (!isAdmin) {
     return <Navigate to="/app" replace />;
   }
@@ -1035,6 +1109,31 @@ export const AdminScreen: React.FC = () => {
 
   const handleDeleteAuthor = (id: number) =>
     runMutation(() => backendApi.deleteAdminAuthor(id), 'Author deleted.');
+
+  const handleEditTopic = (topic: BackendTopicDTO) => {
+    setEditForm({ topic: { ...topic } });
+    setInspector({ type: 'topic', data: topic });
+  };
+
+  const handleSaveTopic = async () => {
+    const form = editForm.topic;
+    if (!form || !form.id) return;
+    await runMutation(
+      () => backendApi.updateAdminTopic(form.id!, {
+        name: form.name ?? undefined,
+        description: form.description ?? undefined,
+        avatar: form.avatar ?? undefined,
+        banner: form.banner ?? undefined,
+        rules: form.rules ?? undefined,
+        visibility: form.visibility ?? undefined,
+      }),
+      'Community updated.',
+    );
+    setEditForm((prev) => ({ ...prev, topic: undefined }));
+  };
+
+  const handleDeleteTopic = (id: number) =>
+    runMutation(() => backendApi.deleteAdminTopic(id), 'Community deleted.');
 
   const addAnalyticsWidget = () => {
     setAnalyticsWidgets((current) => [
@@ -1540,10 +1639,33 @@ export const AdminScreen: React.FC = () => {
                 />
               )}
               {activeSection === 'topics' && (
-                <PlaceholderPanel
-                  title="Topic governance"
-                  copy="Topic ownership, join velocity, and stale community review can slot into this section once the admin topic endpoints exist."
-                />
+                <div>
+                  <div className="flex items-center justify-between border-b border-app-border px-5 py-4">
+                    <h2 className="text-lg font-semibold text-app-heading">Communities</h2>
+                  </div>
+                  <div className="flex items-center gap-3 border-b border-app-border px-5 py-3">
+                    <SearchInput
+                      placeholder="Search communities..."
+                      value={topicSearch}
+                      onChange={(e) => setTopicSearch(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') loadAdminData(); }}
+                    />
+                    <button
+                      type="button"
+                      onClick={loadAdminData}
+                      className="h-9 border border-app-border px-3 font-mono text-[11px] uppercase tracking-wider text-app-heading hover:border-app-action hover:text-app-action"
+                    >
+                      Search
+                    </button>
+                  </div>
+                  <AdminDataTable
+                    data={topics}
+                    columns={topicColumns}
+                    isLoading={isLoading}
+                    emptyText="No communities match this filter. Try a different search term."
+                    exportName="communities"
+                  />
+                </div>
               )}
               {activeSection === 'audit' && (
                 <PlaceholderPanel
@@ -1577,6 +1699,8 @@ export const AdminScreen: React.FC = () => {
               onDeleteTag={handleDeleteTag}
               onSaveAuthor={handleSaveAuthor}
               onDeleteAuthor={handleDeleteAuthor}
+              onSaveTopic={handleSaveTopic}
+              onDeleteTopic={handleDeleteTopic}
             />
           </div>
         </main>
@@ -2641,9 +2765,9 @@ const AdminInspector: React.FC<{
   inspector: InspectorState;
   isMutating: boolean;
   rejectionReason: string;
-  editForm: Record<string, Partial<BackendCategoryDTO> | Partial<BackendTagDTO> | Partial<BackendAuthorDTO> | undefined>;
+  editForm: Record<string, Partial<BackendCategoryDTO> | Partial<BackendTagDTO> | Partial<BackendAuthorDTO> | Partial<BackendTopicDTO> | undefined>;
   onRejectionReasonChange: (value: string) => void;
-  onEditFormChange: (form: Record<string, Partial<BackendCategoryDTO> | Partial<BackendTagDTO> | Partial<BackendAuthorDTO> | undefined>) => void;
+  onEditFormChange: (form: Record<string, Partial<BackendCategoryDTO> | Partial<BackendTagDTO> | Partial<BackendAuthorDTO> | Partial<BackendTopicDTO> | undefined>) => void;
   onClose: () => void;
   onApprove: (request: BackendCredentialRequestDTO) => void;
   onReject: (request: BackendCredentialRequestDTO) => void;
@@ -2658,6 +2782,8 @@ const AdminInspector: React.FC<{
   onDeleteTag: (id: number) => void;
   onSaveAuthor: () => void;
   onDeleteAuthor: (id: number) => void;
+  onSaveTopic: () => void;
+  onDeleteTopic: (id: number) => void;
 }> = ({
   inspector,
   isMutating,
@@ -2679,6 +2805,8 @@ const AdminInspector: React.FC<{
   onDeleteTag,
   onSaveAuthor,
   onDeleteAuthor,
+  onSaveTopic,
+  onDeleteTopic,
 }) => {
   const typeLabel = !inspector ? 'No row selected'
     : inspector.type === 'request' ? 'Credential request'
@@ -2686,6 +2814,7 @@ const AdminInspector: React.FC<{
     : inspector.type === 'category' ? 'Category'
     : inspector.type === 'tag' ? 'Tag'
     : inspector.type === 'author' ? 'Author'
+    : inspector.type === 'topic' ? 'Community'
     : 'User account';
 
   return (
@@ -2750,6 +2879,15 @@ const AdminInspector: React.FC<{
         onFormChange={(patch) => onEditFormChange({ ...editForm, author: { ...editForm.author, ...patch } as Partial<BackendAuthorDTO> })}
         onSave={onSaveAuthor}
         onDelete={inspector.data.id ? () => onDeleteAuthor(inspector.data!.id) : undefined}
+      />
+    ) : inspector.type === 'topic' ? (
+      <TopicInspector
+        topic={inspector.data}
+        isMutating={isMutating}
+        form={editForm.topic as Partial<BackendTopicDTO> | undefined}
+        onFormChange={(patch) => onEditFormChange({ ...editForm, topic: { ...editForm.topic, ...patch } as Partial<BackendTopicDTO> })}
+        onSave={onSaveTopic}
+        onDelete={inspector.data.id ? () => onDeleteTopic(inspector.data!.id) : undefined}
       />
     ) : (
       <UserInspector
@@ -3132,14 +3270,11 @@ const AuthorInspector: React.FC<{
         className="mt-2 min-h-20 w-full resize-y border border-app-border bg-app-bg p-3 text-sm text-app-text outline-none focus:border-app-action"
       />
     </div>
-    <div className="border-b border-app-border py-4">
-      <p className="mono-label text-app-muted">Avatar URL</p>
-      <input
-        value={form?.avatarUrl ?? author.avatarUrl ?? ''}
-        onChange={(e) => onFormChange({ avatarUrl: e.target.value })}
-        className="mt-2 w-full border border-app-border bg-app-bg px-3 py-2 text-sm text-app-text outline-none focus:border-app-action"
-      />
-    </div>
+    <ImageUploadField
+      label="Avatar"
+      value={form?.avatarUrl ?? author.avatarUrl ?? ''}
+      onChange={(url) => onFormChange({ avatarUrl: url })}
+    />
     <div className="border-b border-app-border py-4">
       <p className="mono-label text-app-muted">Facebook URL</p>
       <input
@@ -3176,6 +3311,147 @@ const AuthorInspector: React.FC<{
           className="h-10 border border-app-border font-mono text-[11px] uppercase tracking-wider text-app-muted hover:border-app-action hover:text-app-action disabled:cursor-not-allowed disabled:opacity-45"
         >
           Delete author
+        </button>
+      )}
+    </div>
+  </div>
+);
+
+const ImageUploadField: React.FC<{
+  label: string;
+  value?: string;
+  onChange: (url: string) => void;
+}> = ({ label, value, onChange }) => {
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const media = await api.uploadMedia(file, `${label.toLowerCase()} upload`);
+      onChange(media.url);
+    } catch {
+      toast.error(`Failed to upload ${label.toLowerCase()}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="border-b border-app-border py-4">
+      <p className="mono-label text-app-muted">{label}</p>
+      {value && (
+        <div className="relative mt-2 mb-2 overflow-hidden rounded border border-app-border bg-app-bg">
+          <img src={value} alt={label} className="max-h-32 w-full object-contain" />
+        </div>
+      )}
+      <input ref={fileRef} type="file" accept="image/*" className="sr-only" onChange={handleFile} />
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        disabled={uploading}
+        className="mt-2 flex h-9 w-full items-center justify-center border border-dashed border-app-border bg-app-surface-alt/40 text-xs text-app-muted hover:border-app-action hover:text-app-action disabled:cursor-not-allowed disabled:opacity-45"
+      >
+        {uploading ? 'Uploading...' : value ? 'Replace image' : 'Choose image'}
+      </button>
+      {value && (
+        <button
+          type="button"
+          onClick={() => onChange('')}
+          className="mt-1 text-[11px] text-app-faint underline hover:text-red-500"
+        >
+          Remove
+        </button>
+      )}
+    </div>
+  );
+};
+
+const TopicInspector: React.FC<{
+  topic: BackendTopicDTO;
+  isMutating: boolean;
+  form?: Partial<BackendTopicDTO>;
+  onFormChange: (patch: Partial<BackendTopicDTO>) => void;
+  onSave: () => void;
+  onDelete?: () => void;
+}> = ({ topic, isMutating, form, onFormChange, onSave, onDelete }) => (
+  <div className="px-5 py-5">
+    <InspectorField label="ID" value={topic.id || 'New'} />
+    <div className="border-b border-app-border py-4">
+      <p className="mono-label text-app-muted">Name</p>
+      <input
+        value={form?.name ?? topic.name ?? ''}
+        onChange={(e) => onFormChange({ name: e.target.value })}
+        className="mt-2 w-full border border-app-border bg-app-bg px-3 py-2 text-sm text-app-text outline-none focus:border-app-action"
+      />
+    </div>
+    <div className="border-b border-app-border py-4">
+      <p className="mono-label text-app-muted">Slug</p>
+      <input
+        value={form?.slug ?? topic.slug ?? ''}
+        onChange={(e) => onFormChange({ slug: e.target.value })}
+        className="mt-2 w-full border border-app-border bg-app-bg px-3 py-2 text-sm text-app-text outline-none focus:border-app-action"
+      />
+    </div>
+    <div className="border-b border-app-border py-4">
+      <p className="mono-label text-app-muted">Description</p>
+      <textarea
+        value={form?.description ?? topic.description ?? ''}
+        onChange={(e) => onFormChange({ description: e.target.value })}
+        className="mt-2 min-h-16 w-full resize-y border border-app-border bg-app-bg p-3 text-sm text-app-text outline-none focus:border-app-action"
+      />
+    </div>
+    <ImageUploadField
+      label="Avatar"
+      value={form?.avatar ?? topic.avatar ?? ''}
+      onChange={(url) => onFormChange({ avatar: url })}
+    />
+    <ImageUploadField
+      label="Banner"
+      value={form?.banner ?? topic.banner ?? ''}
+      onChange={(url) => onFormChange({ banner: url })}
+    />
+    <div className="border-b border-app-border py-4">
+      <p className="mono-label text-app-muted">Rules</p>
+      <textarea
+        value={form?.rules ?? topic.rules ?? ''}
+        onChange={(e) => onFormChange({ rules: e.target.value })}
+        className="mt-2 min-h-16 w-full resize-y border border-app-border bg-app-bg p-3 text-sm text-app-text outline-none focus:border-app-action"
+      />
+    </div>
+    <div className="border-b border-app-border py-4">
+      <p className="mono-label text-app-muted">Visibility</p>
+      <select
+        value={form?.visibility ?? topic.visibility ?? 'PUBLIC'}
+        onChange={(e) => onFormChange({ visibility: e.target.value })}
+        className="mt-2 w-full border border-app-border bg-app-bg px-3 py-2 text-sm text-app-text outline-none focus:border-app-action"
+      >
+        <option value="PUBLIC">Public</option>
+        <option value="PRIVATE">Private</option>
+      </select>
+    </div>
+    <InspectorField label="Owner" value={topic.ownerName || '—'} />
+    <InspectorField label="Members" value={(topic.memberCount || 0).toLocaleString()} />
+    <InspectorField label="Posts" value={(topic.postCount || 0).toLocaleString()} />
+    <div className="grid gap-2 border-t border-app-border pt-4">
+      <button
+        type="button"
+        disabled={isMutating || !form?.name?.trim()}
+        onClick={onSave}
+        className="h-10 border border-app-action bg-app-action font-mono text-[11px] uppercase tracking-wider text-app-on-action hover:bg-app-action-hover disabled:cursor-not-allowed disabled:opacity-45"
+      >
+        Update community
+      </button>
+      {onDelete && (
+        <button
+          type="button"
+          disabled={isMutating}
+          onClick={onDelete}
+          className="h-10 border border-app-border font-mono text-[11px] uppercase tracking-wider text-app-muted hover:border-red-500 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          Delete community
         </button>
       )}
     </div>
@@ -3311,7 +3587,7 @@ const sectionTitle = (section: AdminSection) => {
     case 'reports':
       return 'Reports';
     case 'topics':
-      return 'Topics';
+      return 'Communities';
     case 'audit':
       return 'Audit Log';
   }
