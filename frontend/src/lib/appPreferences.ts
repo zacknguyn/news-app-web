@@ -2,7 +2,10 @@ const STORAGE_KEY = 'tourane-app-preferences';
 export const APP_PREFERENCES_EVENT = 'tourane-app-preferences-change';
 
 export type AppPreferences = {
+  language: 'en' | 'vi';
   theme: 'system' | 'light' | 'dark';
+  readerFontSize: number;
+  layoutWidth: 'standard' | 'wide';
   density: 'comfortable' | 'compact';
   motion: 'system' | 'reduced';
   trustAlerts: boolean;
@@ -12,7 +15,10 @@ export type AppPreferences = {
 };
 
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
+  language: 'en',
   theme: 'system',
+  readerFontSize: 16,
+  layoutWidth: 'standard',
   density: 'comfortable',
   motion: 'system',
   trustAlerts: true,
@@ -33,6 +39,9 @@ const normalizeAppPreferences = (preferences: Partial<AppPreferences>): AppPrefe
 
   return {
     ...next,
+    language: next.language === 'vi' ? 'vi' : 'en',
+    readerFontSize: Math.min(24, Math.max(12, Number(next.readerFontSize) || DEFAULT_APP_PREFERENCES.readerFontSize)),
+    layoutWidth: next.layoutWidth === 'wide' ? 'wide' : 'standard',
     subscriptionPlan: validPlans.includes(plan) ? plan : DEFAULT_APP_PREFERENCES.subscriptionPlan,
     billingCadence: next.billingCadence === 'annual' ? 'annual' : 'monthly',
   };

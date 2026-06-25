@@ -442,6 +442,50 @@ body:has(.app-shell[data-app-theme='dark']) {
   color: var(--color-text);
 }
 
+.ai-summary-panel {
+  border-color: var(--color-action);
+  background: var(--color-action-faint);
+}
+
+.ai-summary-trigger {
+  color: var(--color-action);
+}
+
+.ai-summary-trigger:hover {
+  background: var(--color-action-soft);
+}
+
+.ai-summary-body {
+  color: var(--color-muted);
+}
+
+.ai-summary-body::marker,
+.ai-summary-body li::marker {
+  color: var(--color-action);
+}
+
+.app-shell[data-app-theme='dark'] .ai-summary-panel {
+  border-color: rgba(63, 185, 80, 0.72);
+  background: rgba(46, 160, 67, 0.11);
+}
+
+.app-shell[data-app-theme='dark'] .ai-summary-trigger {
+  color: #56d364;
+}
+
+.app-shell[data-app-theme='dark'] .ai-summary-trigger:hover {
+  background: rgba(63, 185, 80, 0.14);
+}
+
+.app-shell[data-app-theme='dark'] .ai-summary-body {
+  color: #b7c3cc;
+}
+
+.app-shell[data-app-theme='dark'] .ai-summary-body::marker,
+.app-shell[data-app-theme='dark'] .ai-summary-body li::marker {
+  color: #56d364;
+}
+
 /* === READER THEME SCOPES === */
 .reader-theme-scope {
   --color-bg: var(--color-ink-0);
@@ -924,4 +968,3 @@ input[type=range]::-webkit-slider-thumb {
 .serif-title li {
   margin: 0.25em 0;
 }
-

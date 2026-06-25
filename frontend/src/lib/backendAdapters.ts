@@ -93,7 +93,7 @@ const authorFromPost = (dto: BackendPostDTO): User => {
     id: String(dto.userId),
     name,
     username,
-    avatarUrl: fallbackAvatar(name),
+    avatarUrl: dto.authorAvatar || fallbackAvatar(name),
     trustScore: Math.max(50, 100 + Math.min(dto.score || 0, 900)),
     isVerified: false,
   };

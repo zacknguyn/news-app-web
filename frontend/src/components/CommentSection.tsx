@@ -8,6 +8,7 @@ import { backendCommentToComment } from '../lib/backendAdapters';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from './ui/Alert';
 import { TextArea } from './ui/Input';
+import { isVietnamese, useAppLanguage } from '../lib/useAppLanguage';
 
 interface CommentSectionProps {
   postId: string;
@@ -38,6 +39,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
   quoteDraft,
   onQuoteDraftClear,
 }) => {
+  const isVi = isVietnamese(useAppLanguage());
   const isArticle = postId.startsWith('article-');
   const [comments, setComments] = useState<Comment[]>(() => MOCK_COMMENTS.filter((c) => c.postId === postId));
   const { user } = useAuth();
@@ -45,6 +47,47 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
   const [commentNotice, setCommentNotice] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const hasCommentContent = Boolean(commentText.trim() || quoteDraft?.trim());
+  const copy = isVi
+    ? {
+        articleDiscussion: 'Đang hiển thị thảo luận liên kết với bài báo này.',
+        unavailable: 'Bình luận hiện không khả dụng. Máy chủ có thể đang offline, hãy thử tải lại.',
+        posted: 'Đã đăng bình luận.',
+        failed: 'Đăng bình luận thất bại.',
+        replyPosted: 'Đã đăng phản hồi.',
+        replyFailed: 'Đăng phản hồi thất bại.',
+        likeFailed: 'Thích bình luận thất bại.',
+        unlikeFailed: 'Bỏ thích bình luận thất bại.',
+        deleted: 'Đã xóa bình luận.',
+        deleteFailed: 'Xóa thất bại.',
+        comments: 'bình luận',
+        quote: 'Trích dẫn',
+        removeQuote: 'Bỏ trích dẫn',
+        addResponse: 'Thêm phản hồi',
+        placeholder: 'Tham gia thảo luận. Dẫn nguồn, đặt câu hỏi, phản biện bằng bằng chứng.',
+        markdown: 'Hỗ trợ Markdown. Viết cụ thể và dẫn chứng rõ ràng.',
+        posting: 'Đang đăng...',
+        postResponse: 'Đăng phản hồi',
+      }
+    : {
+        articleDiscussion: 'Showing article-linked discussion for this post.',
+        unavailable: 'Comments are currently unavailable. The server may be offline — try refreshing.',
+        posted: 'Comment posted.',
+        failed: 'Comment failed.',
+        replyPosted: 'Reply posted.',
+        replyFailed: 'Reply failed.',
+        likeFailed: 'Comment like failed.',
+        unlikeFailed: 'Comment unlike failed.',
+        deleted: 'Comment deleted.',
+        deleteFailed: 'Delete failed.',
+        comments: 'comments',
+        quote: 'Quote',
+        removeQuote: 'Remove quote',
+        addResponse: 'Add a response',
+        placeholder: 'Add to the discussion. Cite sources, ask questions, disagree with evidence.',
+        markdown: 'Markdown supported. Be specific. Back claims with evidence.',
+        posting: 'Posting...',
+        postResponse: 'Post response',
+      };
 
   useEffect(() => {
     let isMounted = true;
@@ -63,15 +106,15 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
             const response = await backendApi.getCommentsByArticle(Number(backendArticleId));
             if (!isMounted) return;
             setComments(response.content.map((comment) => backendCommentToComment(comment, postId)));
-            setCommentNotice('Showing article-linked discussion for this post.');
+            setCommentNotice(copy.articleDiscussion);
           } catch {
             setComments([]);
-setCommentNotice(error instanceof Error ? error.message : 'Comments are currently unavailable. The server may be offline — try refreshing.');
+setCommentNotice(error instanceof Error ? error.message : copy.unavailable);
           }
           return;
         }
         setComments([]);
-        setCommentNotice(error instanceof Error ? error.message : 'Comments are currently unavailable. The server may be offline — try refreshing.');
+        setCommentNotice(error instanceof Error ? error.message : copy.unavailable);
       }
     };
 
@@ -102,9 +145,9 @@ setCommentNotice(error instanceof Error ? error.message : 'Comments are currentl
       setComments((prev) => [backendCommentToComment(createdComment, postId), ...prev]);
       setCommentText('');
       onQuoteDraftClear?.();
-      toast.success('Comment posted.');
+      toast.success(copy.posted);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Comment failed.');
+      toast.error(error instanceof Error ? error.message : copy.failed);
     } finally {
       setIsSubmitting(false);
     }
@@ -117,9 +160,9 @@ setCommentNotice(error instanceof Error ? error.message : 'Comments are currentl
       const createdReply = await createComment({ content, parentId: Number(parentId) });
       const reply = backendCommentToComment(createdReply, postId);
       setComments((prev) => addReplyToThread(prev, parentId, reply));
-      toast.success('Reply posted.');
+      toast.success(copy.replyPosted);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Reply failed.');
+      toast.error(error instanceof Error ? error.message : copy.replyFailed);
     } finally {
       setIsSubmitting(false);
     }
@@ -134,7 +177,7 @@ setCommentNotice(error instanceof Error ? error.message : 'Comments are currentl
       const updatedComment = await backendApi.likeComment(commentId);
       return Math.max(updatedComment.likes || 0, 0);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Comment like failed.');
+      toast.error(error instanceof Error ? error.message : copy.likeFailed);
       return null;
     }
   };
@@ -144,7 +187,7 @@ setCommentNotice(error instanceof Error ? error.message : 'Comments are currentl
       const updatedComment = await backendApi.unlikeComment(commentId);
       return Math.max(updatedComment.likes || 0, 0);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Comment unlike failed.');
+      toast.error(error instanceof Error ? error.message : copy.unlikeFailed);
       return null;
     }
   };
@@ -158,9 +201,9 @@ setCommentNotice(error instanceof Error ? error.message : 'Comments are currentl
     try {
       await backendApi.deleteComment(commentId);
       setComments((prev) => removeCommentFromTree(prev, commentId));
-      toast.success('Comment deleted.');
+      toast.success(copy.deleted);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Delete failed.');
+      toast.error(error instanceof Error ? error.message : copy.deleteFailed);
       throw error;
     }
   };
@@ -169,7 +212,7 @@ setCommentNotice(error instanceof Error ? error.message : 'Comments are currentl
     <section id="comments" aria-labelledby="responses-heading" className="mt-10 border-t border-app-border pt-8">
       <div className="mb-5 flex flex-wrap items-end gap-x-6 gap-y-2">
         <h3 id="responses-heading" className="mono-label text-app-muted">
-          {totalComments} comments
+          {totalComments} {copy.comments}
         </h3>
       </div>
 
@@ -183,32 +226,32 @@ setCommentNotice(error instanceof Error ? error.message : 'Comments are currentl
         {quoteDraft && (
           <aside className="mb-4 rounded-lg bg-app-action-soft px-4 py-3">
             <div className="mb-2 flex items-center justify-between gap-4">
-              <span className="mono-label text-app-action">Quote</span>
+              <span className="mono-label text-app-action">{copy.quote}</span>
               <button
                 type="button"
                 onClick={onQuoteDraftClear}
                 className="font-mono text-[11px] uppercase tracking-wider text-app-muted transition-colors hover:text-app-action"
               >
-                Remove quote
+                {copy.removeQuote}
               </button>
             </div>
             <p className="text-sm italic leading-relaxed text-app-text">&ldquo;{quoteDraft}&rdquo;</p>
           </aside>
         )}
         <label htmlFor={composerId} className="sr-only">
-          Add a response
+          {copy.addResponse}
         </label>
         <TextArea
           id={composerId}
           value={commentText}
           onChange={(e) => setCommentText(e.target.value)}
-          placeholder="Add to the discussion. Cite sources, ask questions, disagree with evidence."
+          placeholder={copy.placeholder}
           disabled={!canUseBackendComments}
           className="min-h-[120px] w-full max-w-[68ch] text-[15px] leading-relaxed"
         />
         <div className="mt-3 flex items-center justify-between gap-4">
           <p className="font-mono text-[11px] text-app-muted">
-            Markdown supported. Be specific. Back claims with evidence.
+            {copy.markdown}
           </p>
             <button
               type="button"
@@ -216,7 +259,7 @@ setCommentNotice(error instanceof Error ? error.message : 'Comments are currentl
               disabled={!hasCommentContent || !canUseBackendComments || isSubmitting}
               className="inline-flex h-9 items-center justify-center border border-app-action bg-app-action px-5 font-mono text-[11px] uppercase tracking-wider text-app-on-action transition-colors hover:bg-app-action-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {isSubmitting ? 'Posting...' : 'Post response'}
+              {isSubmitting ? copy.posting : copy.postResponse}
             </button>
         </div>
       </div>

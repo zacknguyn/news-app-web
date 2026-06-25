@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getProfilePath } from '../lib/profileLinks';
+import { readAppPreferences, subscribeAppPreferences } from '../lib/appPreferences';
 
 const bottomLinkClass = ({ isActive }: { isActive: boolean }) =>
   `flex h-14 min-w-0 flex-1 items-center justify-center border-t-2 px-1 font-mono text-[10px] font-semibold uppercase tracking-wider transition-colors ${
@@ -12,7 +13,11 @@ const bottomLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 export const BottomNav: React.FC = () => {
   const { user } = useAuth();
+  const [preferences, setPreferences] = useState(() => readAppPreferences());
   const profilePath = user ? getProfilePath(user) : '/login';
+  const isVi = preferences.language === 'vi';
+
+  useEffect(() => subscribeAppPreferences(setPreferences), []);
 
   return (
     <nav
@@ -20,19 +25,19 @@ export const BottomNav: React.FC = () => {
       aria-label="Mobile primary"
     >
       <NavLink to="/app" end className={bottomLinkClass}>
-        Home
+        {isVi ? 'Trang chủ' : 'Home'}
       </NavLink>
       <NavLink to="/app/submit" className={bottomLinkClass}>
-        Submit
+        {isVi ? 'Đăng bài' : 'Submit'}
       </NavLink>
       <NavLink to="/app/browse" className={bottomLinkClass}>
-        Browse
+        {isVi ? 'Khám phá' : 'Browse'}
       </NavLink>
       <NavLink to="/app/highlights" className={bottomLinkClass}>
-        Notes
+        {isVi ? 'Ghi chú' : 'Notes'}
       </NavLink>
       <NavLink to={profilePath} className={bottomLinkClass}>
-        Me
+        {isVi ? 'Tôi' : 'Me'}
       </NavLink>
     </nav>
   );

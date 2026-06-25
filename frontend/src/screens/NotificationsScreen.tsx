@@ -15,6 +15,7 @@ import {
 import { toast } from 'sonner';
 import { backendApi } from '../lib/api';
 import { backendNotificationToNotification } from '../lib/backendAdapters';
+import { isVietnamese, useAppLanguage } from '../lib/useAppLanguage';
 import type { NotificationItem } from '../types';
 
 type TabId = 'all' | 'unread';
@@ -32,6 +33,7 @@ const iconMap: Record<string, React.FC<{ className?: string }>> = {
 const fallbackIcon = Bell;
 
 export const NotificationsScreen: React.FC = () => {
+  const isVi = isVietnamese(useAppLanguage());
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,7 +48,7 @@ export const NotificationsScreen: React.FC = () => {
       const page = await backendApi.getNotifications(0, 50);
       setNotifications(page.content.map(backendNotificationToNotification));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load notifications.');
+      setError(err instanceof Error ? err.message : (isVi ? 'Không thể tải thông báo.' : 'Failed to load notifications.'));
     } finally {
       setIsLoading(false);
     }
@@ -64,9 +66,9 @@ export const NotificationsScreen: React.FC = () => {
     try {
       await backendApi.markAllNotificationsRead();
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-      toast.success('All notifications marked as read.');
+      toast.success(isVi ? 'Đã đánh dấu tất cả là đã đọc.' : 'All notifications marked as read.');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to mark all as read.');
+      toast.error(err instanceof Error ? err.message : (isVi ? 'Không thể đánh dấu tất cả là đã đọc.' : 'Failed to mark all as read.'));
     }
   };
 
@@ -110,15 +112,15 @@ export const NotificationsScreen: React.FC = () => {
       if (!notif?.refId) return;
       if (action === 'accept') {
         const topic = await backendApi.acceptTopicInvite(notif.refId);
-        toast.success(`Joined ${topic.name}`);
+        toast.success(isVi ? `Đã tham gia ${topic.name}` : `Joined ${topic.name}`);
         navigate(`/app/c/${topic.slug}`);
       } else {
         await backendApi.declineTopicInvite(notif.refId);
-        toast.success('Invitation declined');
+        toast.success(isVi ? 'Đã từ chối lời mời' : 'Invitation declined');
       }
       setNotifications(prev => prev.filter(n => n.id !== notifId));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to process invitation.');
+      toast.error(err instanceof Error ? err.message : (isVi ? 'Không thể xử lý lời mời.' : 'Failed to process invitation.'));
     } finally {
       setActionBusy(prev => { const next = new Set(prev); next.delete(notifId); return next; });
     }
@@ -137,9 +139,9 @@ export const NotificationsScreen: React.FC = () => {
       <div className="mx-auto max-w-[640px]">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-app-heading">Inbox</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-app-heading">{isVi ? 'Hộp thư' : 'Inbox'}</h1>
             <p className="mt-1 font-mono text-[10px] font-bold uppercase tracking-wider text-app-faint">
-              Notifications
+              {isVi ? 'Thông báo' : 'Notifications'}
               {unreadCount > 0 && (
                 <span className="ml-2 rounded-full bg-app-action px-1.5 py-0.5 text-[9px] text-app-on-action">{unreadCount}</span>
               )}
@@ -151,7 +153,7 @@ export const NotificationsScreen: React.FC = () => {
               className="inline-flex items-center gap-2 rounded-lg border border-app-border bg-app-surface px-3 py-2 text-xs font-semibold text-app-heading transition-all hover:border-app-action hover:bg-app-action-faint active:scale-[0.98]"
             >
               <CheckCircle2 className="h-4 w-4 text-app-action" />
-              <span>Mark all read</span>
+              <span>{isVi ? 'Đánh dấu đã đọc' : 'Mark all read'}</span>
             </button>
           )}
         </div>
@@ -165,7 +167,7 @@ export const NotificationsScreen: React.FC = () => {
                 onClick={() => setActiveTab(tab)}
                 className={`relative pb-3 capitalize transition-colors ${isActive ? 'text-app-action' : 'hover:text-app-heading'}`}
               >
-                {tab}
+                {isVi ? (tab === 'all' ? 'tất cả' : 'chưa đọc') : tab}
                 {tab === 'unread' && unreadCount > 0 && (
                   <span className="ml-1.5 rounded-full bg-app-action px-1.5 py-0.5 text-[9px] text-app-on-action">{unreadCount}</span>
                 )}
@@ -194,18 +196,18 @@ export const NotificationsScreen: React.FC = () => {
         {error && !isLoading && (
           <div className="rounded-xl border border-state-error-border bg-state-error-bg p-6 text-center text-sm text-state-error">
             <p>{error}</p>
-            <button onClick={load} className="mt-3 font-semibold underline">Try again</button>
+            <button onClick={load} className="mt-3 font-semibold underline">{isVi ? 'Thử lại' : 'Try again'}</button>
           </div>
         )}
 
         {!isLoading && !error && filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center rounded-xl border border-app-border bg-app-surface p-16 text-center">
             <Bell className="mb-4 h-10 w-10 text-app-faint" />
-            <p className="text-base font-semibold text-app-heading">No notifications yet</p>
+            <p className="text-base font-semibold text-app-heading">{isVi ? 'Chưa có thông báo' : 'No notifications yet'}</p>
             <p className="mt-2 max-w-xs text-sm leading-relaxed text-app-muted">
               {activeTab === 'unread'
-                ? 'All caught up! You have no unread notifications.'
-                : 'Notifications from replies, upvotes, and community activity will appear here.'}
+                ? (isVi ? 'Bạn đã đọc hết. Không còn thông báo chưa đọc.' : 'All caught up! You have no unread notifications.')
+                : (isVi ? 'Thông báo từ phản hồi, lượt bình chọn và hoạt động cộng đồng sẽ xuất hiện ở đây.' : 'Notifications from replies, upvotes, and community activity will appear here.')}
             </p>
           </div>
         )}

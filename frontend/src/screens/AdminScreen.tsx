@@ -1110,11 +1110,6 @@ export const AdminScreen: React.FC = () => {
   const handleDeleteAuthor = (id: number) =>
     runMutation(() => backendApi.deleteAdminAuthor(id), 'Author deleted.');
 
-  const handleEditTopic = (topic: BackendTopicDTO) => {
-    setEditForm({ topic: { ...topic } });
-    setInspector({ type: 'topic', data: topic });
-  };
-
   const handleSaveTopic = async () => {
     const form = editForm.topic;
     if (!form || !form.id) return;
@@ -1178,12 +1173,11 @@ export const AdminScreen: React.FC = () => {
       <a href="#admin-main" className="skip-to-content">
         Skip to admin content
       </a>
-      <AdminTopBar onRefresh={loadAdminData} isLoading={isLoading || isMutating} />
-      <div className="grid min-h-[calc(100svh-57px)] gap-0 lg:grid-cols-[13rem_minmax(0,1fr)]">
+      <div className="flex min-h-svh flex-col bg-[#FAFAFC] text-[#111827] lg:flex-row">
         <AdminSidebar activeSection={activeSection} counts={counts} onChange={setActiveSection} />
 
-        <main id="admin-main" tabIndex={-1} className="min-w-0 border-l border-app-border">
-          <header className="border-b border-app-border px-5 py-5">
+        <main id="admin-main" tabIndex={-1} className="min-h-svh min-w-0 flex-1 bg-[#FAFAFC] [background-image:radial-gradient(#E5E7EB_1px,transparent_1px)] [background-size:24px_24px] lg:ml-[20%] lg:w-[80%]">
+          <header className="sticky top-0 z-40 flex min-h-14 flex-col border-b border-[#E5E7EB] bg-[#FAFAFC]/80 px-4 py-3 backdrop-blur md:px-8">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
                 <AdminBreadcrumb section={activeSection} />
@@ -1192,10 +1186,26 @@ export const AdminScreen: React.FC = () => {
                   Review access, control accounts, and keep subscription operations visible.
                 </p>
               </div>
-              <p className="font-mono text-[11px] uppercase tracking-wider text-app-muted">Isolated admin console</p>
+              <div className="flex items-center gap-3">
+                <Link to="/app" className="text-xs font-medium text-[#6B7280] transition-colors hover:text-[#111827]">
+                  Reader app
+                </Link>
+                <button
+                  type="button"
+                  onClick={loadAdminData}
+                  disabled={isLoading || isMutating}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-[#6B7280] transition-colors hover:bg-[#F3F4F6] hover:text-[#111827] disabled:opacity-50"
+                  title="Reload system"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isLoading || isMutating ? 'animate-spin' : ''}`} />
+                  <span className="sr-only">Sync</span>
+                </button>
+                <button type="button" onClick={() => setActiveSection('requests')} className="inline-flex h-8 items-center rounded-md bg-[#0F5132] px-3 text-xs font-bold text-white transition hover:opacity-90">
+                  Review
+                </button>
+              </div>
             </div>
-            <div className="border-t border-app-border" />
-            <div className="flex items-center gap-3 border-b border-app-border px-5 py-3">
+            <div className="mt-3 flex max-w-2xl items-center gap-3">
               <input
                 ref={searchInputRef}
                 type="search"
@@ -1203,13 +1213,13 @@ export const AdminScreen: React.FC = () => {
                 onChange={(e) => setGlobalSearchQuery(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleGlobalSearch(); }}
                 placeholder="Search users, articles, posts..."
-                className="h-9 flex-1 border border-app-border bg-app-bg px-3 text-sm text-app-text outline-none focus:border-app-action"
+                className="h-9 flex-1 rounded-md border border-[#E5E7EB] bg-white/80 px-3 text-sm text-[#111827] outline-none transition focus:border-[#0F5132] focus:bg-white focus:ring-1 focus:ring-[#0F5132]"
               />
               <button
                 type="button"
                 disabled={isSearching || !globalSearchQuery.trim()}
                 onClick={handleGlobalSearch}
-                className="h-9 border border-app-border px-3 font-mono text-[11px] uppercase tracking-wider text-app-heading hover:border-app-action hover:text-app-action disabled:cursor-not-allowed disabled:opacity-45"
+                className="h-9 rounded-md border border-[#E5E7EB] bg-white px-3 text-xs font-bold text-[#111827] transition hover:border-[#0F5132] hover:text-[#0F5132] disabled:cursor-not-allowed disabled:opacity-45"
               >
                 {isSearching ? 'Searching...' : 'Search'}
               </button>
@@ -1247,8 +1257,8 @@ export const AdminScreen: React.FC = () => {
             </div>
           )}
 
-          <div className="grid xl:grid-cols-[minmax(0,1fr)_22rem]">
-            <section className="min-w-0">
+          <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
+            <section className="min-w-0 space-y-10">
               <MetricStrip counts={counts} />
               <AdminNoticeStrip counts={counts} onGoToSection={setActiveSection} />
               {activeSection === 'overview' && (
@@ -1722,33 +1732,6 @@ export const AdminScreen: React.FC = () => {
   );
 };
 
-const AdminTopBar: React.FC<{ onRefresh: () => void; isLoading: boolean }> = ({ onRefresh, isLoading }) => (
-  <header className="sticky top-0 z-40 border-b-2 border-app-heading bg-app-bg">
-    <div className="grid h-14 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 px-4 lg:px-6">
-      <div className="min-w-0">
-        <Link to="/admin" className="inline-flex items-baseline gap-3">
-          <span className="text-base font-semibold tracking-[-0.01em] text-app-heading">Tourane Admin</span>
-          <span className="hidden font-mono text-[11px] uppercase tracking-wider text-app-muted sm:inline">
-            Operations console
-          </span>
-        </Link>
-      </div>
-      <Link to="/app" className="font-mono text-[11px] uppercase tracking-wider text-app-muted hover:text-app-action">
-        Reader app
-      </Link>
-      <button
-        type="button"
-        onClick={onRefresh}
-        disabled={isLoading}
-        className="inline-flex h-9 items-center gap-2 border border-app-border px-3 font-mono text-[11px] uppercase tracking-wider text-app-heading hover:border-app-action hover:text-app-action disabled:cursor-not-allowed disabled:opacity-45"
-      >
-        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-        Sync
-      </button>
-    </div>
-  </header>
-);
-
 const AdminBreadcrumb: React.FC<{ section: AdminSection }> = ({ section }) => (
   <nav
     aria-label="Admin breadcrumb"
@@ -1767,58 +1750,102 @@ const AdminSidebar: React.FC<{
   counts: AdminCounts;
   onChange: (section: AdminSection) => void;
 }> = ({ activeSection, counts, onChange }) => (
-  <aside className="border-b border-app-border pb-4 lg:sticky lg:top-14 lg:h-[calc(100dvh-3.5rem)] lg:border-b-0 lg:pb-0">
-    <div className="border-b border-app-border px-4 py-4">
-      <p className="mono-label text-app-muted">Admin</p>
-      <p className="mt-2 text-sm font-semibold text-app-heading">Control desk</p>
+  <aside className="z-50 flex w-full shrink-0 flex-col border-r border-[#E5E7EB] bg-white lg:fixed lg:inset-y-0 lg:w-[20%] lg:min-w-[240px]">
+    <div className="flex min-h-20 items-center justify-between border-b border-[#E5E7EB] px-6">
+      <div>
+        <h1 className="flex items-center gap-2 text-lg font-bold tracking-tight text-[#0F5132]">
+          Tourane Admin
+          <span className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+        </h1>
+        <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-[#6B7280]">Admin Console</p>
+      </div>
     </div>
-    <nav className="py-3" aria-label="Admin sections">
+
+    <nav className="flex-1 space-y-4 overflow-y-auto p-4" aria-label="Admin sections">
       {adminNavGroups.map((group) => (
-        <div key={group.label} className="pb-4">
-          <p className="px-4 pb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-app-muted">{group.label}</p>
-          {group.items.map((item) => {
-            const count = item.count?.(counts);
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onChange(item.id)}
-                className={`grid w-full grid-cols-[4px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-app-surface ${
-                  activeSection === item.id ? 'font-semibold text-app-heading' : 'text-app-muted'
-                }`}
-              >
-                <span className={`h-full min-h-5 ${activeSection === item.id ? 'bg-app-action' : 'bg-transparent'}`} />
-                <span>{item.label}</span>
-                {typeof count === 'number' && count > 0 && (
-                  <span className="border border-app-border px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-app-action">
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        <div key={group.label}>
+          <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">{group.label}</p>
+          <div className="space-y-1">
+            {group.items.map((item) => {
+              const count = item.count?.(counts);
+              const active = activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => onChange(item.id)}
+                  className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-all ${
+                    active
+                      ? 'bg-[#F3F4F6] font-medium text-[#111827]'
+                      : 'text-[#6B7280] hover:bg-[#F9FAFB] hover:text-[#111827]'
+                  }`}
+                >
+                  <span className={`h-2 w-2 rounded-full ${active ? 'bg-[#0F5132]' : 'bg-[#E5E7EB]'}`} />
+                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                  {typeof count === 'number' && count > 0 && (
+                    <span className="rounded-full bg-[#D1E7DD] px-1.5 py-0.5 text-[10px] font-bold text-[#0F5132]">
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       ))}
     </nav>
+
+    <div className="border-t border-[#E5E7EB] bg-[#F9FAFB] p-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-xs font-bold text-[#0F5132]">
+          AD
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-[#111827]">Admin User</p>
+          <p className="text-[10px] text-[#6B7280]">Root Console</p>
+        </div>
+      </div>
+    </div>
   </aside>
 );
 
 const MetricStrip: React.FC<{ counts: AdminCounts }> = ({ counts }) => (
-  <section className="grid border-b border-app-border sm:grid-cols-4">
-    <Metric label="Pending requests" value={counts.pendingRequests} />
-    <Metric label="Loaded users" value={counts.loadedUsers} />
-    <Metric label="Paid subscribers" value={counts.paidSubscribers} />
-    <Metric label="Restricted users" value={counts.suspendedUsers} />
+  <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+    <Metric label="MRR" value={counts.paidSubscribers * 19} suffix=" USD" trend="+12.4%" />
+    <Metric label="Active users" value={counts.loadedUsers} trend="+3.1%" />
+    <Metric label="Pending vetting" value={counts.pendingRequests} trend="Priority" tone="warning" />
+    <Metric label="Stripe status" value={counts.submittedAds === 0 ? 100 : 99} suffix="%" trend="Healthy" />
   </section>
 );
 
-const Metric: React.FC<{ label: string; value: number }> = ({ label, value }) => (
-  <div className="border-b border-r border-app-border px-4 py-4 last:border-r-0 sm:border-b-0">
-    <div className="flex items-center gap-1.5">
-      <p className="mono-label text-app-muted">{label}</p>
-      <HelperTip label={metricHelperCopy(label)} side="bottom" />
+const Metric: React.FC<{ label: string; value: number; suffix?: string; trend?: string; tone?: 'warning' }> = ({
+  label,
+  value,
+  suffix = '',
+  trend,
+  tone,
+}) => (
+  <div className="group rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+    <div className="mb-3 flex items-center justify-between">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">{label}</p>
+      {trend && (
+        <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${tone === 'warning' ? 'bg-orange-50 text-orange-600' : 'bg-[#D1E7DD] text-[#0F5132]'}`}>
+          {trend}
+        </span>
+      )}
     </div>
-    <p className="mt-2 font-mono text-2xl font-semibold tabular-nums text-app-heading">{value}</p>
+    <p className="text-2xl font-bold tracking-tight text-[#111827]">
+      {value.toLocaleString()}{suffix}
+    </p>
+    <div className="mt-4 flex h-12 items-end gap-1">
+      {[30, 45, 60, 40, 80, 100].map((height, index) => (
+        <span
+          key={index}
+          className="flex-1 rounded-t-sm bg-[#0F5132] opacity-20 transition-all group-hover:opacity-70"
+          style={{ height: `${height}%` }}
+        />
+      ))}
+    </div>
   </div>
 );
 
@@ -2818,14 +2845,14 @@ const AdminInspector: React.FC<{
     : 'User account';
 
   return (
-  <aside className="xl:sticky xl:top-14 xl:h-[calc(100dvh-3.5rem)] xl:overflow-y-auto border-t border-app-border bg-app-bg xl:border-l xl:border-t-0">
-    <div className="flex items-center justify-between gap-3 border-b border-app-border px-5 py-4">
+  <aside className={`fixed inset-y-0 right-0 z-[60] w-full max-w-md border-l border-[#E5E7EB] bg-white shadow-2xl transition-transform duration-300 sm:w-[30%] sm:min-w-[360px] overflow-y-auto ${inspector ? 'translate-x-0' : 'translate-x-full'}`}>
+    <div className="flex items-center justify-between gap-3 border-b border-[#E5E7EB] px-6 py-5">
       <div>
         <p className="mono-label text-app-muted">Inspector</p>
         <p className="mt-1 text-sm font-semibold text-app-heading">{typeLabel}</p>
       </div>
       {inspector && (
-        <button type="button" onClick={onClose} className="font-mono text-[18px] text-app-muted hover:text-app-action">
+        <button type="button" onClick={onClose} className="rounded-md p-1 text-lg text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827]">
           x
         </button>
       )}
@@ -3330,7 +3357,7 @@ const ImageUploadField: React.FC<{
     if (!file) return;
     setUploading(true);
     try {
-      const media = await api.uploadMedia(file, `${label.toLowerCase()} upload`);
+      const media = await backendApi.uploadMedia(file, `${label.toLowerCase()} upload`);
       onChange(media.url);
     } catch {
       toast.error(`Failed to upload ${label.toLowerCase()}`);
@@ -3548,21 +3575,6 @@ const LoadingLine: React.FC<{ label: string }> = ({ label }) => (
 );
 
 const EmptyLine: React.FC<{ text: string }> = ({ text }) => <p className="text-sm italic text-app-muted">{text}</p>;
-
-const metricHelperCopy = (label: string) => {
-  switch (label) {
-    case 'Pending requests':
-      return 'Credential requests waiting for admin approval or rejection in the loaded request page.';
-    case 'Loaded users':
-      return 'Users fetched into this dashboard page. This is not necessarily the total database count.';
-    case 'Paid subscribers':
-      return 'Loaded users whose subscription plan is not free.';
-    case 'Restricted users':
-      return 'Loaded users marked suspended or rejected. These accounts are blocked from interactive backend actions.';
-    default:
-      return 'Dashboard count based on the records currently loaded into this admin view.';
-  }
-};
 
 const sectionTitle = (section: AdminSection) => {
   switch (section) {

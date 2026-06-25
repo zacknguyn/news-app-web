@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Bookmark, MessageSquarePlus, Search } from 'lucide-react';
+import { Bookmark, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { backendPostToPost } from '../lib/backendAdapters';
 import { backendApi } from '../lib/api';
 import { stripHtml } from '../lib/richContent';
+import { isVietnamese, useAppLanguage } from '../lib/useAppLanguage';
+import { localizeLabel } from '../lib/localizeLabel';
 import type { Post } from '../types';
 
 const elapsed = (date: string) => {
@@ -16,6 +18,7 @@ const elapsed = (date: string) => {
 };
 
 export const BrowseScreen: React.FC = () => {
+  const isVi = isVietnamese(useAppLanguage());
   const [posts, setPosts] = useState<Post[]>([]);
   const [query, setQuery] = useState('');
   const [source, setSource] = useState('All Sources');
@@ -28,16 +31,22 @@ export const BrowseScreen: React.FC = () => {
     let mounted = true;
     backendApi.getHotPosts(0, 50)
       .then(page => { if (mounted) setPosts(page.content.map(backendPostToPost)); })
-      .catch(error => { if (mounted) setNotice(error instanceof Error ? error.message : 'Unable to load posts.'); })
+      .catch(error => { if (mounted) setNotice(error instanceof Error ? error.message : (isVi ? 'Không thể tải bài viết.' : 'Unable to load posts.')); })
       .finally(() => { if (mounted) setIsLoading(false); });
     return () => { mounted = false; };
   }, []);
 
-  const sources = useMemo(() => ['All Sources', ...Array.from(new Set(posts.map(post => post.channelName))).slice(0, 8)], [posts]);
+  const allSources = isVi ? 'Tất cả nguồn' : 'All Sources';
+  const sources = useMemo(() => [allSources, ...Array.from(new Set(posts.map(post => post.channelName))).slice(0, 8)], [posts, allSources]);
+
+  useEffect(() => {
+    setSource((current) => current === 'All Sources' || current === 'Tất cả nguồn' ? allSources : current);
+  }, [allSources]);
+
   const filtered = useMemo(() => {
     const keyword = query.trim().toLowerCase();
-    return posts.filter(post => (source === 'All Sources' || post.channelName === source) && (!keyword || `${post.title} ${stripHtml(post.content)} ${post.author.name} ${post.channelName}`.toLowerCase().includes(keyword)));
-  }, [posts, query, source]);
+    return posts.filter(post => (source === allSources || post.channelName === source) && (!keyword || `${post.title} ${stripHtml(post.content)} ${post.author.name} ${post.channelName}`.toLowerCase().includes(keyword)));
+  }, [posts, query, source, allSources]);
 
   useEffect(() => setVisibleCount(6), [query, source]);
 
@@ -46,18 +55,18 @@ export const BrowseScreen: React.FC = () => {
     setPosts(current => current.map(item => item.id === post.id ? { ...item, savedByMe: !item.savedByMe } : item));
     try {
       if (post.savedByMe) await backendApi.unsavePost(post.id); else await backendApi.savePost(post.id);
-      toast.success(post.savedByMe ? 'Post removed from saved items.' : 'Post saved.');
+      toast.success(post.savedByMe ? (isVi ? 'Đã bỏ lưu bài viết.' : 'Post removed from saved items.') : (isVi ? 'Đã lưu bài viết.' : 'Post saved.'));
     } catch (error) {
       setPosts(current => current.map(item => item.id === post.id ? { ...item, savedByMe: post.savedByMe } : item));
-      toast.error(error instanceof Error ? error.message : 'Unable to update saved items.');
+      toast.error(error instanceof Error ? error.message : (isVi ? 'Không thể cập nhật mục đã lưu.' : 'Unable to update saved items.'));
     } finally { setPendingSaveId(''); }
   };
 
   return <div className="app-page mx-auto max-w-[720px]">
     <header className="mb-6">
-      <p className="mb-3 text-[10px] font-semibold tracking-wide text-app-muted">Browse</p>
-      <h1 className="text-[32px] font-bold tracking-tight text-app-heading">All posts</h1>
-      <p className="mt-2 text-sm text-app-muted">Search and filter community discussions.</p>
+      <p className="mb-3 text-[10px] font-semibold tracking-wide text-app-muted">{isVi ? 'Khám phá' : 'Browse'}</p>
+      <h1 className="text-[32px] font-bold tracking-tight text-app-heading">{isVi ? 'Tất cả bài viết' : 'All posts'}</h1>
+      <p className="mt-2 text-sm text-app-muted">{isVi ? 'Tìm kiếm và lọc các thảo luận cộng đồng.' : 'Search and filter community discussions.'}</p>
     </header>
 
     <section className="sticky top-16 z-30 -mx-2 mb-8 bg-app-bg/90 px-2 py-4 backdrop-blur-xl">
@@ -66,11 +75,11 @@ export const BrowseScreen: React.FC = () => {
         <input
           value={query}
           onChange={event => setQuery(event.target.value)}
-          aria-label="Search posts"
-          placeholder="Search posts..."
+          aria-label={isVi ? 'Tìm bài viết' : 'Search posts'}
+          placeholder={isVi ? 'Tìm bài viết...' : 'Search posts...'}
           className="w-full border-0 bg-transparent p-0 text-sm text-app-heading outline-none placeholder:text-app-faint focus:ring-0"
         />
-        {query && <button type="button" onClick={() => setQuery('')} className="font-mono text-[10px] text-app-action">Clear</button>}
+        {query && <button type="button" onClick={() => setQuery('')} className="font-mono text-[10px] text-app-action">{isVi ? 'Xoá' : 'Clear'}</button>}
       </label>
       <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
         {sources.map(item => (
@@ -118,9 +127,9 @@ export const BrowseScreen: React.FC = () => {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3">
-                  <img loading="lazy" src={post.author.avatarUrl} alt="" className="h-9 w-9 rounded-lg border border-app-border object-cover" />
+                  <img loading="lazy" decoding="async" src={post.author.avatarUrl} alt="" className="h-9 w-9 rounded-lg border border-app-border object-cover" />
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-semibold text-app-muted">{post.channelName}</p>
+                    <p className="truncate text-xs font-semibold text-app-muted">{localizeLabel(post.channelName, isVi ? 'vi' : 'en')}</p>
                     <p className="mt-0.5 truncate text-xs text-app-faint">{post.author.name} &middot; {elapsed(post.createdAt)}</p>
                   </div>
                 </div>
@@ -128,7 +137,7 @@ export const BrowseScreen: React.FC = () => {
                   type="button"
                   onClick={() => toggleSaved(post)}
                   disabled={pendingSaveId === post.id}
-                  aria-label={post.savedByMe ? 'Remove bookmark' : 'Bookmark post'}
+                  aria-label={post.savedByMe ? (isVi ? 'Bỏ lưu' : 'Remove bookmark') : (isVi ? 'Lưu bài' : 'Bookmark post')}
                   className={`rounded-lg p-2 transition-colors ${
                     post.savedByMe ? 'bg-app-action-soft text-app-action' : 'text-app-faint hover:bg-app-surface-alt hover:text-app-action'
                   } disabled:opacity-40`}
@@ -143,23 +152,23 @@ export const BrowseScreen: React.FC = () => {
                     {post.title}
                   </h2>
                   <p className="mt-2 line-clamp-2 text-sm leading-6 text-app-muted">
-                    {excerpt || 'Open this post to read the full discussion.'}
+                    {excerpt || (isVi ? 'Mở bài viết để đọc toàn bộ thảo luận.' : 'Open this post to read the full discussion.')}
                   </p>
                 </Link>
                 {post.mediaType === 'image' && post.mediaUrl && (
-                  <img loading="lazy" src={post.mediaUrl} alt="" className="h-24 w-full rounded-lg border border-app-border object-cover" />
+                  <img loading="lazy" decoding="async" src={post.mediaUrl} alt="" className="h-24 w-full rounded-lg border border-app-border object-cover" />
                 )}
               </div>
 
               <div className="mt-4 flex items-center justify-between gap-3 border-t border-app-border pt-4">
                 <p className="text-xs text-app-muted">
-                  {post.upvotes - post.downvotes} points &middot; {post.commentCount} comments
+                  {post.upvotes - post.downvotes} {isVi ? 'điểm' : 'points'} &middot; {post.commentCount} {isVi ? 'bình luận' : 'comments'}
                 </p>
                 <Link
                   to={`/app/p/${post.id}`}
                   className="rounded-lg bg-app-action text-app-on-action px-4 py-2 text-xs font-semibold hover:brightness-110 transition-all"
                 >
-                  Read post
+                  {isVi ? 'Đọc bài' : 'Read post'}
                 </Link>
               </div>
             </article>
@@ -168,12 +177,12 @@ export const BrowseScreen: React.FC = () => {
       </div>
     ) : (
       <div className="bg-app-surface rounded-xl p-10 text-center shadow-[var(--shadow-tinted)]">
-        <p className="text-sm text-app-muted">No posts match this search.</p>
+        <p className="text-sm text-app-muted">{isVi ? 'Không có bài viết phù hợp.' : 'No posts match this search.'}</p>
         <button
-          onClick={() => { setQuery(''); setSource('All Sources'); }}
+          onClick={() => { setQuery(''); setSource(allSources); }}
           className="mt-4 text-sm font-semibold text-app-action hover:underline"
         >
-          Reset filters
+          {isVi ? 'Đặt lại bộ lọc' : 'Reset filters'}
         </button>
       </div>
     )}
@@ -185,7 +194,7 @@ export const BrowseScreen: React.FC = () => {
           onClick={() => setVisibleCount(count => count + 6)}
           className="rounded-full border border-app-border px-8 py-3 text-sm font-semibold text-app-heading hover:bg-app-surface-alt active:scale-[0.97] transition-all"
         >
-          Load more posts
+          {isVi ? 'Tải thêm bài viết' : 'Load more posts'}
         </button>
       </div>
     )}

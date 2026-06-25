@@ -5,6 +5,8 @@ import { Heart } from 'lucide-react';
 import { TextArea } from './ui/Input';
 import { PostActionButton } from './ui/PostActionButton';
 import { getProfilePath } from '../lib/profileLinks';
+import { isVietnamese, useAppLanguage } from '../lib/useAppLanguage';
+import { backendApi } from '../lib/api';
 
 interface CommentProps {
   comment: CommentType;
@@ -41,6 +43,8 @@ function countReplies(comment: CommentType): number {
 const TREE_INDENT = 24;
 
 const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId, currentUserId, currentUserRole, onReply, onLike, onUnlike, onDelete }) => {
+  const language = useAppLanguage();
+  const isVi = isVietnamese(language);
   const [showReplies, setShowReplies] = useState(true);
   const [isReplying, setIsReplying] = useState(false);
   const [replyDraft, setReplyDraft] = useState('');
@@ -49,6 +53,10 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
   const [isLiking, setIsLiking] = useState(false);
   const [confirmDeleteComment, setConfirmDeleteComment] = useState(false);
   const [isDeletingComment, setIsDeletingComment] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [isTranslated, setIsTranslated] = useState(false);
+  const [translatedContent, setTranslatedContent] = useState<string | null>(null);
+  const [translatedQuote, setTranslatedQuote] = useState<string | null>(null);
 
   const canDelete = onDelete && (currentUserRole === 'ADMIN' || comment.author.id === currentUserId);
 
@@ -90,6 +98,81 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
   const hasReplies = comment.replies && comment.replies.length > 0;
   const replyCount = countReplies(comment);
   const trimmedReply = replyDraft.trim();
+  const copy = isVi
+    ? {
+        op: 'Tác giả',
+        reply: 'Trả lời',
+        share: 'Chia sẻ',
+        save: 'Lưu',
+        report: 'Báo cáo',
+        delete: 'Xóa',
+        deleting: 'Đang xóa',
+        confirm: 'Xác nhận',
+        cancel: 'Hủy',
+        liked: 'Đã thích',
+        like: 'Thích',
+        likedAria: `Bạn đã thích bình luận này (${displayLikes} lượt)`,
+        likeAria: `Thích bình luận này (${displayLikes} lượt)`,
+        collapse: 'Thu gọn',
+        expand: 'Mở rộng',
+        replyPlaceholder: `Trả lời @${comment.author.username}...`,
+        postReply: 'Đăng trả lời',
+        translate: 'Dịch',
+        original: 'Xem bản gốc',
+        translating: 'Đang dịch...',
+      }
+    : {
+        op: 'OP',
+        reply: 'Reply',
+        share: 'Share',
+        save: 'Save',
+        report: 'Report',
+        delete: 'Delete',
+        deleting: 'Deleting',
+        confirm: 'Confirm',
+        cancel: 'Cancel',
+        liked: 'Liked',
+        like: 'Like',
+        likedAria: `You liked this comment (${displayLikes} total)`,
+        likeAria: `Like this comment (${displayLikes} total)`,
+        collapse: 'Collapse',
+        expand: 'Expand',
+        replyPlaceholder: `Reply to @${comment.author.username}...`,
+        postReply: 'Post reply',
+        translate: 'Translate',
+        original: 'Show original',
+        translating: 'Translating...',
+      };
+
+  const handleToggleTranslate = async () => {
+    if (isTranslated) {
+      setIsTranslated(false);
+      return;
+    }
+    if (translatedContent) {
+      setIsTranslated(true);
+      return;
+    }
+
+    setIsTranslating(true);
+    try {
+      const targetLanguage = language === 'vi' ? 'vi' : 'en';
+      const result = await backendApi.translateComment(comment.id, targetLanguage);
+      if (result && result.content) {
+        const quoteMatch = result.content.match(/^> ([\s\S]*?)(?:\n\n([\s\S]*))?$/);
+        const quote = quoteMatch?.[1]?.replace(/\n> /g, '\n').trim();
+        const content = quoteMatch ? quoteMatch[2]?.trim() || '' : result.content;
+        
+        setTranslatedContent(content);
+        setTranslatedQuote(quote || null);
+        setIsTranslated(true);
+      }
+    } catch (error) {
+      console.error('Failed to translate comment:', error);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
 
   const handleSubmitReply = () => {
     if (!trimmedReply) return;
@@ -115,20 +198,28 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
             >
               @{comment.author.username}
             </Link>
-            {isOP && <span className="text-app-action">OP</span>}
+            {isOP && <span className="text-app-action">{copy.op}</span>}
             <span>{timeAgo(comment.createdAt)}</span>
             <span className="tabular-nums">{displayLikes}</span>
             <button type="button" onClick={() => setIsReplying(true)} className="hover:text-app-action">
-              Reply
+              {copy.reply}
             </button>
             <button type="button" className="hover:text-app-action">
-              Share
+              {copy.share}
             </button>
             <button type="button" className="hover:text-app-action">
-              Save
+              {copy.save}
             </button>
             <button type="button" className="hover:text-app-action">
-              Report
+              {copy.report}
+            </button>
+            <button
+              type="button"
+              onClick={handleToggleTranslate}
+              className="hover:text-app-action text-app-action font-semibold"
+              disabled={isTranslating}
+            >
+              {isTranslating ? copy.translating : (isTranslated ? copy.original : copy.translate)}
             </button>
             {canDelete && !confirmDeleteComment && (
               <button
@@ -136,7 +227,7 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
                 onClick={() => setConfirmDeleteComment(true)}
                 className="text-app-action hover:underline"
               >
-                Delete
+                {copy.delete}
               </button>
             )}
             {confirmDeleteComment && (
@@ -147,14 +238,14 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
                   disabled={isDeletingComment}
                   className="text-app-action hover:underline disabled:opacity-40"
                 >
-                  {isDeletingComment ? 'Deleting' : 'Confirm'}
+                  {isDeletingComment ? copy.deleting : copy.confirm}
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmDeleteComment(false)}
                   className="hover:text-app-action"
                 >
-                  Cancel
+                  {copy.cancel}
                 </button>
               </span>
             )}
@@ -162,12 +253,14 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
 
           {comment.quote && (
             <blockquote className="my-2 max-w-[68ch] rounded-lg bg-app-action-soft px-4 py-3 text-sm italic text-app-text">
-              {comment.quote}
+              {isTranslated && translatedQuote ? translatedQuote : comment.quote}
             </blockquote>
           )}
 
           {comment.content && (
-            <p className="mb-2 max-w-[68ch] text-[15px] leading-relaxed text-app-text">{comment.content}</p>
+            <p className="mb-2 max-w-[68ch] text-[15px] leading-relaxed text-app-text">
+              {isTranslated && translatedContent ? translatedContent : comment.content}
+            </p>
           )}
 
           <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-app-muted">
@@ -175,7 +268,7 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
               icon={<Heart strokeWidth={2.25} className={hasLiked ? 'fill-current' : undefined} />}
               label={
                 <span className="inline-flex items-baseline gap-1.5">
-                  <span>{hasLiked ? 'Liked' : 'Like'}</span>
+                  <span>{hasLiked ? copy.liked : copy.like}</span>
                   <span className="tabular-nums">{displayLikes}</span>
                 </span>
               }
@@ -183,11 +276,9 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
               disabled={isLiking}
               onClick={handleToggleLike}
               ariaLabel={
-                hasLiked
-                  ? `You liked this comment (${displayLikes} total)`
-                  : `Like this comment (${displayLikes} total)`
+                hasLiked ? copy.likedAria : copy.likeAria
               }
-              title={hasLiked ? 'Liked' : 'Like'}
+              title={hasLiked ? copy.liked : copy.like}
             />
             {hasReplies && (
               <button
@@ -195,7 +286,7 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
                 onClick={() => setShowReplies(!showReplies)}
                 className="inline-flex min-h-11 items-center px-2 font-mono text-[11px] uppercase tracking-wider text-app-muted transition-colors hover:text-app-heading"
               >
-                {showReplies ? 'Collapse' : 'Expand'} {replyCount}
+                {showReplies ? copy.collapse : copy.expand} {replyCount}
               </button>
             )}
           </div>
@@ -205,7 +296,7 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
               <TextArea
                 value={replyDraft}
                 onChange={(event) => setReplyDraft(event.target.value)}
-                placeholder={`Reply to @${comment.author.username}...`}
+                placeholder={copy.replyPlaceholder}
                 className="min-h-[72px] w-full max-w-[68ch] text-[15px] leading-relaxed"
                 autoFocus
               />
@@ -218,7 +309,7 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
                   }}
                   className="font-mono text-[11px] uppercase tracking-wider text-app-muted transition-colors hover:text-app-heading"
                 >
-                  Cancel
+                  {copy.cancel}
                 </button>
                 <button
                   type="button"
@@ -226,7 +317,7 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
                   disabled={!trimmedReply}
                   className="inline-flex h-8 items-center justify-center border border-app-action bg-app-action px-4 font-mono text-[11px] uppercase tracking-wider text-app-on-action transition-colors hover:bg-app-action-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  Post reply
+                  {copy.postReply}
                 </button>
               </div>
             </div>

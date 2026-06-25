@@ -16,6 +16,7 @@ interface AuthContextType {
     reportingFocus?: string;
     recaptchaToken?: string;
   }) => Promise<void>;
+  updateUser: (user: User) => void;
   logout: () => void;
   isLoading: boolean;
 }
@@ -95,8 +96,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     clearAuthSession();
   };
 
+  const updateUser = (nextUser: User) => {
+    setUser(nextUser);
+    const token = getAuthToken();
+    if (token) setAuthSession(token, nextUser);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, register, updateUser, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

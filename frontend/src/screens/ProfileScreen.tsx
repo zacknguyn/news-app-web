@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -8,6 +8,8 @@ import {
   Settings,
   Mail,
   Share2,
+  ImagePlus,
+  Link2,
 } from 'lucide-react';
 import { backendApi, type BackendReadingProgressDTO } from '../lib/api';
 import { backendPostToPost, backendAuthorToUser, backendUserToUser } from '../lib/backendAdapters';
@@ -18,10 +20,14 @@ import { HelperTip } from '../components/ui/Tooltip';
 import type { Post, User } from '../types';
 import { getHighlights, type SavedHighlight } from '../lib/highlights';
 import { stripHtml } from '../lib/richContent';
+import { isVietnamese, useAppLanguage } from '../lib/useAppLanguage';
+import { localizeLabel } from '../lib/localizeLabel';
 
 type ProfileTab = 'articles' | 'quotes' | 'history';
 
 type ProfileDraft = {
+  name: string;
+  avatarUrl: string;
   profileHeadline: string;
   profileBio: string;
   profileTags: string;
@@ -96,14 +102,16 @@ const profileAccentClasses: Record<string, AccentStyle> = {
   },
 };
 
-const formatTime = (date: string) =>
-  new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(
+const formatTime = (date: string, locale = 'en-US') =>
+  new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', year: 'numeric' }).format(
     new Date(date),
   );
 
 export const ProfileScreen: React.FC = () => {
+  const language = useAppLanguage();
+  const isVi = isVietnamese(language);
   const { username } = useParams();
-  const { user: authUser } = useAuth();
+  const { user: authUser, updateUser } = useAuth();
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [notice, setNotice] = useState('');
@@ -115,6 +123,8 @@ export const ProfileScreen: React.FC = () => {
   const [readingHistory, setReadingHistory] = useState<BackendReadingProgressDTO[]>([]);
 
   const [profileDraft, setProfileDraft] = useState<ProfileDraft>({
+    name: '',
+    avatarUrl: '',
     profileHeadline: '',
     profileBio: '',
     profileTags: '',
@@ -122,6 +132,133 @@ export const ProfileScreen: React.FC = () => {
     selectedBadge: '',
   });
   const [isSavingCustomization, setIsSavingCustomization] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const avatarFileRef = useRef<HTMLInputElement>(null);
+  const copy = isVi
+    ? {
+        contributorBackend: 'Tác giả này đăng bài qua hệ thống tòa soạn; lịch sử bài viết chưa hiển thị ở đây.',
+        unavailable: 'Không tải được hồ sơ.',
+        avatarUploaded: 'Đã tải ảnh đại diện.',
+        avatarFailed: 'Không thể tải ảnh đại diện.',
+        nameRequired: 'Tên hiển thị không được để trống.',
+        saved: 'Đã lưu hồ sơ.',
+        saveFailed: 'Không thể lưu hồ sơ.',
+        loading: 'Đang tải hồ sơ...',
+        notFound: 'Không tìm thấy tác giả.',
+        seniorEditor: 'Biên tập viên',
+        contributor: 'Cộng tác viên',
+        bureau: 'Hồ sơ Tourane News',
+        editProfile: 'Sửa hồ sơ',
+        pitch: 'Liên hệ tác giả',
+        share: 'Chia sẻ',
+        copied: 'Đã sao chép liên kết hồ sơ.',
+        reputation: 'Uy tín',
+        top: 'Top',
+        dispatches: 'Bài viết',
+        bylines: 'Bài đã đăng',
+        snippets: 'Trích đoạn',
+        highlights: 'Highlight',
+        articles: 'Bài viết',
+        savedQuotes: 'Trích dẫn đã lưu',
+        history: 'Lịch sử đọc',
+        noReports: 'Chưa có bài viết nào.',
+        minRead: 'phút đọc',
+        noQuotes: 'Chưa lưu trích dẫn nào. Bôi đen nội dung trong bài đọc để lưu trích dẫn ở đây.',
+        source: 'Nguồn',
+        noHistory: 'Chưa có lịch sử đọc. Tiến độ đọc sẽ được ghi nhận khi bạn đọc bài.',
+        read: 'đã đọc',
+        global: 'Tin tức tổng hợp',
+        lastRead: 'Đọc lần cuối',
+        accountSettings: 'Cài đặt tài khoản',
+        customize: 'Tùy chỉnh hồ sơ',
+        close: 'Đóng cài đặt hồ sơ',
+        publicIdentity: 'Danh tính công khai',
+        identityHint: 'Đổi tên hiển thị và ảnh đại diện.',
+        displayName: 'Tên hiển thị',
+        displayPlaceholder: 'Tên công khai của bạn',
+        avatarUrl: 'URL ảnh đại diện',
+        avatarHint: 'Dán URL ảnh hoặc tải ảnh từ máy.',
+        uploading: 'Đang tải...',
+        upload: 'Tải ảnh',
+        headline: 'Dòng giới thiệu',
+        headlineHint: 'Dòng ngắn nằm trên byline.',
+        headlinePlaceholder: 'Độc giả độc lập',
+        bio: 'Tiểu sử',
+        bioHint: 'Hiển thị trên hồ sơ của bạn.',
+        bioPlaceholder: 'Bạn đọc, theo dõi hoặc quan tâm điều gì?',
+        profileTags: 'Thẻ hồ sơ',
+        tagsHint: 'Ngăn cách bằng dấu phẩy. Tối đa 8 thẻ.',
+        tagsLocked: 'Mở khóa với Reader Plus hoặc cao hơn.',
+        badge: 'Huy hiệu chọn',
+        noBadge: 'Không chọn huy hiệu',
+        profileAccent: 'Màu nhấn hồ sơ',
+        active: 'Đang chọn',
+        manage: 'Quản lý gói đăng ký',
+        saving: 'Đang lưu...',
+        saveProfile: 'Lưu hồ sơ',
+      }
+    : {
+        contributorBackend: 'This contributor files through the newsroom backend; their dispatch history is not surfaced here yet.',
+        unavailable: 'Profile unavailable.',
+        avatarUploaded: 'Avatar uploaded.',
+        avatarFailed: 'Unable to upload avatar.',
+        nameRequired: 'Display name cannot be empty.',
+        saved: 'Profile customization saved.',
+        saveFailed: 'Unable to save profile customization.',
+        loading: 'Loading profile...',
+        notFound: 'Contributor not found.',
+        seniorEditor: 'Senior Editor',
+        contributor: 'Contributor',
+        bureau: 'Global Intelligence Bureau',
+        editProfile: 'Edit Profile',
+        pitch: 'Pitch Contributor',
+        share: 'Share',
+        copied: 'Profile link copied to clipboard.',
+        reputation: 'REPUTATION',
+        top: 'TOP',
+        dispatches: 'DISPATCHES',
+        bylines: 'BYLINES',
+        snippets: 'SNIPPETS',
+        highlights: 'HIGHLIGHTS',
+        articles: 'Articles',
+        savedQuotes: 'Saved Quotes',
+        history: 'Reading History',
+        noReports: 'No reports filed yet.',
+        minRead: 'MIN READ',
+        noQuotes: 'No quotes saved yet. Highlight text inside any report to save a quote here.',
+        source: 'Source',
+        noHistory: 'No reading history recorded. Reading progress will be tracked as you read articles.',
+        read: 'READ',
+        global: 'Global Intelligence',
+        lastRead: 'Last read',
+        accountSettings: 'Account settings',
+        customize: 'Customize profile',
+        close: 'Close account settings',
+        publicIdentity: 'Public identity',
+        identityHint: 'Change your display name and avatar.',
+        displayName: 'Display name',
+        displayPlaceholder: 'Your public name',
+        avatarUrl: 'Avatar image URL',
+        avatarHint: 'Paste an image URL, or upload one from your device.',
+        uploading: 'Uploading...',
+        upload: 'Upload',
+        headline: 'Headline',
+        headlineHint: 'Short line above your byline.',
+        headlinePlaceholder: 'Independent reader',
+        bio: 'Bio',
+        bioHint: 'Shown on your profile.',
+        bioPlaceholder: 'What do you read, cover, or care about?',
+        profileTags: 'Profile tags',
+        tagsHint: 'Comma-separated. Up to 8 tags.',
+        tagsLocked: 'Unlock with Reader Plus or higher.',
+        badge: 'Selected badge',
+        noBadge: 'No badge',
+        profileAccent: 'Profile accent',
+        active: 'Active',
+        manage: 'Manage subscription',
+        saving: 'Saving...',
+        saveProfile: 'Save Profile',
+      };
 
   const profileUserId = username && /^\d+$/.test(username) ? username : null;
   const isOwnProfile = Boolean(authUser && (username === authUser.username || username === authUser.id));
@@ -129,15 +266,35 @@ export const ProfileScreen: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
     const loadProfile = async () => {
+      if (!username) return;
       setIsLoading(true);
       setNotice('');
       try {
-        if (authUser && (username === authUser.username || username === authUser.id)) {
+        if (profileUserId) {
+          const profile =
+            authUser && profileUserId === authUser.id
+              ? await backendApi.getCurrentUser()
+              : await backendApi.getUserProfile(profileUserId);
+          const [posts, hl, history] = await Promise.all([
+            backendApi.getPostsByUser(profile.id, 0, 20).catch(() => null),
+            authUser && profileUserId === authUser.id ? getHighlights().catch(() => []) : Promise.resolve([]),
+            authUser && profileUserId === authUser.id ? backendApi.getReadingProgress().catch(() => []) : Promise.resolve([]),
+          ]);
+          if (!isMounted) return;
+          setProfileUser(backendUserToUser(profile));
+          setUserPosts(posts?.content.map(backendPostToPost) || []);
+          setHighlights(hl);
+          setHighlightsCount(hl.length);
+          setReadingHistory(history);
+          return;
+        }
+        if (authUser && username === authUser.username) {
           const currentUser = await backendApi.getCurrentUser();
-          const posts = await backendApi.getPostsByUser(currentUser.id, 0, 20).catch(() => null);
-          const hl = await getHighlights().catch(() => []);
-          const history = await backendApi.getReadingProgress().catch(() => []);
-
+          const [posts, hl, history] = await Promise.all([
+            backendApi.getPostsByUser(currentUser.id, 0, 20).catch(() => null),
+            getHighlights().catch(() => []),
+            backendApi.getReadingProgress().catch(() => []),
+          ]);
           if (!isMounted) return;
           setProfileUser(backendUserToUser(currentUser));
           setUserPosts(posts?.content.map(backendPostToPost) || []);
@@ -146,26 +303,16 @@ export const ProfileScreen: React.FC = () => {
           setReadingHistory(history);
           return;
         }
-        if (profileUserId) {
-          const profile = await backendApi.getUserProfile(profileUserId);
-          const posts = await backendApi.getPostsByUser(profile.id, 0, 20).catch(() => null);
-          if (!isMounted) return;
-          setProfileUser(backendUserToUser(profile));
-          setUserPosts(posts?.content.map(backendPostToPost) || []);
-          return;
-        }
         const author = await backendApi.getAuthorBySlug(username || '');
         if (!isMounted) return;
         setProfileUser(backendAuthorToUser(author));
         setUserPosts([]);
-        setNotice(
-          'This contributor files through the newsroom backend; their dispatch history is not surfaced here yet.',
-        );
+        setNotice(copy.contributorBackend);
       } catch (error) {
         if (!isMounted) return;
         setProfileUser(null);
         setUserPosts([]);
-        setNotice(error instanceof Error ? error.message : 'Profile unavailable.');
+        setNotice(error instanceof Error ? error.message : copy.unavailable);
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -180,7 +327,7 @@ export const ProfileScreen: React.FC = () => {
     const groups: Record<string, Post[]> = {};
     userPosts.forEach((post) => {
       const date = new Date(post.createdAt);
-      const key = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+      const key = date.toLocaleDateString(isVi ? 'vi-VN' : 'en-US', { month: 'long', year: 'numeric' }).toUpperCase();
       if (!groups[key]) groups[key] = [];
       groups[key].push(post);
     });
@@ -198,6 +345,8 @@ export const ProfileScreen: React.FC = () => {
   useEffect(() => {
     if (!profileUser) return;
     setProfileDraft({
+      name: profileUser.name || '',
+      avatarUrl: profileUser.avatarUrl || '',
       profileHeadline: profileUser.profileHeadline || '',
       profileBio: profileUser.profileBio || profileUser.bio || '',
       profileTags: (profileUser.profileTags || []).join(', '),
@@ -206,10 +355,38 @@ export const ProfileScreen: React.FC = () => {
     });
   }, [profileUser]);
 
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setIsUploadingAvatar(true);
+    try {
+      const media = await backendApi.uploadMedia(file, 'profile avatar');
+      setProfileDraft((current) => ({ ...current, avatarUrl: media.url }));
+      toast.success(copy.avatarUploaded);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : copy.avatarFailed);
+    } finally {
+      setIsUploadingAvatar(false);
+      event.target.value = '';
+    }
+  };
+
   const handleSaveCustomization = async () => {
     if (!profileUser || isSavingCustomization) return;
+    const nextName = profileDraft.name.trim();
+    const nextAvatar = profileDraft.avatarUrl.trim();
+    if (!nextName) {
+      toast.error(copy.nameRequired);
+      return;
+    }
     setIsSavingCustomization(true);
     try {
+      if (nextName !== profileUser.name || nextAvatar !== (profileUser.avatarUrl || '')) {
+        await backendApi.updateCurrentUser({
+          name: nextName,
+          avatar: nextAvatar,
+        });
+      }
       const updated = await backendApi.updateMyProfileCustomization({
         profileHeadline: profileDraft.profileHeadline,
         profileBio: profileDraft.profileBio,
@@ -220,11 +397,13 @@ export const ProfileScreen: React.FC = () => {
         profileAccent: profileDraft.profileAccent,
         selectedBadge: profileDraft.selectedBadge || undefined,
       });
-      setProfileUser(backendUserToUser(updated));
+      const nextUser = backendUserToUser(updated);
+      setProfileUser(nextUser);
+      updateUser(nextUser);
       setIsSettingsOpen(false);
-      toast.success('Profile customization saved.');
+      toast.success(copy.saved);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to save profile customization.');
+      toast.error(error instanceof Error ? error.message : copy.saveFailed);
     } finally {
       setIsSavingCustomization(false);
     }
@@ -233,30 +412,30 @@ export const ProfileScreen: React.FC = () => {
   const tabs = useMemo(() => {
     if (isOwnProfile) {
       return [
-        { id: 'articles', label: 'Articles' },
-        { id: 'quotes', label: 'Saved Quotes' },
-        { id: 'history', label: 'Reading History' },
+        { id: 'articles', label: copy.articles },
+        { id: 'quotes', label: copy.savedQuotes },
+        { id: 'history', label: copy.history },
       ];
     }
-    return [{ id: 'articles', label: 'Articles' }];
-  }, [isOwnProfile]);
+    return [{ id: 'articles', label: copy.articles }];
+  }, [copy.articles, copy.history, copy.savedQuotes, isOwnProfile]);
 
   if (isLoading)
     return (
       <div className="px-4 py-20 flex justify-center items-center h-64">
         <span className="animate-pulse text-sm text-app-muted font-mono">
-          Loading profile...
+          {copy.loading}
         </span>
       </div>
     );
-  if (!profileUser) return <div className="px-4 py-20 text-sm italic text-app-muted">Contributor not found.</div>;
+  if (!profileUser) return <div className="px-4 py-20 text-sm italic text-app-muted">{copy.notFound}</div>;
 
   return (
     <div className="w-full max-w-[640px] mx-auto pt-10 pb-20 px-4">
       {/* Profile Header */}
       <section className="flex flex-col items-center text-center mb-12">
         <div className="relative mb-6">
-          <img loading="lazy"
+          <img loading="lazy" decoding="async"
             className="w-32 h-32 rounded-full object-cover border-4 border-app-border shadow-lg"
             src={
               profileUser.avatarUrl ||
@@ -275,11 +454,11 @@ export const ProfileScreen: React.FC = () => {
         </h1>
         <div className="flex items-center justify-center gap-2 mb-4 text-xs font-semibold text-app-muted">
           <span className="px-3 py-1 rounded-full bg-app-action-soft text-app-action font-bold uppercase tracking-wider">
-            {profileUser.role === 'ADMIN' ? 'Senior Editor' : 'Contributor'}
+            {profileUser.role === 'ADMIN' ? copy.seniorEditor : copy.contributor}
           </span>
           <span>•</span>
           <span className="uppercase tracking-wider">
-            {profileUser.selectedBadge || 'Global Intelligence Bureau'}
+            {profileUser.selectedBadge || copy.bureau}
           </span>
         </div>
         {profileUser.profileHeadline && (
@@ -301,25 +480,25 @@ export const ProfileScreen: React.FC = () => {
               onClick={() => setIsSettingsOpen(true)}
               className="px-4 py-2 bg-app-action text-app-on-action rounded-lg text-xs font-bold shadow hover:bg-app-action-hover transition-all flex items-center gap-1.5 cursor-pointer"
             >
-              <Settings className="w-3.5 h-3.5" /> Edit Profile
+              <Settings className="w-3.5 h-3.5" /> {copy.editProfile}
             </button>
           ) : (
             <a
               href={`mailto:${profileUser.email || ''}`}
               className="px-4 py-2 bg-app-action text-app-on-action rounded-lg text-xs font-bold shadow hover:bg-app-action-hover transition-all flex items-center gap-1.5"
             >
-              <Mail className="w-3.5 h-3.5" /> Pitch Contributor
+              <Mail className="w-3.5 h-3.5" /> {copy.pitch}
             </a>
           )}
           <button
             type="button"
             onClick={() => {
               navigator.clipboard?.writeText(window.location.href);
-              toast.success('Profile link copied to clipboard.');
+              toast.success(copy.copied);
             }}
             className="px-4 py-2 bg-app-surface-alt text-app-text border border-app-border rounded-lg text-xs font-bold hover:bg-app-surface-alt transition-all flex items-center gap-1.5 cursor-pointer"
           >
-            <Share2 className="w-3.5 h-3.5 text-app-muted" /> Share
+            <Share2 className="w-3.5 h-3.5 text-app-muted" /> {copy.share}
           </button>
         </div>
       </section>
@@ -333,21 +512,21 @@ export const ProfileScreen: React.FC = () => {
       {/* Stats Grid */}
       <section className="grid grid-cols-3 gap-4 mb-12">
         <div className="bg-app-surface border border-app-border p-5 rounded-xl text-center shadow-sm hover:border-app-action-soft hover:-translate-y-0.5 transition-all duration-200">
-          <div className="text-[10px] font-bold text-app-muted mb-1 tracking-wider uppercase">REPUTATION</div>
+          <div className="text-[10px] font-bold text-app-muted mb-1 tracking-wider uppercase">{copy.reputation}</div>
           <div className="font-serif text-[28px] font-bold text-app-text">{profileUser.trustScore}</div>
           <div className="flex items-center justify-center text-[10px] text-app-action mt-1 font-bold">
-            <TrendingUp className="w-3.5 h-3.5 mr-1" /> TOP {profileUser.trustScore > 500 ? '2%' : profileUser.trustScore > 200 ? '10%' : '25%'}
+            <TrendingUp className="w-3.5 h-3.5 mr-1" /> {copy.top} {profileUser.trustScore > 500 ? '2%' : profileUser.trustScore > 200 ? '10%' : '25%'}
           </div>
         </div>
         <div className="bg-app-surface border border-app-border p-5 rounded-xl text-center shadow-sm hover:border-app-action-soft hover:-translate-y-0.5 transition-all duration-200">
-          <div className="text-[10px] font-bold text-app-muted mb-1 tracking-wider uppercase">DISPATCHES</div>
+          <div className="text-[10px] font-bold text-app-muted mb-1 tracking-wider uppercase">{copy.dispatches}</div>
           <div className="font-serif text-[28px] font-bold text-app-text">{userPosts.length}</div>
-          <div className="text-[10px] text-app-muted mt-1 font-bold tracking-widest uppercase">BYLINES</div>
+          <div className="text-[10px] text-app-muted mt-1 font-bold tracking-widest uppercase">{copy.bylines}</div>
         </div>
         <div className="bg-app-surface border border-app-border p-5 rounded-xl text-center shadow-sm hover:border-app-action-soft hover:-translate-y-0.5 transition-all duration-200">
-          <div className="text-[10px] font-bold text-app-muted mb-1 tracking-wider uppercase">SNIPPETS</div>
+          <div className="text-[10px] font-bold text-app-muted mb-1 tracking-wider uppercase">{copy.snippets}</div>
           <div className="font-serif text-[28px] font-bold text-app-text">{isOwnProfile ? highlightsCount : Math.floor(profileUser.trustScore / 8) || 12}</div>
-          <div className="text-[10px] text-app-muted mt-1 font-bold tracking-widest uppercase">HIGHLIGHTS</div>
+          <div className="text-[10px] text-app-muted mt-1 font-bold tracking-widest uppercase">{copy.highlights}</div>
         </div>
       </section>
 
@@ -373,7 +552,7 @@ export const ProfileScreen: React.FC = () => {
         {activeTab === 'articles' && (
           Object.keys(groupedPosts).length === 0 ? (
             <p className="py-6 text-sm italic text-app-muted text-center">
-              No reports filed yet.
+              {copy.noReports}
             </p>
           ) : (
             Object.entries(groupedPosts).map(([groupName, posts]) => (
@@ -391,7 +570,7 @@ export const ProfileScreen: React.FC = () => {
                           <div className="flex items-center gap-2 mb-2">
                             <span className="w-2 h-2 rounded-full bg-app-action-soft"></span>
                             <span className="text-[10px] font-bold tracking-wider text-app-action uppercase">
-                              {post.channelName}
+                              {localizeLabel(post.channelName, language)}
                             </span>
                           </div>
                           <h3 className="font-serif text-[18px] font-bold text-app-text group-hover:text-app-action transition-colors mb-2 leading-snug">
@@ -401,7 +580,7 @@ export const ProfileScreen: React.FC = () => {
                             {stripHtml(post.content)}
                           </p>
                           <div className="mt-4 flex items-center gap-4 text-xs text-app-muted font-bold">
-                            <span>{Math.max(1, Math.ceil(stripHtml(post.content).split(/\s+/).length / 200))} MIN READ</span>
+                            <span>{Math.max(1, Math.ceil(stripHtml(post.content).split(/\s+/).length / 200))} {copy.minRead}</span>
                             <span>•</span>
                             <div className="flex items-center gap-1">
                               <MessageSquare className="w-3.5 h-3.5" /> {post.commentCount || 0}
@@ -410,7 +589,7 @@ export const ProfileScreen: React.FC = () => {
                         </div>
                         {post.mediaUrl && (
                           <div className="w-24 h-24 rounded-lg bg-app-surface-alt overflow-hidden flex-shrink-0 border border-app-border">
-                            <img loading="lazy" className="w-full h-full object-cover" src={post.mediaUrl} alt="" />
+                            <img loading="lazy" decoding="async" className="w-full h-full object-cover" src={post.mediaUrl} alt="" />
                           </div>
                         )}
                       </Link>
@@ -425,7 +604,7 @@ export const ProfileScreen: React.FC = () => {
         {activeTab === 'quotes' && (
           highlights.length === 0 ? (
             <p className="py-6 text-sm italic text-app-muted text-center">
-              No quotes saved yet. Highlight text inside any report to save a quote here.
+              {copy.noQuotes}
             </p>
           ) : (
             <div className="space-y-6">
@@ -436,9 +615,9 @@ export const ProfileScreen: React.FC = () => {
                   </p>
                   <div className="flex items-center justify-between text-xs text-app-muted font-semibold">
                     <Link to={`/app/p/${hl.postId}`} className="hover:text-app-action hover:underline">
-                      Source: {hl.postTitle}
+                      {copy.source}: {hl.postTitle}
                     </Link>
-                    <span>{formatTime(hl.createdAt)}</span>
+                    <span>{formatTime(hl.createdAt, isVi ? 'vi-VN' : 'en-US')}</span>
                   </div>
                 </div>
               ))}
@@ -449,7 +628,7 @@ export const ProfileScreen: React.FC = () => {
         {activeTab === 'history' && (
           readingHistory.length === 0 ? (
             <p className="py-6 text-sm italic text-app-muted text-center">
-              No reading history recorded. Reading progress will be tracked as you read articles.
+              {copy.noHistory}
             </p>
           ) : (
             <div className="space-y-6">
@@ -462,15 +641,15 @@ export const ProfileScreen: React.FC = () => {
                       </Link>
                     </h4>
                     <span className="text-[10px] font-bold text-app-action bg-app-action-soft px-2 py-0.5 rounded border border-app-action-soft">
-                      {history.progress}% READ
+                      {history.progress}% {copy.read}
                     </span>
                   </div>
                   <div className="w-full h-1 bg-[var(--color-app-border)] rounded-full overflow-hidden mb-3">
                     <div className="h-full bg-app-action" style={{ width: `${history.progress}%` }}></div>
                   </div>
                   <div className="flex justify-between text-[10px] text-app-muted font-semibold">
-                    <span>{history.channelName || 'Global Intelligence'}</span>
-                    <span>Last read: {formatTime(history.updatedAt)}</span>
+                    <span>{localizeLabel(history.channelName, language) || copy.global}</span>
+                    <span>{copy.lastRead}: {formatTime(history.updatedAt, isVi ? 'vi-VN' : 'en-US')}</span>
                   </div>
                 </div>
               ))}
@@ -489,21 +668,87 @@ export const ProfileScreen: React.FC = () => {
           <div className="relative z-10 max-h-[min(90dvh,52rem)] w-full max-w-2xl overflow-y-auto rounded-2xl border border-app-border bg-app-surface p-5 shadow-2xl sm:p-6">
             <div className="flex items-start justify-between gap-4 border-b border-app-border pb-4 mb-6">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-app-action">Account settings</p>
-                <h2 id="profile-settings-title" className="mt-1 text-xl font-bold text-app-text">Customize profile</h2>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-app-action">{copy.accountSettings}</p>
+                <h2 id="profile-settings-title" className="mt-1 text-xl font-bold text-app-text">{copy.customize}</h2>
               </div>
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(false)}
                 className="w-8 h-8 rounded-lg hover:bg-app-surface-alt flex items-center justify-center text-app-muted hover:text-app-text transition-colors cursor-pointer"
-                aria-label="Close account settings"
+                aria-label={copy.close}
               >
                 x
               </button>
             </div>
 
             <div className="grid gap-5">
-              <Field id="profile-headline" label="Headline" hint="Short line above your byline.">
+              <section className="rounded-xl border border-app-border bg-app-surface-alt/40 p-4">
+                <div className="mb-4 flex items-center gap-4">
+                    <img
+                    loading="lazy"
+                    decoding="async"
+                    src={
+                      profileDraft.avatarUrl ||
+                      profileUser.avatarUrl ||
+                      `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(profileUser.username)}`
+                    }
+                    alt=""
+                    className="h-16 w-16 rounded-full border-2 border-app-border object-cover bg-app-surface"
+                  />
+                  <div className="min-w-0">
+                    <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-app-action">{copy.publicIdentity}</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-app-heading">
+                      {profileDraft.name || profileUser.name}
+                    </p>
+                    <p className="mt-0.5 text-xs text-app-muted">{copy.identityHint}</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4">
+                  <Field id="profile-display-name" label={copy.displayName}>
+                    <Input
+                      id="profile-display-name"
+                      value={profileDraft.name}
+                      maxLength={100}
+                      onChange={(event) => setProfileDraft((current) => ({ ...current, name: event.target.value }))}
+                      placeholder={copy.displayPlaceholder}
+                    />
+                  </Field>
+
+                  <Field id="profile-avatar-url" label={copy.avatarUrl} hint={copy.avatarHint}>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <div className="relative flex-1">
+                        <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-app-faint" />
+                        <Input
+                          id="profile-avatar-url"
+                          value={profileDraft.avatarUrl}
+                          onChange={(event) => setProfileDraft((current) => ({ ...current, avatarUrl: event.target.value }))}
+                          placeholder="https://example.com/avatar.jpg"
+                          className="pl-9"
+                        />
+                      </div>
+                      <input
+                        ref={avatarFileRef}
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={handleAvatarUpload}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => avatarFileRef.current?.click()}
+                        disabled={isUploadingAvatar}
+                        className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-app-border bg-app-surface px-4 text-xs font-bold text-app-muted transition-colors hover:border-app-action hover:text-app-action disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <ImagePlus className="h-4 w-4" />
+                        {isUploadingAvatar ? copy.uploading : copy.upload}
+                      </button>
+                    </div>
+                  </Field>
+                </div>
+              </section>
+
+              <Field id="profile-headline" label={copy.headline} hint={copy.headlineHint}>
                 <Input
                   id="profile-headline"
                   value={profileDraft.profileHeadline}
@@ -511,36 +756,36 @@ export const ProfileScreen: React.FC = () => {
                   onChange={(event) =>
                     setProfileDraft((current) => ({ ...current, profileHeadline: event.target.value }))
                   }
-                  placeholder="Independent reader"
+                  placeholder={copy.headlinePlaceholder}
                 />
               </Field>
-              <Field id="profile-bio" label="Bio" hint="Shown on your profile.">
+              <Field id="profile-bio" label={copy.bio} hint={copy.bioHint}>
                 <TextArea
                   id="profile-bio"
                   value={profileDraft.profileBio}
                   maxLength={2000}
                   onChange={(event) => setProfileDraft((current) => ({ ...current, profileBio: event.target.value }))}
-                  placeholder="What do you read, cover, or care about?"
+                  placeholder={copy.bioPlaceholder}
                   className="min-h-[8rem]"
                 />
               </Field>
               <Field
                 id="profile-tags"
-                label="Profile tags"
-                hint={canUseTags ? 'Comma-separated. Up to 8 tags.' : 'Unlock with Reader Plus or higher.'}
+                label={copy.profileTags}
+                hint={canUseTags ? copy.tagsHint : copy.tagsLocked}
               >
                 <Input
                   id="profile-tags"
                   value={profileDraft.profileTags}
                   disabled={!canUseTags}
                   onChange={(event) => setProfileDraft((current) => ({ ...current, profileTags: event.target.value }))}
-                  placeholder="Politics, Da Nang, Data"
+                  placeholder={isVi ? 'Chính trị, Đà Nẵng, Dữ liệu' : 'Politics, Da Nang, Data'}
                 />
               </Field>
 
               <div className="border-y border-app-border py-4">
                 <UnlockRow
-                  title="Selected badge"
+                  title={copy.badge}
                   copy={canUseBadges ? 'Badge near your name.' : 'Unlock with Reader Plus.'}
                   helper="Badges are subscription-linked profile markers. Free accounts keep the default profile without a selected badge."
                   locked={!canUseBadges}
@@ -553,7 +798,7 @@ export const ProfileScreen: React.FC = () => {
                     }
                     className="h-10 w-full border border-app-border bg-app-surface-alt px-3 text-xs font-semibold text-app-text rounded-lg disabled:opacity-45"
                   >
-                    <option value="">No badge</option>
+                    <option value="">{copy.noBadge}</option>
                     {(profileUser.unlockedBadges || []).map((badge) => (
                       <option key={badge} value={badge}>
                         {badge}
@@ -562,7 +807,7 @@ export const ProfileScreen: React.FC = () => {
                   </select>
                 </UnlockRow>
                 <UnlockRow
-                  title="Profile accent"
+                  title={copy.profileAccent}
                   copy={canUseAccent ? 'Restrained accent preset.' : 'Unlock with Backer or Newsroom Pro.'}
                   helper="Profile accents change the visible framing, badge treatment, and avatar outline on your public profile."
                   locked={!canUseAccent}
@@ -574,8 +819,9 @@ export const ProfileScreen: React.FC = () => {
                         Accent preview: {profileDraft.profileAccent || 'None'}
                       </p>
                       <div className="mt-3 flex items-center gap-3">
-                        <img loading="lazy"
+                        <img loading="lazy" decoding="async"
                           src={
+                            profileDraft.avatarUrl ||
                             profileUser.avatarUrl ||
                             `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(profileUser.username)}`
                           }
@@ -583,7 +829,7 @@ export const ProfileScreen: React.FC = () => {
                           className={`h-10 w-10 border-2 object-cover outline outline-4 ${accentClass.avatar} rounded-full`}
                         />
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-app-heading">{profileUser.name}</p>
+                          <p className="truncate text-sm font-semibold text-app-heading">{profileDraft.name || profileUser.name}</p>
                           <p
                             className={`mt-1 inline-flex border px-2 py-1 font-mono text-[10px] uppercase tracking-wider ${accentClass.badge} rounded`}
                           >
@@ -605,7 +851,7 @@ export const ProfileScreen: React.FC = () => {
                           aria-disabled={isLocked}
                           onClick={() => {
                             if (isLocked) {
-                              toast.info('Profile accents unlock with Backer or Newsroom Pro.');
+                            toast.info(isVi ? 'Màu nhấn hồ sơ mở khóa với Backer hoặc Newsroom Pro.' : 'Profile accents unlock with Backer or Newsroom Pro.');
                               return;
                             }
                             setProfileDraft((current) => ({ ...current, profileAccent: option.value }));
@@ -621,7 +867,7 @@ export const ProfileScreen: React.FC = () => {
                             </span>
                             {isSelected && (
                               <span className="ml-auto font-mono text-[10px] uppercase tracking-wider text-app-action font-bold">
-                                Active
+                                {copy.active}
                               </span>
                             )}
                           </span>
@@ -637,7 +883,7 @@ export const ProfileScreen: React.FC = () => {
                 to="/app/subscribe"
                 className="text-xs font-bold text-app-action hover:underline inline-block"
               >
-                Manage subscription
+                {copy.manage}
               </Link>
 
               <div className="sticky bottom-0 -mx-5 -mb-5 mt-6 border-t border-app-border bg-app-surface px-5 py-4 sm:-mx-6 sm:-mb-6 sm:px-6">
@@ -647,7 +893,7 @@ export const ProfileScreen: React.FC = () => {
                   disabled={isSavingCustomization}
                   className="inline-flex h-11 w-full items-center justify-center bg-app-action px-6 text-xs font-bold text-white rounded-lg hover:bg-app-action-hover disabled:cursor-not-allowed disabled:opacity-45 cursor-pointer shadow-md transition-all"
                 >
-                  {isSavingCustomization ? 'Saving...' : 'Save Profile'}
+                  {isSavingCustomization ? copy.saving : copy.saveProfile}
                 </button>
               </div>
             </div>

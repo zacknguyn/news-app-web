@@ -25,7 +25,7 @@ import type { Post } from '../types';
 type NotebookTab = 'highlights' | 'posts';
 
 const formatTime = (date: string) =>
-  new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(
+  new Intl.DateTimeFormat('vi-VN', { month: 'short', day: 'numeric', year: 'numeric' }).format(
     new Date(date),
   );
 
@@ -64,7 +64,7 @@ export const HighlightsScreen: React.FC = () => {
         setNotice('');
       })
       .catch((error) => {
-        if (isMounted) setNotice(error instanceof Error ? error.message : 'Unable to load notebook.');
+        if (isMounted) setNotice(error instanceof Error ? error.message : 'Không thể tải sổ tay.');
       });
     return () => {
       isMounted = false;
@@ -84,7 +84,7 @@ export const HighlightsScreen: React.FC = () => {
               );
             })
             .catch((error) =>
-              toast.error(error instanceof Error ? error.message : 'Unable to update note.'),
+              toast.error(error instanceof Error ? error.message : 'Không thể cập nhật ghi chú.'),
             );
         }
       });
@@ -94,7 +94,7 @@ export const HighlightsScreen: React.FC = () => {
 
   const handleDeleteHighlight = async (id: string) => {
     await deleteHighlight(id).catch((error) =>
-      toast.error(error instanceof Error ? error.message : 'Unable to delete highlight.'),
+      toast.error(error instanceof Error ? error.message : 'Không thể xoá điểm nổi bật.'),
     );
     setHighlights((current) => current.filter((highlight) => highlight.id !== id));
     setNoteDrafts((prev) => {
@@ -116,9 +116,9 @@ export const HighlightsScreen: React.FC = () => {
       setHighlights((prev) =>
         prev.map((h) => (h.id === selectedHighlight.id ? { ...h, note } : h))
       );
-      toast.success('Changes saved successfully.');
+      toast.success('Đã lưu thay đổi thành công.');
     } catch {
-      toast.error('Failed to save changes.');
+      toast.error('Lưu thay đổi thất bại.');
     }
   };
 
@@ -127,16 +127,16 @@ export const HighlightsScreen: React.FC = () => {
     const note = noteDrafts[selectedHighlight.id] ?? selectedHighlight.note ?? '';
     const markdown = `> ${selectedHighlight.text}\n\n**Source:** [${selectedHighlight.postTitle}](http://localhost:5175/app/p/${selectedHighlight.postId})\n**Created:** ${formatTime(selectedHighlight.createdAt)}\n\n**Annotations:**\n${note || 'No notes added.'}`;
     navigator.clipboard.writeText(markdown)
-      .then(() => toast.success('Copied highlight to clipboard in Markdown.'))
-      .catch(() => toast.error('Failed to copy.'));
+      .then(() => toast.success('Đã sao chép điểm nổi bật dưới dạng Markdown.'))
+      .catch(() => toast.error('Sao chép thất bại.'));
   };
 
   const handleShareHighlight = () => {
     if (!selectedHighlight) return;
     const url = `${window.location.origin}/app/p/${selectedHighlight.postId}`;
     navigator.clipboard.writeText(url)
-      .then(() => toast.success('Article link copied to clipboard.'))
-      .catch(() => toast.error('Failed to copy link.'));
+      .then(() => toast.success('Đã sao chép liên kết bài viết.'))
+      .catch(() => toast.error('Sao chép liên kết thất bại.'));
   };
 
   // Keyboard shortcut feedback (Meta/Ctrl + K focus search)
@@ -256,9 +256,9 @@ export const HighlightsScreen: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full h-14 pl-12 pr-16 bg-app-surface border border-app-border rounded-xl text-sm focus:ring-2 focus:ring-app-action-soft focus:border-app-action outline-none transition-all shadow-sm text-app-text"
-            placeholder={activeTab === 'highlights' ? "Search highlights, tags, or sources..." : "Search saved posts..."}
+            placeholder={activeTab === 'highlights' ? "Tìm kiếm điểm nổi bật, thẻ, hoặc nguồn..." : "Tìm kiếm bài đã lưu..."}
             type="text"
-            aria-label={activeTab === 'highlights' ? "Search highlights, tags, or sources" : "Search saved posts"}
+            aria-label={activeTab === 'highlights' ? "Tìm kiếm điểm nổi bật, thẻ, hoặc nguồn" : "Tìm kiếm bài đã lưu"}
           />
           <div className="absolute inset-y-0 right-4 flex items-center gap-2 pointer-events-none">
             <kbd className="px-2 py-1 bg-app-surface-alt rounded text-[10px] text-app-muted font-mono border border-app-border">⌘</kbd>
@@ -269,11 +269,11 @@ export const HighlightsScreen: React.FC = () => {
         {/* Dashboard Headers */}
         <div className="flex justify-between items-end mb-6 shrink-0">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-app-text mb-1">Knowledge Highlights</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-app-text mb-1">Highlights</h1>
             <p className="text-app-muted text-sm">
               {activeTab === 'highlights'
-                ? `${filteredHighlights.length} active notes from your intelligence feed`
-                : `${filteredPosts.length} saved articles and posts`}
+                ? `${filteredHighlights.length} ghi chú từ nguồn tin của bạn`
+                : `${filteredPosts.length} bài viết đã lưu`}
             </p>
           </div>
 
@@ -281,7 +281,7 @@ export const HighlightsScreen: React.FC = () => {
             {/* Tab selection */}
             {[
               ['highlights', 'Highlights'],
-              ['posts', 'Saved Posts'],
+              ['posts', 'Bài Đã Lưu'],
             ].map(([id, label]) => (
               <button
                 key={id}
@@ -312,7 +312,7 @@ export const HighlightsScreen: React.FC = () => {
               <div className="flex flex-col items-center justify-center h-48 border border-dashed border-app-border rounded-xl p-6 text-center">
                 <BookOpen className="w-8 h-8 text-app-muted mb-2" />
                 <p className="text-sm italic text-app-muted">
-                  {searchQuery ? 'No highlights found matching search query.' : 'You have not saved any quotes yet. Highlight text in any post to save it here.'}
+                  {searchQuery ? 'Không tìm thấy điểm nổi bật phù hợp.' : 'Bạn chưa lưu trích dẫn nào. Hãy tô chọn văn bản trong bất kỳ bài viết nào để lưu tại đây.'}
                 </p>
               </div>
             ) : (
@@ -348,7 +348,7 @@ export const HighlightsScreen: React.FC = () => {
                         </div>
                         <div className="min-w-0">
                           <h3 className="text-xs font-bold text-app-text truncate max-w-[200px]">{hl.postTitle}</h3>
-                          <p className="text-[10px] text-app-muted uppercase tracking-wider font-semibold">{hl.channelName || 'Global Intelligence'}</p>
+                          <p className="text-[10px] text-app-muted uppercase tracking-wider font-semibold">{hl.channelName || 'Tin tức chung'}</p>
                         </div>
                       </div>
                     </div>
@@ -361,7 +361,7 @@ export const HighlightsScreen: React.FC = () => {
               <div className="flex flex-col items-center justify-center h-48 border border-dashed border-app-border rounded-xl p-6 text-center">
                 <BookOpen className="w-8 h-8 text-app-muted mb-2" />
                 <p className="text-sm italic text-app-muted">
-                  {searchQuery ? 'No saved posts found matching search query.' : 'No saved posts yet.'}
+                  {searchQuery ? 'Không tìm thấy bài đã lưu phù hợp.' : 'Bạn chưa lưu bài viết nào.'}
                 </p>
               </div>
             ) : (
@@ -380,7 +380,7 @@ export const HighlightsScreen: React.FC = () => {
         <aside className="w-full max-w-md bg-app-surface border-l border-app-border h-full flex flex-col shadow-lg shrink-0">
           {/* Panel Header */}
           <div className="p-6 border-b border-app-border flex justify-between items-center bg-app-surface-alt/50 backdrop-blur-sm sticky top-0 shrink-0">
-            <h2 className="text-sm font-bold text-app-text uppercase tracking-wider">Highlight Detail</h2>
+            <h2 className="text-sm font-bold text-app-text uppercase tracking-wider">Chi Tiết Điểm Nổi Bật</h2>
             <div className="flex gap-2">
               <button
                 onClick={handleShareHighlight}
@@ -403,7 +403,7 @@ export const HighlightsScreen: React.FC = () => {
           <div className="flex-1 overflow-y-auto p-6 hide-scrollbar space-y-8">
             {/* Full Quote Area */}
             <section>
-              <span className="text-[10px] text-app-action font-bold tracking-widest block mb-3 uppercase">Original Highlight</span>
+              <span className="text-[10px] text-app-action font-bold tracking-widest block mb-3 uppercase">Trích Dẫn Gốc</span>
               <div className="relative pl-6">
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-app-action rounded-full"></div>
                 <blockquote className="font-serif text-[17px] text-app-text italic leading-relaxed">
@@ -418,7 +418,7 @@ export const HighlightsScreen: React.FC = () => {
                   to={`/app/p/${selectedHighlight.postId}`}
                   className="flex items-center gap-1 hover:text-app-action hover:underline"
                 >
-                  <Link2 className="w-3.5 h-3.5" /> Source: {selectedHighlight.postTitle}
+                  <Link2 className="w-3.5 h-3.5" /> Nguồn: {selectedHighlight.postTitle}
                 </Link>
               </div>
             </section>
@@ -426,14 +426,14 @@ export const HighlightsScreen: React.FC = () => {
             {/* Editable Annotations */}
             <section>
               <div className="flex justify-between items-center mb-3">
-                <span className="text-[10px] text-app-muted font-bold uppercase tracking-wider block">Personal Annotations</span>
-                <span className="text-[9px] bg-app-surface-alt px-1.5 py-0.5 rounded text-app-muted font-semibold border border-app-border">HASHTAGS SUPPORTED</span>
+                <span className="text-[10px] text-app-muted font-bold uppercase tracking-wider block">Ghi Chú Cá Nhân</span>
+                <span className="text-[9px] bg-app-surface-alt px-1.5 py-0.5 rounded text-app-muted font-semibold border border-app-border">HỖ TRỢ HASHTAG</span>
               </div>
               <textarea
                 value={noteDrafts[selectedHighlight.id] ?? ''}
                 onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [selectedHighlight.id]: e.target.value }))}
                 className="w-full h-64 p-4 bg-app-surface-alt border border-app-border rounded-xl font-mono text-xs focus:ring-2 focus:ring-app-action-soft focus:border-app-action outline-none resize-none transition-all text-app-text"
-                placeholder="Add your thoughts, hashtags, or action items here... (e.g., #strategy, #risk)"
+                placeholder="Thêm suy nghĩ, hashtag, hoặc ghi chú hành động... (ví dụ: #chiến-lược, #rủi-ro)"
               />
               <div className="mt-4 flex flex-wrap gap-2 items-center">
                 {parsedTags.map((tag) => (
@@ -456,7 +456,7 @@ export const HighlightsScreen: React.FC = () => {
                   onClick={handleAddTag}
                   className="px-2 py-1 rounded bg-app-action-soft text-app-action text-[10px] font-bold border border-app-action-soft flex items-center gap-1 hover:bg-app-action-faint transition-colors"
                 >
-                  <Plus className="w-3 h-3" /> Add Tag
+                  <Plus className="w-3 h-3" /> Thêm Thẻ
                 </button>
               </div>
             </section>
@@ -466,15 +466,15 @@ export const HighlightsScreen: React.FC = () => {
               <section className="p-4 rounded-xl bg-app-action-faint border border-app-action-soft">
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles className="w-4 h-4 text-app-action" />
-                  <span className="text-[10px] text-app-action font-bold tracking-widest uppercase">AI Intelligence</span>
+                  <span className="text-[10px] text-app-action font-bold tracking-widest uppercase">Phân Tích AI</span>
                 </div>
                 <ul className="space-y-2">
                   <li className="flex justify-between text-xs font-semibold">
-                    <span className="text-app-muted">Sentiment</span>
+                    <span className="text-app-muted">Cảm xúc</span>
                     <span className="text-app-action font-bold">{aiAnalysis.sentiment}</span>
                   </li>
                   <li className="flex justify-between text-xs font-semibold items-center">
-                    <span className="text-app-muted">Confidence Score</span>
+                    <span className="text-app-muted">Độ tin cậy</span>
                     <div className="flex gap-0.5">
                       {[1, 2, 3, 4, 5].map((dot) => (
                         <span
@@ -497,13 +497,13 @@ export const HighlightsScreen: React.FC = () => {
               onClick={handleSaveChanges}
               className="flex-1 px-4 py-2.5 bg-app-action text-app-on-action rounded-lg text-xs font-bold shadow-md hover:bg-app-action-hover hover:shadow-lg transition-all active:scale-[0.98]"
             >
-              Save Changes
+              Lưu Thay Đổi
             </button>
             <button
               onClick={handleExport}
               className="px-4 py-2.5 bg-app-surface-alt text-app-muted rounded-lg text-xs font-bold border border-app-border hover:bg-app-surface-alt hover:text-app-text transition-all"
             >
-              Export
+              Xuất
             </button>
           </div>
         </aside>

@@ -107,6 +107,7 @@ export type BackendPostDTO = {
   savedByMe?: boolean | null;
   userId: number;
   authorName: string;
+  authorAvatar?: string | null;
   topicId: number;
   topicName: string;
   topicSlug: string;
@@ -152,6 +153,13 @@ export type BackendArticleDTO = {
   categories?: Array<{ id: number; name: string; slug?: string | null }>;
   tags?: Array<{ id: number; name: string; slug?: string | null }>;
   savedByMe?: boolean | null;
+};
+
+export type BackendContentTranslationDTO = {
+  language: 'en' | 'vi' | string;
+  title: string;
+  subtitle?: string | null;
+  content: string;
 };
 
 export type BackendAuthorDTO = {
@@ -237,6 +245,18 @@ export type BackendAdCampaignDTO = {
   reviewedAt?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+};
+
+export type BackendMediaDTO = {
+  id: number;
+  url: string;
+  objectKey?: string | null;
+  storageProvider?: string | null;
+  originalFilename?: string | null;
+  contentType?: string | null;
+  sizeBytes?: number | null;
+  altText?: string | null;
+  createdAt?: string | null;
 };
 
 export type BackendVoteResponseDTO = {
@@ -566,6 +586,29 @@ export const backendApi = {
       method: 'DELETE',
     }),
 
+  getAdminTopics: (search = '', page = 0, size = 20) =>
+    apiRequest<PaginatedResponse<BackendTopicDTO>>(
+      `/admin/topics?search=${encodeURIComponent(search)}&page=${page}&size=${size}`,
+    ),
+
+  updateAdminTopic: (id: number, input: {
+    name?: string;
+    description?: string;
+    avatar?: string;
+    banner?: string;
+    rules?: string;
+    visibility?: string;
+  }) =>
+    apiRequest<BackendTopicDTO>(`/admin/topics/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
+
+  deleteAdminTopic: (id: number) =>
+    apiRequest<void>(`/admin/topics/${id}`, {
+      method: 'DELETE',
+    }),
+
   getPartnerAdCampaigns: (page = 0, size = 20) =>
     apiRequest<PaginatedResponse<BackendAdCampaignDTO>>(`/partner/ads?page=${page}&size=${size}`),
 
@@ -771,6 +814,12 @@ export const backendApi = {
       timeoutMs: 120000,
     }),
 
+  translatePost: (postId: number, language: string) =>
+    apiRequest<BackendContentTranslationDTO>(`/posts/${postId}/translation?language=${language}`, {
+      method: 'POST',
+      timeoutMs: 180000,
+    }),
+
   getArticle: (articleId: number) => apiRequest<BackendArticleDTO>(`/articles/${articleId}`, { skipAuth: true }),
 
   getArticles: (page = 0, size = 20) =>
@@ -819,10 +868,16 @@ export const backendApi = {
       skipAuth: true,
     }),
 
-  summarizeArticle: (articleId: number) =>
-    apiRequest<BackendArticleDTO>(`/articles/${articleId}/summary`, {
+  summarizeArticle: (articleId: number, maxPoints?: number, language?: string, force?: boolean) =>
+    apiRequest<BackendArticleDTO>(`/articles/${articleId}/summary?language=${language ?? 'en'}&force=${force ?? false}${maxPoints != null ? `&maxPoints=${maxPoints}` : ''}`, {
       method: 'POST',
       timeoutMs: 120000,
+    }),
+
+  translateArticle: (articleId: number, language: string) =>
+    apiRequest<BackendContentTranslationDTO>(`/articles/${articleId}/translation?language=${language}`, {
+      method: 'POST',
+      timeoutMs: 180000,
     }),
 
   getCommentsByArticle: (articleId: number, page = 0, size = 100) =>
@@ -856,6 +911,12 @@ export const backendApi = {
   deleteComment: (commentId: string) =>
     apiRequest<void>(`/comments/${commentId}`, {
       method: 'DELETE',
+    }),
+
+  translateComment: (commentId: string | number, language: string) =>
+    apiRequest<BackendContentTranslationDTO>(`/comments/${commentId}/translate?language=${language}`, {
+      method: 'POST',
+      timeoutMs: 120000,
     }),
 
   // ── Notifications ──

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
 import { AppTopBar } from '../components/AppTopBar';
 import { BottomNav } from '../components/BottomNav';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { readAppPreferences, subscribeAppPreferences } from '../lib/appPreferences';
 import { useChannels } from '../lib/useChannels';
 import { TopicRail } from '../components/TopicRail';
@@ -36,8 +36,6 @@ export const RootLayout: React.FC = () => {
 
   const resolvedTheme = preferences.theme === 'system' ? systemTheme : preferences.theme;
   const { channels } = useChannels();
-  const location = useLocation();
-  const isFeedPage = location.pathname === '/app' || location.pathname.startsWith('/app/c/') || location.pathname.startsWith('/app/p/');
 
   return (
     <div
