@@ -257,7 +257,7 @@ setCommentNotice(error instanceof Error ? error.message : copy.unavailable);
               type="button"
               onClick={handleAddComment}
               disabled={!hasCommentContent || !canUseBackendComments || isSubmitting}
-              className="inline-flex h-9 items-center justify-center border border-app-action bg-app-action px-5 font-mono text-[11px] uppercase tracking-wider text-app-on-action transition-colors hover:bg-app-action-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex h-9 items-center justify-center border border-app-action bg-app-action px-5 font-mono text-xs uppercase tracking-wider text-app-on-action transition-colors hover:bg-app-action-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40 rounded-xl"
             >
               {isSubmitting ? copy.posting : copy.postResponse}
             </button>

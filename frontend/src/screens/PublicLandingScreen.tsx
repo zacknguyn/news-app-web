@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { BrandMark } from '../components/BrandMark';
 
 const UNSPLASH_BASE = 'https://images.unsplash.com';
 
@@ -33,10 +34,10 @@ export const PublicLandingScreen: React.FC = () => {
 
       {/* ── TOP NAV ─────────────────────────────────────── */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-app-surface/88 backdrop-blur-md border-b border-app-border">
-        <div className="mx-auto max-w-[1120px] px-6 h-15 flex items-center justify-between">
+        <div className="mx-auto max-w-[1120px] px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-10">
-            <Link to="/" className="text-xl font-extrabold text-app-action tracking-tight hover:text-app-action-hover transition-colors">
-              Tourane News
+            <Link to="/" aria-label="Tourane News home">
+              <BrandMark size="md" showText={false} />
             </Link>
             <nav className="hidden md:flex gap-7">
               {[['Feed', '/app'], ['Browse', '/app/browse'], ['Highlights', '/app/highlights']].map(([label, href]) => (
@@ -51,15 +52,6 @@ export const PublicLandingScreen: React.FC = () => {
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <Link
-              to="/app/browse"
-              className="text-app-muted hover:text-app-action p-1 transition-colors"
-              aria-label="Search"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-              </svg>
-            </Link>
             <Link to="/login" className="bg-app-action hover:bg-app-action-hover text-app-on-action px-5 py-2.5 rounded-full text-xs font-bold transition-all shadow-sm">
               Sign in
             </Link>

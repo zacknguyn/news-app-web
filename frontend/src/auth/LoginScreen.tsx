@@ -1,11 +1,12 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { Alert } from '../components/ui/Alert';
+import { toast } from 'sonner';
 import { Field, Input } from '../components/ui/Input';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
+import { loadRecaptchaScript } from '../lib/recaptcha';
 
 gsap.registerPlugin(useGSAP);
 
@@ -21,13 +22,20 @@ export const LoginScreen: React.FC = () => {
   const rootRef = useRef<HTMLElement>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [tempToken, setTempToken] = useState('');
+  const [step, setStep] = useState<'login' | 'otp'>('login');
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { login, completeOtpLogin, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const from = (location.state as RouterState | null)?.from?.pathname || '/app';
+
+  useEffect(() => {
+    loadRecaptchaScript();
+  }, []);
 
   useGSAP(
     () => {
@@ -65,10 +73,46 @@ export const LoginScreen: React.FC = () => {
     setFormError('');
     setIsSubmitting(true);
     try {
-      await login(email, password);
-      navigate(from, { replace: true });
+      const result = await login(email, password);
+      if ('requiresOtp' in result) {
+        setTempToken(result.tempToken);
+        setStep('otp');
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Unable to log in.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError('');
+    if (otpCode.length !== 6) {
+      setFormError('Please enter the 6-digit code.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await completeOtpLogin(tempToken, otpCode);
+      navigate(from, { replace: true });
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Invalid or expired code.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setFormError('');
+    setIsSubmitting(true);
+    try {
+      await login(email, password);
+      toast.success('New code sent to your email.');
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Failed to resend code.');
     } finally {
       setIsSubmitting(false);
     }
@@ -107,61 +151,127 @@ export const LoginScreen: React.FC = () => {
 
       <section className="flex items-center justify-center px-5 py-12 sm:px-10">
         <div className="w-full max-w-md">
-          <header className="auth-reveal mb-10 border-b-2 border-[var(--color-app-heading)] pb-6">
-            <h2 className="mb-2 text-2xl font-semibold leading-[1.2] text-app-heading">Sign In</h2>
-            <p className="text-sm leading-6 text-[var(--color-app-muted)]">
-              Use your account email and password. Seed admin:{' '}
-              <code className="text-[var(--color-app-action)]">admin@gmail.com</code> /{' '}
-              <code className="text-[var(--color-app-action)]">12345</code>.
-            </p>
-          </header>
+          {step === 'login' ? (
+            <>
+              <header className="auth-reveal mb-10 border-b-2 border-[var(--color-app-heading)] pb-6">
+                <h2 className="mb-2 text-2xl font-semibold leading-[1.2] text-app-heading">Sign In</h2>
+                <p className="text-sm leading-6 text-[var(--color-app-muted)]">
+                  Use your account email and password. Seed admin:{' '}
+                  <code className="text-[var(--color-app-action)]">admin@gmail.com</code> /{' '}
+                  <code className="text-[var(--color-app-action)]">12345</code>.
+                </p>
+              </header>
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {formError && (
-              <Alert tone="error" className="mb-6">
-                {formError}
-              </Alert>
-            )}
-            <Field id="login-email" label="Email">
-              <Input
-                id="login-email"
-                type="email"
-                autoComplete="email"
-                placeholder="admin@gmail.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </Field>
+              <form className="space-y-6" onSubmit={handleSubmit}>
+                {formError && (
+                  <p className="rounded-none border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">
+                    {formError}
+                  </p>
+                )}
+                <Field id="login-email" label="Email">
+                  <Input
+                    id="login-email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="admin@gmail.com"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </Field>
 
-            <Field id="login-password" label="Password">
-              <Input
-                id="login-password"
-                type="password"
-                autoComplete="current-password"
-                placeholder="Enter password"
-                required
-                minLength={5}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </Field>
+                <Field id="login-password" label="Password">
+                  <Input
+                    id="login-password"
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder="Enter password"
+                    required
+                    minLength={5}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </Field>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="inline-flex h-12 w-full items-center justify-center gap-2 border border-app-action bg-app-action font-mono text-[12px] uppercase tracking-wider text-app-on-action transition-colors hover:bg-app-action-hover active:translate-y-px disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <>
-                  Log in
-                  <ArrowRight className="h-5 w-5" />
-                </>
-              )}
-            </button>
-          </form>
+                <div className="-mt-4 flex justify-end">
+                  <Link
+                    to="/forgot-password"
+                    className="font-mono text-[11px] text-app-muted hover:text-app-action transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="inline-flex h-12 w-full items-center justify-center gap-2 border border-app-action bg-app-action font-mono text-[12px] uppercase tracking-wider text-app-on-action transition-colors hover:bg-app-action-hover active:translate-y-px disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      Log in
+                      <ArrowRight className="h-5 w-5" />
+                    </>
+                  )}
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <header className="auth-reveal mb-10 border-b-2 border-[var(--color-app-heading)] pb-6">
+                <h2 className="mb-2 text-2xl font-semibold leading-[1.2] text-app-heading">Two-Factor Authentication</h2>
+                <p className="text-sm leading-6 text-[var(--color-app-muted)]">
+                  A verification code was sent to <strong className="text-app-heading">{email}</strong>.
+                </p>
+              </header>
+
+              <form className="space-y-6" onSubmit={handleOtpSubmit}>
+                {formError && (
+                  <p className="rounded-none border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">
+                    {formError}
+                  </p>
+                )}
+                <Field id="otp-code" label="Verification Code">
+                  <Input
+                    id="otp-code"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="000000"
+                    required
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  />
+                </Field>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting || otpCode.length !== 6}
+                  className="inline-flex h-12 w-full items-center justify-center gap-2 border border-app-action bg-app-action font-mono text-[12px] uppercase tracking-wider text-app-on-action transition-colors hover:bg-app-action-hover active:translate-y-px disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      Verify
+                      <ArrowRight className="h-5 w-5" />
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={isSubmitting}
+                  className="w-full text-center font-mono text-[11px] text-app-muted hover:text-app-action transition-colors"
+                >
+                  Resend code
+                </button>
+              </form>
+            </>
+          )}
 
           <footer className="mt-10 border-t border-[var(--color-app-border)] pt-8">
             <p className="mono-label mb-4 text-[var(--color-app-muted)]">Need access?</p>

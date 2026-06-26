@@ -20,6 +20,7 @@ export type User = {
   billingCadence?: string;
   subscriptionStatus?: string;
   entitlements?: string[];
+  twoFactorEnabled?: boolean;
 };
 
 export type TagInfo = {

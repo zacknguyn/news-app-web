@@ -3,12 +3,13 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { User } from '../types';
 import { backendApi, clearAuthSession, getAuthToken, getStoredUser, setAuthSession } from '../lib/api';
+import type { BackendAuthResponse } from '../lib/api';
 import { backendUserToUser } from '../lib/backendAdapters';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<BackendAuthResponse | { requiresOtp: true; tempToken: string; email: string }>;
   register: (input: {
     name: string;
     email: string;
@@ -16,6 +17,7 @@ interface AuthContextType {
     reportingFocus?: string;
     recaptchaToken?: string;
   }) => Promise<void>;
+  completeOtpLogin: (tempToken: string, code: string) => Promise<void>;
   updateUser: (user: User) => void;
   logout: () => void;
   isLoading: boolean;
@@ -68,12 +70,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     try {
       const session = await backendApi.login(email, password);
+      if ('requiresOtp' in session) {
+        return session;
+      }
       const appUser = backendUserToUser(session.user);
       setUser(appUser);
       setAuthSession(session.token, appUser);
+      return session;
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const completeOtpLogin = async (tempToken: string, code: string) => {
+    const session = await backendApi.verifyOtp(tempToken, code);
+    const appUser = backendUserToUser(session.user);
+    setUser(appUser);
+    setAuthSession(session.token, appUser);
   };
 
   const register = async (input: {
@@ -103,7 +116,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, register, updateUser, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, register, completeOtpLogin, updateUser, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

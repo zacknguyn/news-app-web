@@ -7,6 +7,7 @@ import { PostActionButton } from './ui/PostActionButton';
 import { getProfilePath } from '../lib/profileLinks';
 import { isVietnamese, useAppLanguage } from '../lib/useAppLanguage';
 import { backendApi } from '../lib/api';
+import { cn } from '../lib/utils';
 
 interface CommentProps {
   comment: CommentType;
@@ -42,7 +43,7 @@ function countReplies(comment: CommentType): number {
 
 const TREE_INDENT = 24;
 
-const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId, currentUserId, currentUserRole, onReply, onLike, onUnlike, onDelete }) => {
+const CommentNode = React.memo<CommentProps>(({ comment, depth = 0, postAuthorId, currentUserId, currentUserRole, onReply, onLike, onUnlike, onDelete }) => {
   const language = useAppLanguage();
   const isVi = isVietnamese(language);
   const [showReplies, setShowReplies] = useState(true);
@@ -187,11 +188,11 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
       className={
         depth > 0 ? 'relative border-l border-app-border pl-6' : 'border-t border-app-border py-5 first:border-t-0'
       }
-      style={depth > 0 ? { marginLeft: TREE_INDENT } : undefined}
+      style={depth > 0 && depth < 4 ? { marginLeft: TREE_INDENT } : undefined}
     >
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[11px] leading-5 text-app-muted">
+          <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-xs leading-5 text-app-muted">
             <Link
               to={getProfilePath(comment.author)}
               className={cn('hover:text-app-action hover:underline', isOP ? 'text-app-action' : 'text-app-heading')}
@@ -263,7 +264,7 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
             </p>
           )}
 
-          <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-app-muted">
+          <div className="flex flex-wrap items-center gap-2 font-mono text-xs text-app-muted">
             <PostActionButton
               icon={<Heart strokeWidth={2.25} className={hasLiked ? 'fill-current' : undefined} />}
               label={
@@ -284,7 +285,8 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
               <button
                 type="button"
                 onClick={() => setShowReplies(!showReplies)}
-                className="inline-flex min-h-11 items-center px-2 font-mono text-[11px] uppercase tracking-wider text-app-muted transition-colors hover:text-app-heading"
+                aria-expanded={showReplies}
+                className="inline-flex min-h-11 items-center px-2 font-mono text-xs uppercase tracking-wider text-app-muted transition-colors hover:text-app-heading"
               >
                 {showReplies ? copy.collapse : copy.expand} {replyCount}
               </button>
@@ -297,6 +299,7 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
                 value={replyDraft}
                 onChange={(event) => setReplyDraft(event.target.value)}
                 placeholder={copy.replyPlaceholder}
+                aria-label={copy.replyPlaceholder}
                 className="min-h-[72px] w-full max-w-[68ch] text-[15px] leading-relaxed"
                 autoFocus
               />
@@ -315,7 +318,7 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
                   type="button"
                   onClick={handleSubmitReply}
                   disabled={!trimmedReply}
-                  className="inline-flex h-8 items-center justify-center border border-app-action bg-app-action px-4 font-mono text-[11px] uppercase tracking-wider text-app-on-action transition-colors hover:bg-app-action-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex h-8 items-center justify-center border border-app-action bg-app-action px-4 font-mono text-xs uppercase tracking-wider text-app-on-action transition-colors hover:bg-app-action-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40 rounded-xl"
                 >
                   {copy.postReply}
                 </button>
@@ -345,11 +348,7 @@ const CommentNode: React.FC<CommentProps> = ({ comment, depth = 0, postAuthorId,
       </div>
     </div>
   );
-};
-
-function cn(...inputs: Array<string | false | null | undefined>): string {
-  return inputs.filter(Boolean).join(' ');
-}
+});
 
 interface CommentTreeProps {
   comments: CommentType[];

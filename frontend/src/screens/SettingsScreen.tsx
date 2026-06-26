@@ -1,10 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Palette, Bell, Shield } from 'lucide-react';
+import { Palette, Bell, Shield, Lock, Eye, EyeOff, Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { readAppPreferences, saveAppPreferences, subscribeAppPreferences } from '../lib/appPreferences';
+import { useAuth } from '../context/AuthContext';
+import { backendApi } from '../lib/api';
+import { Field, Input } from '../components/ui/Input';
 
 export const SettingsScreen: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'customization' | 'notifications' | 'privacy'>('customization');
+  const { user, updateUser } = useAuth();
+  const [activeTab, setActiveTab] = useState<'customization' | 'notifications' | 'privacy' | 'security'>('customization');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
 
   const [preferences, setPreferences] = useState(() => readAppPreferences());
   const theme = preferences.theme === 'dark' ? 'dark' : 'light';
@@ -130,6 +142,19 @@ export const SettingsScreen: React.FC = () => {
               >
                 <Shield className="h-4 w-4" />
                 <span>{copy.privacy}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('security')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeTab === 'security'
+                    ? 'bg-app-action-soft text-app-action'
+                    : 'text-app-muted hover:bg-app-surface-alt'
+                }`}
+              >
+                <Lock className="h-4 w-4" />
+                <span>Security</span>
               </button>
             </nav>
           </aside>
@@ -330,6 +355,218 @@ export const SettingsScreen: React.FC = () => {
                     {copy.wipe}
                   </button>
                 </div>
+              </div>
+            )}
+
+             {activeTab === 'security' && (
+              <div className="space-y-6 animate-fadeIn">
+                <h4 className="text-[10px] uppercase tracking-widest font-bold text-app-faint">Two-Factor Authentication</h4>
+                <p className="text-xs text-app-muted leading-relaxed">
+                  When enabled, logging in requires a verification code sent to your email in addition to your password.
+                </p>
+
+                <div className="flex items-center justify-between gap-4 p-4 bg-app-surface-alt rounded-xl">
+                  <div>
+                    <h5 className="text-xs font-bold text-app-heading">Email OTP on Login</h5>
+                    <p className="text-[10px] text-app-faint font-semibold mt-0.5">
+                      {user?.twoFactorEnabled
+                        ? 'Enabled — a code is required when signing in'
+                        : 'Disabled — sign in with password only'}
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={user?.twoFactorEnabled ?? false}
+                      onChange={async (e) => {
+                        const enabled = e.target.checked;
+                        try {
+                          await backendApi.toggleTwoFactor(enabled);
+                          if (updateUser) updateUser({ ...user!, twoFactorEnabled: enabled });
+                          toast.success(enabled ? '2FA enabled.' : '2FA disabled.');
+                        } catch (error) {
+                          toast.error(error instanceof Error ? error.message : 'Failed to update 2FA setting.');
+                        }
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-app-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app-surface after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-app-action" />
+                  </label>
+                </div>
+
+                <hr className="border-app-border" />
+
+                <h4 className="text-[10px] uppercase tracking-widest font-bold text-app-faint">Change Password</h4>
+                <p className="text-xs text-app-muted leading-relaxed">
+                  A verification code will be sent to your email to confirm the change.
+                </p>
+
+                {!otpSent ? (
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (newPassword !== confirmPassword) {
+                        toast.error("Passwords don't match.");
+                        return;
+                      }
+                      if (newPassword.length < 5) {
+                        toast.error('New password must be at least 5 characters.');
+                        return;
+                      }
+                      setIsSendingOtp(true);
+                      try {
+                        await backendApi.sendPasswordChangeCode();
+                        setOtpSent(true);
+                        toast.success('Verification code sent to your email.');
+                      } catch (error) {
+                        toast.error(error instanceof Error ? error.message : 'Failed to send code.');
+                      } finally {
+                        setIsSendingOtp(false);
+                      }
+                    }}
+                    className="space-y-5"
+                  >
+                    <Field id="new-password" label="New Password">
+                      <div className="relative">
+                        <Input
+                          id="new-password"
+                          type={showNew ? 'text' : 'password'}
+                          autoComplete="new-password"
+                          placeholder="Min. 5 characters"
+                          required
+                          minLength={5}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNew(!showNew)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-app-muted hover:text-app-heading"
+                          tabIndex={-1}
+                          aria-label={showNew ? 'Hide password' : 'Show password'}
+                        >
+                          {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </Field>
+
+                    <Field id="confirm-password" label="Confirm New Password">
+                      <div className="relative">
+                        <Input
+                          id="confirm-password"
+                          type={showConfirm ? 'text' : 'password'}
+                          autoComplete="new-password"
+                          placeholder="Re-enter new password"
+                          required
+                          minLength={5}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirm(!showConfirm)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-app-muted hover:text-app-heading"
+                          tabIndex={-1}
+                          aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                        >
+                          {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </Field>
+
+                    <div className="flex items-center gap-2 rounded-xl bg-app-surface-alt p-3">
+                      <Send className="h-4 w-4 shrink-0 text-app-action" />
+                      <p className="text-[10px] font-semibold text-app-muted leading-relaxed">
+                        We'll send a 6-digit code to your email before updating the password.
+                      </p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSendingOtp || !newPassword || !confirmPassword}
+                      className="inline-flex h-11 w-full items-center justify-center gap-2 border border-app-action bg-app-action font-mono text-[12px] uppercase tracking-wider text-app-on-action transition-colors hover:bg-app-action-hover active:translate-y-px disabled:opacity-50"
+                    >
+                      {isSendingOtp ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        'Send Verification Code'
+                      )}
+                    </button>
+                  </form>
+                ) : (
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (newPassword !== confirmPassword) {
+                        toast.error("Passwords don't match.");
+                        return;
+                      }
+                      if (newPassword.length < 5) {
+                        toast.error('New password must be at least 5 characters.');
+                        return;
+                      }
+                      if (!otpCode) {
+                        toast.error('Please enter the verification code.');
+                        return;
+                      }
+                      setIsChangingPassword(true);
+                      try {
+                        await backendApi.changePasswordWithCode(otpCode, newPassword);
+                        toast.success('Password changed successfully.');
+                        setNewPassword('');
+                        setConfirmPassword('');
+                        setOtpCode('');
+                        setOtpSent(false);
+                      } catch (error) {
+                        toast.error(error instanceof Error ? error.message : 'Failed to change password.');
+                      } finally {
+                        setIsChangingPassword(false);
+                      }
+                    }}
+                    className="space-y-5"
+                  >
+                    <p className="text-xs text-app-muted">
+                      A code was sent to <strong className="text-app-heading">{user?.email}</strong>. Enter it below to confirm.
+                    </p>
+
+                    <Field id="otp-code" label="Verification Code">
+                      <Input
+                        id="otp-code"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="000000"
+                        required
+                        maxLength={6}
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      />
+                    </Field>
+
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOtpSent(false);
+                          setOtpCode('');
+                        }}
+                        className="inline-flex h-11 flex-1 items-center justify-center border border-app-border font-mono text-[12px] uppercase tracking-wider text-app-muted transition-colors hover:bg-app-surface-alt"
+                      >
+                        Back
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isChangingPassword || !otpCode || otpCode.length !== 6}
+                        className="inline-flex h-11 flex-[2] items-center justify-center gap-2 border border-app-action bg-app-action font-mono text-[12px] uppercase tracking-wider text-app-on-action transition-colors hover:bg-app-action-hover active:translate-y-px disabled:opacity-50"
+                      >
+                        {isChangingPassword ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          'Confirm & Change'
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             )}
 

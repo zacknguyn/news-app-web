@@ -39,6 +39,7 @@ export type BackendUserDTO = {
   billingCadence?: string | null;
   subscriptionStatus?: string | null;
   entitlements?: string[] | null;
+  twoFactorEnabled?: boolean;
 };
 
 export type BackendTrustFactor = {
@@ -385,10 +386,17 @@ export const apiRequest = async <T>(path: string, options: RequestOptions = {}):
 
 export const backendApi = {
   login: (email: string, password: string) =>
-    apiRequest<BackendAuthResponse>('/auth/login', {
+    apiRequest<BackendAuthResponse | { requiresOtp: true; tempToken: string; email: string }>('/auth/login', {
       method: 'POST',
       skipAuth: true,
       body: JSON.stringify({ email, password }),
+    }),
+
+  verifyOtp: (tempToken: string, code: string) =>
+    apiRequest<BackendAuthResponse>('/auth/verify-otp', {
+      method: 'POST',
+      skipAuth: true,
+      body: JSON.stringify({ tempToken, code }),
     }),
 
   register: (input: {
@@ -402,6 +410,20 @@ export const backendApi = {
       method: 'POST',
       skipAuth: true,
       body: JSON.stringify(input),
+    }),
+
+  forgotPassword: (email: string) =>
+    apiRequest<{ message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      skipAuth: true,
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: (email: string, code: string, newPassword: string) =>
+    apiRequest<{ message: string }>('/auth/reset-password', {
+      method: 'POST',
+      skipAuth: true,
+      body: JSON.stringify({ email, code, newPassword }),
     }),
 
   getTopics: () => apiRequest<BackendTopicDTO[]>('/topics'),
@@ -680,6 +702,23 @@ export const backendApi = {
       body: JSON.stringify(input),
     }),
 
+  sendPasswordChangeCode: () =>
+    apiRequest<{ message: string }>('/users/me/send-password-code', {
+      method: 'POST',
+    }),
+
+  changePasswordWithCode: (code: string, newPassword: string) =>
+    apiRequest<{ message: string }>('/users/me/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ code, newPassword }),
+    }),
+
+  toggleTwoFactor: (enabled: boolean) =>
+    apiRequest<{ message: string; twoFactorEnabled: boolean }>('/users/me/two-factor', {
+      method: 'PUT',
+      body: JSON.stringify({ enabled }),
+    }),
+
   getSavedArticles: () => apiRequest<BackendSavedArticleDTO[]>('/users/me/saved-articles'),
 
   saveArticle: (articleId: number) =>
@@ -781,6 +820,9 @@ export const backendApi = {
     apiRequest<PaginatedResponse<BackendPostDTO>>(`/posts/search?keyword=${encodeURIComponent(keyword)}&page=${page}&size=${size}`),
 
   getPost: (postId: string) => apiRequest<BackendPostDTO>(`/posts/${postId}`),
+
+  getRelatedPosts: (postId: string, limit = 5) =>
+    apiRequest<BackendPostDTO[]>(`/posts/${postId}/related?limit=${limit}`),
 
   getPostsByUser: (userId: number, page = 0, size = 20) =>
     apiRequest<PaginatedResponse<BackendPostDTO>>(`/posts/by-user/${userId}?page=${page}&size=${size}`, { skipAuth: true }),

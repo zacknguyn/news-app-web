@@ -22,6 +22,7 @@ const PublicLandingScreen = lazy(() => import('./screens/PublicLandingScreen'));
 const AboutScreen = lazy(() => import('./screens/AboutScreen'));
 const LoginScreen = lazy(() => import('./auth/LoginScreen'));
 const RegisterScreen = lazy(() => import('./auth/RegisterScreen'));
+const ForgotPasswordScreen = lazy(() => import('./auth/ForgotPasswordScreen'));
 
 const NotFoundScreen = lazy(() => import('./screens/NotFoundScreen'));
 const SettingsScreen = lazy(() => import('./screens/SettingsScreen'));
@@ -67,6 +68,14 @@ export const router = createBrowserRouter([
     element: (
       <LazyLoad>
         <RegisterScreen />
+      </LazyLoad>
+    ),
+  },
+  {
+    path: '/forgot-password',
+    element: (
+      <LazyLoad>
+        <ForgotPasswordScreen />
       </LazyLoad>
     ),
   },

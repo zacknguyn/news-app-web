@@ -46,6 +46,7 @@ export const backendUserToUser = (dto: BackendUserDTO): User => {
     billingCadence: dto.billingCadence || undefined,
     subscriptionStatus: dto.subscriptionStatus || undefined,
     entitlements: dto.entitlements || [],
+    twoFactorEnabled: dto.twoFactorEnabled ?? false,
   };
 };
 

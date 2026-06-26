@@ -10,7 +10,7 @@ declare global {
 const RECAPTCHA_SCRIPT_ID = 'google-recaptcha-v3';
 const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined;
 
-const loadRecaptchaScript = () =>
+export const loadRecaptchaScript = () =>
   new Promise<void>((resolve, reject) => {
     if (!siteKey) {
       resolve();

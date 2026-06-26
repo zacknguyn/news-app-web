@@ -1,10 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Bookmark, Sparkles, ShieldCheck, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Bookmark, Sparkles, ShieldCheck, MessageSquare, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { MOCK_POSTS } from '../lib/mockData';
 import { CommentSection } from '../components/CommentSection';
-import { AdCard } from '../components/AdCard';
 import { Alert } from '../components/ui/Alert';
 import { VoteControl } from '../components/ui/VoteControl';
 import { ShareButton } from '../components/ui/ShareButton';
@@ -26,6 +25,7 @@ import {
   type TranslatedContent,
 } from '../lib/contentTranslation';
 import type { Post } from '../types';
+import { PostDetailSidebar } from '../components/PostDetailSidebar';
 
 type SelectionMenu = {
   text: string;
@@ -125,6 +125,7 @@ export const PostDetailScreen: React.FC = () => {
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [isAiCollapsed, setIsAiCollapsed] = useState(false);
   const [sidebarAds, setSidebarAds] = useState<BackendAdCampaignDTO[]>([]);
+  const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
   const [preferences, setPreferences] = useState(() => readAppPreferences());
   const copy = isVi
     ? {
@@ -172,6 +173,7 @@ export const PostDetailScreen: React.FC = () => {
         summarizing: 'Đang tóm tắt...',
         generate: 'Tạo tóm tắt AI',
         sponsored: 'Được tài trợ',
+        youMightLike: 'Có thể bạn sẽ thích',
         notebook: 'Highlight đã lưu',
         notebookEmpty: 'Chọn đoạn chữ trong bài rồi bấm "Highlight" để lưu vào sổ tay nghiên cứu.',
         translating: 'Đang dịch bài viết...',
@@ -222,6 +224,7 @@ export const PostDetailScreen: React.FC = () => {
         summarizing: 'Summarizing Dispatch...',
         generate: 'Generate AI Summary',
         sponsored: 'Sponsored',
+        youMightLike: 'You might like',
         notebook: 'Notebook Highlights',
         notebookEmpty: 'Select any text in the article and click "Highlight" to add it to your research notebook.',
         translating: 'Translating article...',
@@ -283,6 +286,20 @@ export const PostDetailScreen: React.FC = () => {
     });
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (!post || post.id.startsWith('article-')) {
+      setRelatedPosts([]);
+      return;
+    }
+    let active = true;
+    backendApi.getRelatedPosts(post.id).then((result) => {
+      if (active) setRelatedPosts(result.map(backendPostToPost));
+    }).catch(() => {
+      if (active) setRelatedPosts([]);
+    });
+    return () => { active = false; };
+  }, [post?.id]);
 
   // Auto calculate credibility trust score
   const reliability = React.useMemo(() => {
@@ -803,7 +820,7 @@ export const PostDetailScreen: React.FC = () => {
             <div id="comments" className="mt-16 border-t border-app-border pt-10">
               <div className="flex items-center gap-2 mb-6">
                 <MessageSquare className="h-4 w-4 text-app-action" />
-                <h3 className="font-sans text-sm font-bold text-app-heading uppercase tracking-widest">{copy.commentary}</h3>
+                <h2 className="font-sans text-sm font-bold text-app-heading uppercase tracking-widest">{copy.commentary}</h2>
               </div>
               <CommentSection
                 postId={post.id}
@@ -847,118 +864,72 @@ export const PostDetailScreen: React.FC = () => {
             />
           )}
 
-          {/* Right Column: AI Copilot Drawer */}
+          {/* Right Column: AI Copilot — Desktop always expanded */}
+          <aside className="hidden lg:block sticky top-24 h-[calc(100vh-120px)] w-[340px] shrink-0">
+            <div className="bg-app-surface-alt border border-app-border rounded-2xl flex flex-col h-full shadow-sm overflow-hidden">
+              <PostDetailSidebar
+                activeSummary={activeSummary}
+                isSummaryLoading={isSummaryLoading}
+                onGenerateSummary={handleGenerateSummary}
+                ad={sidebarAds[0] ?? null}
+                highlights={savedHighlights}
+                relatedPosts={relatedPosts}
+                strings={{
+                  aiCopilot: copy.aiCopilot,
+                  aiSummary: copy.aiSummary,
+                  generate: copy.generate,
+                  summarizing: copy.summarizing,
+                  regenerating: copy.regenerating,
+                  regenerate: copy.regenerate,
+                  sponsored: copy.sponsored,
+                  notebook: copy.notebook,
+                  notebookEmpty: copy.notebookEmpty,
+                  youMightLike: copy.youMightLike,
+                }}
+              />
+            </div>
+          </aside>
+
+          {/* Mobile: slide-in drawer */}
           <aside
-            className={`fixed inset-y-0 right-0 z-50 lg:z-30 lg:sticky lg:top-24 h-screen lg:h-[calc(100vh-120px)] transition-all duration-300 ease-in-out shrink-0 flex flex-col ${
-              isAiCollapsed
-                ? 'w-0 pointer-events-none lg:w-16 lg:pointer-events-auto overflow-hidden'
-                : 'w-[85vw] max-w-[340px]'
+            className={`lg:hidden fixed inset-y-0 right-0 z-50 w-[85vw] max-w-[340px] transition-transform duration-300 ease-in-out ${
+              isAiCollapsed ? 'translate-x-full' : 'translate-x-0'
             }`}
           >
-            <div className="bg-app-surface-alt border-l lg:border border-app-border lg:rounded-2xl flex flex-col h-full shadow-sm overflow-hidden">
-              {/* Drawer Header */}
-              <div className="p-5 border-b border-app-border flex justify-between items-center bg-app-surface/80">
-                {!isAiCollapsed ? (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="text-app-action h-4.5 w-4.5" />
-                      <span className="font-sans text-sm font-bold text-app-heading uppercase tracking-widest">{copy.aiCopilot}</span>
-                    </div>
-                    <button
-                      onClick={() => setIsAiCollapsed(true)}
-                      className="p-1 hover:bg-app-surface-alt rounded-md transition-all text-app-muted hover:text-app-heading"
-                      title={copy.collapse}
-                    >
-                      <ChevronRight className="h-4.5 w-4.5" />
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => setIsAiCollapsed(false)}
-                    className="w-full flex items-center justify-center py-2 hover:bg-app-surface-alt rounded-md transition-all text-app-muted hover:text-app-heading"
-                    title={copy.expand}
-                  >
-                    <ChevronLeft className="h-4.5 w-4.5" />
-                  </button>
-                )}
+            <div className="bg-app-surface-alt border-l border-app-border flex flex-col h-full shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-app-border flex justify-between items-center bg-app-surface/80 shrink-0">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="text-app-action h-[18px] w-[18px]" />
+                  <span className="font-sans text-sm font-bold text-app-heading uppercase tracking-widest">{copy.aiCopilot}</span>
+                </div>
+                <button
+                  onClick={() => setIsAiCollapsed(true)}
+                  className="p-1 hover:bg-app-surface-alt rounded-md transition-all text-app-muted hover:text-app-heading"
+                  title={copy.collapse}
+                >
+                  <ChevronRight className="h-[18px] w-[18px]" />
+                </button>
               </div>
-
-              {!isAiCollapsed && (
-                <>
-                  {/* Scrollable Intelligence Content */}
-                  <div className="flex-1 overflow-y-auto p-5 space-y-8 custom-scrollbar">
-                    {/* AI SUMMARY */}
-                    <section>
-                      <h3 className="font-sans text-[10px] text-app-action mb-4 uppercase tracking-widest flex items-center gap-1 font-bold">
-                        <span className="w-1.5 h-1.5 bg-app-action rounded-full"></span>
-                        {copy.aiSummary}
-                      </h3>
-                      {activeSummary ? (
-                        <div className="space-y-3">
-                          <div className="text-xs leading-relaxed text-app-muted bg-app-surface p-4 rounded-xl border border-app-border shadow-[0_2px_4px_rgba(0,0,0,0.02)] whitespace-pre-wrap">
-                            {activeSummary}
-                          </div>
-                          <button
-                            onClick={handleGenerateSummary}
-                            disabled={isSummaryLoading}
-                            className="text-[10px] text-app-action hover:underline font-bold flex items-center gap-1 mt-1 disabled:opacity-50"
-                          >
-                            {isSummaryLoading ? copy.regenerating : `✦ ${copy.regenerate}`}
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={handleGenerateSummary}
-                          disabled={isSummaryLoading}
-                          className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-app-action text-app-on-action hover:bg-app-action-hover rounded-xl font-bold text-xs transition-all shadow-md active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none"
-                        >
-                          {isSummaryLoading ? (
-                            <>
-                              <span className="animate-spin text-sm">✦</span>
-                              <span>{copy.summarizing}</span>
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="h-4 w-4" />
-                              <span>{copy.generate}</span>
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </section>
-
-                    {/* Sponsored */}
-                    {sidebarAds.length > 0 && (
-                      <section>
-                        <h3 className="font-sans text-[10px] text-app-action mb-4 uppercase tracking-widest flex items-center gap-1 font-bold">
-                          <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
-                          {copy.sponsored}
-                        </h3>
-                        <AdCard ad={sidebarAds[0]} compact />
-                      </section>
-                    )}
-
-                    {/* Private Notebook Highlights */}
-                    <section className="bg-app-surface p-4 rounded-xl border border-app-border">
-                      <h3 className="font-sans text-[10px] text-app-action uppercase tracking-widest font-bold mb-3 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 bg-app-action rounded-full"></span>
-                        {copy.notebook} ({savedHighlights.length})
-                      </h3>
-                      {savedHighlights.length > 0 ? (
-                        <div className="space-y-3.5 max-h-48 overflow-y-auto scrollbar-hide">
-                          {savedHighlights.map((hl) => (
-                            <div key={hl.id} className="p-3 bg-app-action-faint rounded-lg text-xs leading-relaxed text-app-muted italic">
-                              "{hl.text}"
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-app-faint italic">{copy.notebookEmpty}</p>
-                      )}
-                    </section>
-                  </div>
-                </>
-              )}
+              <PostDetailSidebar
+                activeSummary={activeSummary}
+                isSummaryLoading={isSummaryLoading}
+                onGenerateSummary={handleGenerateSummary}
+                ad={sidebarAds[0] ?? null}
+                highlights={savedHighlights}
+                relatedPosts={relatedPosts}
+                strings={{
+                  aiCopilot: copy.aiCopilot,
+                  aiSummary: copy.aiSummary,
+                  generate: copy.generate,
+                  summarizing: copy.summarizing,
+                  regenerating: copy.regenerating,
+                  regenerate: copy.regenerate,
+                  sponsored: copy.sponsored,
+                  notebook: copy.notebook,
+                  notebookEmpty: copy.notebookEmpty,
+                  youMightLike: copy.youMightLike,
+                }}
+              />
             </div>
           </aside>
         </main>
