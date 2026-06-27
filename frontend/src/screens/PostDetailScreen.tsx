@@ -311,7 +311,7 @@ export const PostDetailScreen: React.FC = () => {
     const loadRelatedPosts = async () => {
       if (!post.id.startsWith('article-')) {
         try {
-          const related = await backendApi.getRelatedPosts(post.id, 4);
+          const related = await backendApi.getRelatedPosts(post.id, 5);
           if (related.length > 0) {
             if (active) setRelatedPosts(related.map(backendPostToPost));
             return;
