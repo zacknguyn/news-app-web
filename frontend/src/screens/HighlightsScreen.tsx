@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { jsPDF } from 'jspdf';
 import { toast } from 'sonner';
 import {
   Search,
@@ -20,16 +21,56 @@ import { Alert } from '../components/ui/Alert';
 import { backendApi, type BackendSavedArticleDTO, type BackendSavedPostDTO } from '../lib/api';
 import { PostCard } from '../components/PostCard';
 import { backendArticleToPost, backendPostToPost } from '../lib/backendAdapters';
+import { isVietnamese, useAppLanguage } from '../lib/useAppLanguage';
 import type { Post } from '../types';
 
 type NotebookTab = 'highlights' | 'posts';
 
-const formatTime = (date: string) =>
-  new Intl.DateTimeFormat('vi-VN', { month: 'short', day: 'numeric', year: 'numeric' }).format(
+const formatTime = (date: string, locale: string) =>
+  new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', year: 'numeric' }).format(
     new Date(date),
   );
 
 export const HighlightsScreen: React.FC = () => {
+  const language = useAppLanguage();
+  const isVi = isVietnamese(language);
+  const locale = isVi ? 'vi-VN' : 'en-US';
+  const copy = {
+    loadFailed: isVi ? 'Không thể tải sổ tay.' : 'Unable to load notebook.',
+    updateNoteFailed: isVi ? 'Không thể cập nhật ghi chú.' : 'Unable to update note.',
+    deleteFailed: isVi ? 'Không thể xoá điểm nổi bật.' : 'Unable to delete highlight.',
+    saveSuccess: isVi ? 'Đã lưu thay đổi thành công.' : 'Changes saved.',
+    saveFailed: isVi ? 'Lưu thay đổi thất bại.' : 'Unable to save changes.',
+    exportSuccess: isVi ? 'Đã xuất PDF highlight.' : 'Highlight PDF exported.',
+    exportFailed: isVi ? 'Xuất PDF thất bại.' : 'PDF export failed.',
+    shareSuccess: isVi ? 'Đã sao chép liên kết bài viết.' : 'Article link copied.',
+    shareFailed: isVi ? 'Sao chép liên kết thất bại.' : 'Unable to copy article link.',
+    noNotes: isVi ? 'Chưa có ghi chú.' : 'No notes added.',
+    searchHighlights: isVi ? 'Tìm kiếm điểm nổi bật, thẻ, hoặc nguồn...' : 'Search highlights, tags, or sources...',
+    searchPosts: isVi ? 'Tìm kiếm bài đã lưu...' : 'Search saved articles...',
+    highlightsCount: (count: number) => isVi ? `${count} ghi chú từ nguồn tin của bạn` : `${count} notes from your sources`,
+    savedCount: (count: number) => isVi ? `${count} bài viết đã lưu` : `${count} saved articles`,
+    highlightsTab: isVi ? 'Highlights' : 'Highlights',
+    savedTab: isVi ? 'Bài Đã Lưu' : 'Saved',
+    emptyHighlightsSearch: isVi ? 'Không tìm thấy điểm nổi bật phù hợp.' : 'No matching highlights found.',
+    emptyHighlights: isVi ? 'Bạn chưa lưu trích dẫn nào. Hãy tô chọn văn bản trong bất kỳ bài viết nào để lưu tại đây.' : 'No highlights yet. Select text in any article to save it here.',
+    generalNews: isVi ? 'Tin tức chung' : 'General news',
+    emptyPostsSearch: isVi ? 'Không tìm thấy bài đã lưu phù hợp.' : 'No matching saved articles found.',
+    emptyPosts: isVi ? 'Bạn chưa lưu bài viết nào.' : 'No saved articles yet.',
+    detailTitle: isVi ? 'Chi Tiết Điểm Nổi Bật' : 'Highlight Details',
+    originalQuote: isVi ? 'Trích Dẫn Gốc' : 'Original Quote',
+    source: isVi ? 'Nguồn' : 'Source',
+    personalNote: isVi ? 'Ghi Chú Cá Nhân' : 'Personal Note',
+    hashtagSupport: isVi ? 'Hỗ Trợ Hashtag' : 'Hashtag Support',
+    notePlaceholder: isVi ? 'Thêm suy nghĩ, hashtag, hoặc ghi chú hành động... (ví dụ: #chien-luoc, #rui-ro)' : 'Add thoughts, hashtags, or action notes... (for example: #strategy, #risk)',
+    addTagPrompt: isVi ? 'Nhập thẻ mới (ví dụ: logistics, ai-trends):' : 'Enter new tag name (for example: logistics, ai-trends):',
+    addTag: isVi ? 'Thêm Thẻ' : 'Add Tag',
+    aiAnalysis: isVi ? 'Phân Tích AI' : 'AI Analysis',
+    sentiment: isVi ? 'Cảm xúc' : 'Sentiment',
+    confidence: isVi ? 'Độ tin cậy' : 'Confidence',
+    saveChanges: isVi ? 'Lưu Thay Đổi' : 'Save Changes',
+    export: isVi ? 'Xuất PDF' : 'Export PDF',
+  };
   const [activeTab, setActiveTab] = useState<NotebookTab>('highlights');
   const [highlights, setHighlights] = useState<SavedHighlight[]>([]);
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
@@ -64,7 +105,7 @@ export const HighlightsScreen: React.FC = () => {
         setNotice('');
       })
       .catch((error) => {
-        if (isMounted) setNotice(error instanceof Error ? error.message : 'Không thể tải sổ tay.');
+        if (isMounted) setNotice(error instanceof Error ? error.message : copy.loadFailed);
       });
     return () => {
       isMounted = false;
@@ -84,17 +125,17 @@ export const HighlightsScreen: React.FC = () => {
               );
             })
             .catch((error) =>
-              toast.error(error instanceof Error ? error.message : 'Không thể cập nhật ghi chú.'),
+              toast.error(error instanceof Error ? error.message : copy.updateNoteFailed),
             );
         }
       });
     }, 500);
     return () => window.clearTimeout(timer);
-  }, [noteDrafts, highlights]);
+  }, [copy.updateNoteFailed, noteDrafts, highlights]);
 
   const handleDeleteHighlight = async (id: string) => {
     await deleteHighlight(id).catch((error) =>
-      toast.error(error instanceof Error ? error.message : 'Không thể xoá điểm nổi bật.'),
+      toast.error(error instanceof Error ? error.message : copy.deleteFailed),
     );
     setHighlights((current) => current.filter((highlight) => highlight.id !== id));
     setNoteDrafts((prev) => {
@@ -116,27 +157,67 @@ export const HighlightsScreen: React.FC = () => {
       setHighlights((prev) =>
         prev.map((h) => (h.id === selectedHighlight.id ? { ...h, note } : h))
       );
-      toast.success('Đã lưu thay đổi thành công.');
+      toast.success(copy.saveSuccess);
     } catch {
-      toast.error('Lưu thay đổi thất bại.');
+      toast.error(copy.saveFailed);
     }
   };
 
   const handleExport = () => {
     if (!selectedHighlight) return;
-    const note = noteDrafts[selectedHighlight.id] ?? selectedHighlight.note ?? '';
-    const markdown = `> ${selectedHighlight.text}\n\n**Source:** [${selectedHighlight.postTitle}](http://localhost:5175/app/p/${selectedHighlight.postId})\n**Created:** ${formatTime(selectedHighlight.createdAt)}\n\n**Annotations:**\n${note || 'No notes added.'}`;
-    navigator.clipboard.writeText(markdown)
-      .then(() => toast.success('Đã sao chép điểm nổi bật dưới dạng Markdown.'))
-      .catch(() => toast.error('Sao chép thất bại.'));
+    try {
+      const note = noteDrafts[selectedHighlight.id] ?? selectedHighlight.note ?? '';
+      const sourceUrl = `${window.location.origin}/app/p/${selectedHighlight.postId}`;
+      const filenameBase = selectedHighlight.postTitle
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+        .slice(0, 48) || 'tourane-highlight';
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 48;
+      const contentWidth = pageWidth - margin * 2;
+      let y = 56;
+
+      const writeBlock = (text: string, options?: { size?: number; style?: 'normal' | 'bold' | 'italic'; gap?: number }) => {
+        doc.setFont('helvetica', options?.style ?? 'normal');
+        doc.setFontSize(options?.size ?? 11);
+        const lines = doc.splitTextToSize(text, contentWidth);
+        lines.forEach((line: string) => {
+          if (y > 780) {
+            doc.addPage();
+            y = 56;
+          }
+          doc.text(line, margin, y);
+          y += (options?.size ?? 11) + 6;
+        });
+        y += options?.gap ?? 10;
+      };
+
+      doc.setFillColor(36, 93, 63);
+      doc.rect(0, 0, pageWidth, 12, 'F');
+      writeBlock('Tourane News Highlight', { size: 18, style: 'bold', gap: 18 });
+      writeBlock(selectedHighlight.postTitle, { size: 13, style: 'bold', gap: 12 });
+      writeBlock(`"${selectedHighlight.text}"`, { size: 12, style: 'italic', gap: 18 });
+      writeBlock(`${copy.source}: ${sourceUrl}`, { size: 10 });
+      writeBlock(`Created: ${formatTime(selectedHighlight.createdAt, locale)}`, { size: 10 });
+      if (parsedTags.length > 0) writeBlock(`Tags: ${parsedTags.join(', ')}`, { size: 10 });
+      writeBlock('Notes', { size: 13, style: 'bold', gap: 8 });
+      writeBlock(note || copy.noNotes, { size: 11 });
+
+      doc.save(`${filenameBase}-highlight.pdf`);
+      toast.success(copy.exportSuccess);
+    } catch {
+      toast.error(copy.exportFailed);
+    }
   };
 
   const handleShareHighlight = () => {
     if (!selectedHighlight) return;
     const url = `${window.location.origin}/app/p/${selectedHighlight.postId}`;
     navigator.clipboard.writeText(url)
-      .then(() => toast.success('Đã sao chép liên kết bài viết.'))
-      .catch(() => toast.error('Sao chép liên kết thất bại.'));
+      .then(() => toast.success(copy.shareSuccess))
+      .catch(() => toast.error(copy.shareFailed));
   };
 
   // Keyboard shortcut feedback (Meta/Ctrl + K focus search)
@@ -217,7 +298,7 @@ export const HighlightsScreen: React.FC = () => {
 
   const handleAddTag = () => {
     if (!selectedHighlight) return;
-    const tagName = prompt('Enter new tag name (e.g., logistics, ai-trends):');
+    const tagName = prompt(copy.addTagPrompt);
     if (!tagName) return;
     const cleanTag = tagName.startsWith('#') ? tagName.trim() : `#${tagName.trim()}`;
     const noteText = noteDrafts[selectedHighlight.id] ?? selectedHighlight.note ?? '';
@@ -256,9 +337,9 @@ export const HighlightsScreen: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full h-14 pl-12 pr-16 bg-app-surface border border-app-border rounded-xl text-sm focus:ring-2 focus:ring-app-action-soft focus:border-app-action outline-none transition-all shadow-sm text-app-text"
-            placeholder={activeTab === 'highlights' ? "Tìm kiếm điểm nổi bật, thẻ, hoặc nguồn..." : "Tìm kiếm bài đã lưu..."}
+            placeholder={activeTab === 'highlights' ? copy.searchHighlights : copy.searchPosts}
             type="text"
-            aria-label={activeTab === 'highlights' ? "Tìm kiếm điểm nổi bật, thẻ, hoặc nguồn" : "Tìm kiếm bài đã lưu"}
+            aria-label={activeTab === 'highlights' ? copy.searchHighlights : copy.searchPosts}
           />
           <div className="absolute inset-y-0 right-4 flex items-center gap-2 pointer-events-none">
             <kbd className="px-2 py-1 bg-app-surface-alt rounded text-[10px] text-app-muted font-mono border border-app-border">⌘</kbd>
@@ -272,16 +353,16 @@ export const HighlightsScreen: React.FC = () => {
             <h1 className="text-xl md:text-2xl font-bold text-app-text mb-1">Highlights</h1>
             <p className="text-app-muted text-sm">
               {activeTab === 'highlights'
-                ? `${filteredHighlights.length} ghi chú từ nguồn tin của bạn`
-                : `${filteredPosts.length} bài viết đã lưu`}
+                ? copy.highlightsCount(filteredHighlights.length)
+                : copy.savedCount(filteredPosts.length)}
             </p>
           </div>
 
           <div className="flex gap-2">
             {/* Tab selection */}
             {[
-              ['highlights', 'Highlights'],
-              ['posts', 'Bài Đã Lưu'],
+              ['highlights', copy.highlightsTab],
+              ['posts', copy.savedTab],
             ].map(([id, label]) => (
               <button
                 key={id}
@@ -312,7 +393,7 @@ export const HighlightsScreen: React.FC = () => {
               <div className="flex flex-col items-center justify-center h-48 border border-dashed border-app-border rounded-xl p-6 text-center">
                 <BookOpen className="w-8 h-8 text-app-muted mb-2" />
                 <p className="text-sm italic text-app-muted">
-                  {searchQuery ? 'Không tìm thấy điểm nổi bật phù hợp.' : 'Bạn chưa lưu trích dẫn nào. Hãy tô chọn văn bản trong bất kỳ bài viết nào để lưu tại đây.'}
+                  {searchQuery ? copy.emptyHighlightsSearch : copy.emptyHighlights}
                 </p>
               </div>
             ) : (
@@ -337,7 +418,7 @@ export const HighlightsScreen: React.FC = () => {
                           <CatIcon className="w-3 h-3" />
                           <span>{category.label}</span>
                         </div>
-                        <span className="text-[11px] text-app-muted opacity-80">{formatTime(hl.createdAt)}</span>
+                        <span className="text-[11px] text-app-muted opacity-80">{formatTime(hl.createdAt, locale)}</span>
                       </div>
                       <p className="font-serif text-[15px] leading-relaxed text-app-text mb-4 line-clamp-3 italic">
                         "{hl.text}"
@@ -348,7 +429,7 @@ export const HighlightsScreen: React.FC = () => {
                         </div>
                         <div className="min-w-0">
                           <h3 className="text-xs font-bold text-app-text truncate max-w-[200px]">{hl.postTitle}</h3>
-                          <p className="text-[10px] text-app-muted uppercase tracking-wider font-semibold">{hl.channelName || 'Tin tức chung'}</p>
+                          <p className="text-[10px] text-app-muted uppercase tracking-wider font-semibold">{hl.channelName || copy.generalNews}</p>
                         </div>
                       </div>
                     </div>
@@ -361,7 +442,7 @@ export const HighlightsScreen: React.FC = () => {
               <div className="flex flex-col items-center justify-center h-48 border border-dashed border-app-border rounded-xl p-6 text-center">
                 <BookOpen className="w-8 h-8 text-app-muted mb-2" />
                 <p className="text-sm italic text-app-muted">
-                  {searchQuery ? 'Không tìm thấy bài đã lưu phù hợp.' : 'Bạn chưa lưu bài viết nào.'}
+                  {searchQuery ? copy.emptyPostsSearch : copy.emptyPosts}
                 </p>
               </div>
             ) : (
@@ -380,7 +461,7 @@ export const HighlightsScreen: React.FC = () => {
         <aside className="w-full max-w-md bg-app-surface border-l border-app-border h-full flex flex-col shadow-lg shrink-0">
           {/* Panel Header */}
           <div className="p-6 border-b border-app-border flex justify-between items-center bg-app-surface-alt/50 backdrop-blur-sm sticky top-0 shrink-0">
-            <h2 className="text-sm font-bold text-app-text uppercase tracking-wider">Chi Tiết Điểm Nổi Bật</h2>
+            <h2 className="text-sm font-bold text-app-text uppercase tracking-wider">{copy.detailTitle}</h2>
             <div className="flex gap-2">
               <button
                 onClick={handleShareHighlight}
@@ -403,7 +484,7 @@ export const HighlightsScreen: React.FC = () => {
           <div className="flex-1 overflow-y-auto p-6 hide-scrollbar space-y-8">
             {/* Full Quote Area */}
             <section>
-              <span className="text-[10px] text-app-action font-bold tracking-widest block mb-3 uppercase">Trích Dẫn Gốc</span>
+              <span className="text-[10px] text-app-action font-bold tracking-widest block mb-3 uppercase">{copy.originalQuote}</span>
               <div className="relative pl-6">
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-app-action rounded-full"></div>
                 <blockquote className="font-serif text-[17px] text-app-text italic leading-relaxed">
@@ -412,13 +493,13 @@ export const HighlightsScreen: React.FC = () => {
               </div>
               <div className="mt-4 flex flex-wrap gap-4 text-xs text-app-muted font-semibold">
                 <span className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5" /> {formatTime(selectedHighlight.createdAt)}
+                  <Calendar className="w-3.5 h-3.5" /> {formatTime(selectedHighlight.createdAt, locale)}
                 </span>
                 <Link
                   to={`/app/p/${selectedHighlight.postId}`}
                   className="flex items-center gap-1 hover:text-app-action hover:underline"
                 >
-                  <Link2 className="w-3.5 h-3.5" /> Nguồn: {selectedHighlight.postTitle}
+                  <Link2 className="w-3.5 h-3.5" /> {copy.source}: {selectedHighlight.postTitle}
                 </Link>
               </div>
             </section>
@@ -426,14 +507,14 @@ export const HighlightsScreen: React.FC = () => {
             {/* Editable Annotations */}
             <section>
               <div className="flex justify-between items-center mb-3">
-                <span className="text-[10px] text-app-muted font-bold uppercase tracking-wider block">Ghi Chú Cá Nhân</span>
-                <span className="text-[9px] bg-app-surface-alt px-1.5 py-0.5 rounded text-app-muted font-semibold border border-app-border">HỖ TRỢ HASHTAG</span>
+                <span className="text-[10px] text-app-muted font-bold uppercase tracking-wider block">{copy.personalNote}</span>
+                <span className="text-[9px] bg-app-surface-alt px-1.5 py-0.5 rounded text-app-muted font-semibold border border-app-border">{copy.hashtagSupport}</span>
               </div>
               <textarea
                 value={noteDrafts[selectedHighlight.id] ?? ''}
                 onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [selectedHighlight.id]: e.target.value }))}
                 className="w-full h-64 p-4 bg-app-surface-alt border border-app-border rounded-xl font-mono text-xs focus:ring-2 focus:ring-app-action-soft focus:border-app-action outline-none resize-none transition-all text-app-text"
-                placeholder="Thêm suy nghĩ, hashtag, hoặc ghi chú hành động... (ví dụ: #chiến-lược, #rủi-ro)"
+                placeholder={copy.notePlaceholder}
               />
               <div className="mt-4 flex flex-wrap gap-2 items-center">
                 {parsedTags.map((tag) => (
@@ -456,7 +537,7 @@ export const HighlightsScreen: React.FC = () => {
                   onClick={handleAddTag}
                   className="px-2 py-1 rounded bg-app-action-soft text-app-action text-[10px] font-bold border border-app-action-soft flex items-center gap-1 hover:bg-app-action-faint transition-colors"
                 >
-                  <Plus className="w-3 h-3" /> Thêm Thẻ
+                  <Plus className="w-3 h-3" /> {copy.addTag}
                 </button>
               </div>
             </section>
@@ -466,15 +547,15 @@ export const HighlightsScreen: React.FC = () => {
               <section className="p-4 rounded-xl bg-app-action-faint border border-app-action-soft">
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles className="w-4 h-4 text-app-action" />
-                  <span className="text-[10px] text-app-action font-bold tracking-widest uppercase">Phân Tích AI</span>
+                  <span className="text-[10px] text-app-action font-bold tracking-widest uppercase">{copy.aiAnalysis}</span>
                 </div>
                 <ul className="space-y-2">
                   <li className="flex justify-between text-xs font-semibold">
-                    <span className="text-app-muted">Cảm xúc</span>
+                    <span className="text-app-muted">{copy.sentiment}</span>
                     <span className="text-app-action font-bold">{aiAnalysis.sentiment}</span>
                   </li>
                   <li className="flex justify-between text-xs font-semibold items-center">
-                    <span className="text-app-muted">Độ tin cậy</span>
+                    <span className="text-app-muted">{copy.confidence}</span>
                     <div className="flex gap-0.5">
                       {[1, 2, 3, 4, 5].map((dot) => (
                         <span
@@ -497,13 +578,13 @@ export const HighlightsScreen: React.FC = () => {
               onClick={handleSaveChanges}
               className="flex-1 px-4 py-2.5 bg-app-action text-app-on-action rounded-lg text-xs font-bold shadow-md hover:bg-app-action-hover hover:shadow-lg transition-all active:scale-[0.98]"
             >
-              Lưu Thay Đổi
+              {copy.saveChanges}
             </button>
             <button
               onClick={handleExport}
               className="px-4 py-2.5 bg-app-surface-alt text-app-muted rounded-lg text-xs font-bold border border-app-border hover:bg-app-surface-alt hover:text-app-text transition-all"
             >
-              Xuất
+              {copy.export}
             </button>
           </div>
         </aside>

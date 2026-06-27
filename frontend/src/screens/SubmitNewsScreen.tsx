@@ -8,6 +8,7 @@ import { RichPostEditor } from '../components/RichPostEditor';
 import { addImageCaptions, stripHtml } from '../lib/richContent';
 import { Alert } from '../components/ui/Alert';
 import { isVietnamese, useAppLanguage } from '../lib/useAppLanguage';
+import { localizeLabel } from '../lib/localizeLabel';
 
 const DRAFT_KEY = 'tourane-news-submit-draft';
 
@@ -55,7 +56,8 @@ const CoverUploadButton: React.FC<{ onUpload: (url: string) => void; uploadLabel
 };
 
 export const SubmitNewsScreen: React.FC = () => {
-  const isVi = isVietnamese(useAppLanguage());
+  const language = useAppLanguage();
+  const isVi = isVietnamese(language);
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -177,6 +179,8 @@ export const SubmitNewsScreen: React.FC = () => {
   const plainContent = stripHtml(content);
   const contentError = hasSubmitted && plainContent.length < 80 ? copy.contentError : '';
   const canSubmit = Boolean(title.trim()) && plainContent.length >= 80 && Boolean(selectedChannel);
+  const trimmedThumbnailUrl = thumbnailUrl.trim();
+  const hasCoverImage = /^(https?:\/\/|blob:|data:image\/)/i.test(trimmedThumbnailUrl);
 
   useEffect(() => {
     const stored = localStorage.getItem(DRAFT_KEY);
@@ -245,7 +249,7 @@ export const SubmitNewsScreen: React.FC = () => {
         content: addImageCaptions(content),
         topicId: Number(selectedChannel),
         sourceUrl: sourceUrl.trim() || undefined,
-        imageUrl: thumbnailUrl.trim() || undefined,
+        imageUrl: hasCoverImage ? trimmedThumbnailUrl : undefined,
         articleId: linkedArticleId,
       });
       localStorage.removeItem(DRAFT_KEY);
@@ -340,9 +344,9 @@ export const SubmitNewsScreen: React.FC = () => {
                 <CoverUploadButton onUpload={(url) => setThumbnailUrl(url)} uploadLabel={copy.upload} uploadingLabel={copy.uploading} />
               </div>
             </div>
-            {thumbnailUrl && (
+            {hasCoverImage && (
               <div className="mt-4 rounded-xl overflow-hidden border border-app-border">
-                <img loading="lazy" src={thumbnailUrl} alt="Cover preview" className="w-full h-40 object-cover" />
+                <img loading="lazy" src={trimmedThumbnailUrl} alt="Cover preview" className="w-full h-40 object-cover" />
               </div>
             )}
           </div>
@@ -352,9 +356,9 @@ export const SubmitNewsScreen: React.FC = () => {
             {isPreviewing ? (
               <div className="bg-app-surface rounded-2xl border border-app-border p-6 md:p-10 space-y-6">
                 <h1 className="text-3xl font-extrabold leading-tight text-app-heading">{title || copy.previewTitle}</h1>
-                {thumbnailUrl && (
+                {hasCoverImage && (
                   <img loading="lazy"
-                    src={thumbnailUrl}
+                    src={trimmedThumbnailUrl}
                     alt=""
                     className="aspect-video w-full rounded-xl border border-app-border object-cover"
                   />
@@ -392,6 +396,7 @@ export const SubmitNewsScreen: React.FC = () => {
             <div className="flex flex-wrap gap-2">
               {channels.map((channel) => {
                 const selected = selectedChannel === channel.id;
+                const displayName = localizeLabel(channel.name, language);
                 return (
                   <button
                     key={channel.id}
@@ -401,9 +406,9 @@ export const SubmitNewsScreen: React.FC = () => {
                       selected
                         ? 'bg-app-action text-app-on-action border-app-action shadow-sm'
                         : 'bg-app-surface-alt border-app-border text-app-muted hover:border-app-action/50'
-                    }`}
+                      }`}
                   >
-                    {channel.name}
+                    {displayName}
                   </button>
                 );
               })}

@@ -269,7 +269,6 @@ setCommentNotice(error instanceof Error ? error.message : copy.unavailable);
           comments={comments}
           postAuthorId={postAuthorId}
           currentUserId={user?.id}
-          currentUserRole={user?.role}
           onReply={handleAddReply}
           onLike={handleCommentLike}
           onUnlike={handleCommentUnlike}

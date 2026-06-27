@@ -359,7 +359,7 @@ const buildAnalyticsBreakdown = (
     })).filter((item) => item.value > 0);
   }
   if (widget.metric === 'paidSubscribers') {
-    return ['READER_PLUS', 'BACKER', 'NEWSROOM_PRO'].map((plan) => ({
+    return ['READER_PLUS'].map((plan) => ({
       label: formatChartLabel(plan),
       value: users.filter((account) => userPlan(account) === plan).length,
     }));
@@ -2333,7 +2333,7 @@ const AdminCharts: React.FC<{
     label: formatChartLabel(status),
     value: users.filter((account) => account.status === status).length,
   }));
-  const subscriptionData = ['FREE', 'READER_PLUS', 'BACKER', 'NEWSROOM_PRO'].map((plan) => ({
+  const subscriptionData = ['FREE', 'READER_PLUS'].map((plan) => ({
     label: formatChartLabel(plan),
     value: users.filter((account) => (account.subscriptionPlan || 'FREE') === plan).length,
   }));

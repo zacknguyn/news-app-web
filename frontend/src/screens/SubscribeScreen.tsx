@@ -27,47 +27,23 @@ const plans: Array<{
     name: { en: 'Free', vi: 'Miễn phí' },
     priceMonthly: 0,
     priceAnnual: 0,
-    position: { en: 'Public newsroom access', vi: 'Truy cập phòng tin công khai' },
-    bestFor: { en: 'Reading, voting, commenting, and saving basic reports.', vi: 'Đọc, bình chọn, bình luận và lưu các bài cơ bản.' },
+    position: { en: 'Read the public feed with basic tools', vi: 'Đọc feed công khai với công cụ cơ bản' },
+    bestFor: { en: 'Casual reading, comments, and trying Tourane News before upgrading.', vi: 'Đọc tin cơ bản, bình luận và dùng thử Tourane News trước khi nâng cấp.' },
     features: {
-      en: ['Front page access', 'Community discussion', 'Basic saved posts'],
-      vi: ['Truy cập trang chủ', 'Thảo luận cộng đồng', 'Lưu bài viết cơ bản'],
+      en: ['Ads included in the reading sidebar', '3 AI summaries per day', '5 saved highlights'],
+      vi: ['Có quảng cáo trong sidebar đọc bài', '3 AI summary mỗi ngày', 'Lưu tối đa 5 highlight'],
     },
   },
   {
     id: 'reader-plus',
     name: { en: 'Reader Plus', vi: 'Độc giả Plus' },
-    priceMonthly: 2,
-    priceAnnual: 20,
-    position: { en: 'Better signal, quieter reading', vi: 'Ít nhiễu hơn, đọc tập trung hơn' },
-    bestFor: { en: 'Readers who want advanced saves and contributor alerts.', vi: 'Độc giả muốn lưu nâng cao và nhận thông báo từ tác giả.' },
+    priceMonthly: 3,
+    priceAnnual: 30,
+    position: { en: 'Cleaner reading, faster understanding', vi: 'Đọc sạch hơn, hiểu nhanh hơn' },
+    bestFor: { en: 'Readers who use AI summaries, highlights, and notebooks as a daily research flow.', vi: 'Độc giả dùng AI summary, highlight và notebook như luồng nghiên cứu hằng ngày.' },
     features: {
-      en: ['Advanced saved library', 'Follow journalist alerts', 'Ad-free reading mode'],
-      vi: ['Thư viện đã lưu nâng cao', 'Theo dõi thông báo tác giả', 'Chế độ đọc không quảng cáo'],
-    },
-  },
-  {
-    id: 'backer',
-    name: { en: 'Backer', vi: 'Người ủng hộ' },
-    priceMonthly: 5,
-    priceAnnual: 50,
-    position: { en: 'Fund independent reporting', vi: 'Ủng hộ tin tức độc lập' },
-    bestFor: { en: 'Supporters who want deeper context and higher-signal discussion.', vi: 'Người muốn ngữ cảnh sâu hơn và thảo luận chất lượng hơn.' },
-    features: {
-      en: ['Everything in Reader Plus', 'Source notes on selected reports', 'Subscriber discussions', 'Support allocation'],
-      vi: ['Toàn bộ quyền lợi Độc giả Plus', 'Ghi chú nguồn ở bài chọn lọc', 'Thảo luận dành cho thành viên', 'Phân bổ khoản ủng hộ'],
-    },
-  },
-  {
-    id: 'newsroom-pro',
-    name: { en: 'Newsroom Pro', vi: 'Tòa soạn Pro' },
-    priceMonthly: 10,
-    priceAnnual: 100,
-    position: { en: 'Research and archive tools', vi: 'Công cụ nghiên cứu và lưu trữ' },
-    bestFor: { en: 'Power readers, researchers, and small editorial teams.', vi: 'Độc giả chuyên sâu, nhà nghiên cứu và nhóm biên tập nhỏ.' },
-    features: {
-      en: ['Shared saved folders', 'Export to Markdown/PDF', 'Research archive tools'],
-      vi: ['Thư mục lưu chia sẻ', 'Xuất Markdown/PDF', 'Công cụ lưu trữ nghiên cứu'],
+      en: ['Ad-free reading mode', 'AI summaries, key points, and TL;DR', 'Unlimited highlights with notebook export'],
+      vi: ['Chế độ đọc không quảng cáo', 'AI summary, key points và TL;DR', 'Highlight không giới hạn kèm export notebook'],
     },
   },
 ];
@@ -99,11 +75,11 @@ export const SubscribeScreen: React.FC = () => {
   const language = preferences.language;
   const isVi = language === 'vi';
   const copy = {
-    eyebrow: isVi ? 'Tin tức đã kiểm chứng' : 'Unrivaled intelligence',
-    title: isVi ? 'Nâng cấp trải nghiệm với gói thành viên' : 'Elevate Your Perspective with Premium Vetting',
+    eyebrow: isVi ? 'Gói thành viên Tourane News' : 'Tourane News Membership',
+    title: isVi ? 'Đọc sạch hơn. Hiểu nhanh hơn. Lưu tốt hơn.' : 'Read cleaner. Understand faster. Save better.',
     subtitle: isVi
-      ? 'Dành cho độc giả muốn kiểm chứng sâu hơn, nguồn tin tập trung hơn và công cụ nghiên cứu chuyên nghiệp.'
-      : 'Join informed decision-makers with deeper verification, focused intelligence feeds, and professional research tools.',
+      ? 'Reader Plus mở khóa trải nghiệm không quảng cáo, AI summary mạnh hơn và notebook highlight dành cho người đọc tin nghiêm túc.'
+      : 'Reader Plus unlocks ad-free reading, stronger AI summaries, and a highlight notebook for serious news readers.',
     monthly: isVi ? 'Hằng tháng' : 'Monthly',
     annual: isVi ? 'Hằng năm' : 'Annual',
     billingSaved: isVi ? 'Đã lưu chu kỳ thanh toán.' : 'Billing cadence saved.',
@@ -113,21 +89,22 @@ export const SubscribeScreen: React.FC = () => {
     currentPlan: isVi ? 'Gói hiện tại' : 'Current plan',
     useFree: isVi ? 'Dùng miễn phí' : 'Use free',
     checkout: isVi ? 'Thanh toán bằng Stripe' : 'Checkout with Stripe',
-    capabilities: isVi ? 'Khả năng kiểm chứng chi tiết' : 'Detailed Verification Capabilities',
-    capability: isVi ? 'Tính năng' : 'Capability',
-    sourceScore: isVi ? 'Điểm kiểm chứng nguồn' : 'Source verification score',
-    crossRef: isVi ? 'Liên kết đối chiếu nguồn' : 'Cross-reference mapping',
-    sharedFolders: isVi ? 'Thư mục nghiên cứu chia sẻ' : 'Shared research folders',
-    exports: isVi ? 'Xuất tài liệu nghiên cứu' : 'Research exports',
+    capabilities: isVi ? 'So sánh quyền lợi' : 'Plan comparison',
+    capability: isVi ? 'Quyền lợi' : 'Benefit',
+    ads: isVi ? 'Trải nghiệm quảng cáo' : 'Ads experience',
+    aiSummary: isVi ? 'AI Summary' : 'AI Summary',
+    highlights: isVi ? 'Highlight đã lưu' : 'Saved highlights',
+    notebook: isVi ? 'Notebook và export' : 'Notebook and export',
+    digest: isVi ? 'Digest cá nhân hóa' : 'Personalized digest',
+    search: isVi ? 'Search/filter nâng cao' : 'Advanced search/filter',
     basic: isVi ? 'Cơ bản' : 'Basic',
-    advanced: isVi ? 'Nâng cao' : 'Advanced',
-    realTime: isVi ? 'Thời gian thực' : 'Real-time',
+    unlimited: isVi ? 'Không giới hạn' : 'Unlimited',
     included: isVi ? 'Bao gồm' : 'Included',
-    selected: isVi ? 'Chọn lọc' : 'Selected',
-    securityTitle: isVi ? 'Bảo mật chuẩn doanh nghiệp' : 'Enterprise-grade security',
+    adFree: isVi ? 'Không quảng cáo' : 'Ad-free',
+    securityTitle: isVi ? 'Thanh toán an toàn' : 'Secure billing',
     securityBody: isVi
-      ? 'Thanh toán được xử lý bởi Stripe Checkout. Tourane News không thu thập hoặc lưu số thẻ của bạn. Dữ liệu tài khoản và mục đã lưu vẫn được bảo vệ bởi lớp bảo mật của ứng dụng.'
-      : 'Payments are handled by Stripe Checkout. Tourane News never collects or stores your card number. Saved research and account data remain protected by the application security layer.',
+      ? 'Thanh toán được xử lý bởi Stripe Checkout. Tourane News không thu thập hoặc lưu số thẻ của bạn. Highlight, notebook và dữ liệu tài khoản vẫn nằm trong lớp bảo mật của ứng dụng.'
+      : 'Payments are handled by Stripe Checkout. Tourane News never collects or stores your card number. Highlights, notebooks, and account data remain protected by the application security layer.',
     securityFooter: isVi ? 'Bảo vệ bởi Stripe + Tourane' : 'Secured by Stripe + Tourane',
     secureCheckout: isVi ? 'Thanh toán an toàn' : 'Secure checkout',
     billing: isVi ? 'Chu kỳ' : 'Billing',
@@ -137,7 +114,7 @@ export const SubscribeScreen: React.FC = () => {
     yr: isVi ? 'năm' : 'yr',
     mo: isVi ? 'tháng' : 'mo',
     saveAnnual: (amount: number) => isVi ? `Tiết kiệm $${amount} khi thanh toán hằng năm.` : `Save $${amount} with annual billing.`,
-    choosePaid: isVi ? 'Chọn một gói trả phí ở trên để tiếp tục tới Stripe Checkout.' : 'Choose a paid plan above to continue to Stripe Checkout.',
+    choosePaid: isVi ? 'Chọn Reader Plus ở trên để tiếp tục tới Stripe Checkout.' : 'Choose Reader Plus above to continue to Stripe Checkout.',
     subscribeTo: (name: string) => isVi ? `Đăng ký ${name}` : `Subscribe to ${name}`,
     manageBilling: isVi ? 'Quản lý thanh toán hiện có' : 'Manage existing billing',
     openingPortal: isVi ? 'Đang mở cổng thanh toán...' : 'Opening portal...',
@@ -272,10 +249,10 @@ export const SubscribeScreen: React.FC = () => {
         </div>
       </header>
 
-      <section className="mb-24 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <section className="mx-auto mb-24 grid max-w-4xl gap-6 md:grid-cols-2">
         {plans.map((plan) => {
           const selected = preferences.subscriptionPlan === plan.id;
-          const featured = plan.id === 'backer';
+          const featured = plan.id === 'reader-plus';
           const price = isAnnual ? plan.priceAnnual : plan.priceMonthly;
           return <article key={plan.id} className={`relative flex flex-col rounded-3xl border bg-app-surface p-7 shadow-[var(--shadow-subtle)] transition-transform hover:-translate-y-1 ${featured ? 'border-2 border-app-action shadow-[0_0_24px_var(--color-app-action-soft)]' : 'border-app-border'}`}>
             {featured && <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-app-action px-4 py-1 font-mono text-[9px] font-bold uppercase tracking-widest text-app-on-action">{copy.mostPopular}</span>}
@@ -289,11 +266,13 @@ export const SubscribeScreen: React.FC = () => {
 
       <section className="mb-24">
         <h2 className="mb-10 text-center text-2xl font-semibold text-app-heading">{copy.capabilities}</h2>
-        <div className="overflow-x-auto rounded-2xl border border-app-border bg-app-surface"><table className="min-w-[720px] w-full text-left text-sm"><thead><tr className="border-b border-app-border font-mono text-[10px] uppercase tracking-widest text-app-muted"><th className="px-5 py-5">{copy.capability}</th><th className="px-5 py-5">{plans[0].name[language]}</th><th className="px-5 py-5">{plans[1].name[language]}</th><th className="px-5 py-5 text-app-action">{plans[2].name[language]}</th><th className="px-5 py-5">{plans[3].name[language]}</th></tr></thead><tbody className="divide-y divide-app-border">
-          <CompareRow label={copy.sourceScore} values={['-', copy.basic, copy.advanced, copy.advanced]} />
-          <CompareRow label={copy.crossRef} values={['-', copy.basic, copy.advanced, copy.realTime]} />
-          <CompareRow label={copy.sharedFolders} values={['-', '-', '-', copy.included]} />
-          <CompareRow label={copy.exports} values={['-', '-', copy.selected, 'Markdown / PDF']} />
+        <div className="overflow-x-auto rounded-2xl border border-app-border bg-app-surface"><table className="min-w-[640px] w-full text-left text-sm"><thead><tr className="border-b border-app-border font-mono text-[10px] uppercase tracking-widest text-app-muted"><th className="px-5 py-5">{copy.capability}</th><th className="px-5 py-5">{plans[0].name[language]}</th><th className="px-5 py-5 text-app-action">{plans[1].name[language]}</th></tr></thead><tbody className="divide-y divide-app-border">
+          <CompareRow label={copy.ads} values={[copy.included, copy.adFree]} />
+          <CompareRow label={copy.aiSummary} values={['3 / day', 'AI Summary + Key points + TL;DR']} />
+          <CompareRow label={copy.highlights} values={['5', copy.unlimited]} />
+          <CompareRow label={copy.notebook} values={[copy.basic, 'Markdown / PDF']} />
+          <CompareRow label={copy.digest} values={['-', copy.included]} />
+          <CompareRow label={copy.search} values={[copy.basic, copy.included]} />
         </tbody></table></div>
       </section>
 
@@ -315,7 +294,7 @@ const CompareRow: React.FC<{ label: string; values: string[] }> = ({ label, valu
   <tr>
     <td className="px-5 py-5 font-semibold text-app-heading">{label}</td>
     {values.map((value, index) => (
-      <td key={label + index} className={index === 2 ? 'px-5 py-5 font-semibold text-app-action' : 'px-5 py-5 text-app-muted'}>
+      <td key={label + index} className={index === 1 ? 'px-5 py-5 font-semibold text-app-action' : 'px-5 py-5 text-app-muted'}>
         {value === '-' ? <Minus className="h-4 w-4 text-app-faint" /> : value}
       </td>
     ))}

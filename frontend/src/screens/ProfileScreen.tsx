@@ -338,6 +338,10 @@ export const ProfileScreen: React.FC = () => {
   const canUseTags = entitlements.includes('PROFILE_TAGS');
   const canUseBadges = entitlements.includes('PROFILE_BADGES');
   const canUseAccent = entitlements.includes('CUSTOM_PROFILE_ACCENT');
+  const badgeOptions = useMemo(
+    () => Array.from(new Set((profileUser?.unlockedBadges || []).map((badge) => badge.trim()).filter(Boolean))),
+    [profileUser?.unlockedBadges],
+  );
   const effectiveProfileAccent =
     isOwnProfile && isSettingsOpen ? profileDraft.profileAccent : profileUser?.profileAccent;
   const accentClass = profileAccentClasses[effectiveProfileAccent || ''] || defaultAccentClass;
@@ -792,14 +796,14 @@ export const ProfileScreen: React.FC = () => {
                 >
                   <select
                     value={profileDraft.selectedBadge}
-                    disabled={!canUseBadges || !profileUser.unlockedBadges?.length}
+                    disabled={!canUseBadges || !badgeOptions.length}
                     onChange={(event) =>
                       setProfileDraft((current) => ({ ...current, selectedBadge: event.target.value }))
                     }
                     className="h-10 w-full border border-app-border bg-app-surface-alt px-3 text-xs font-semibold text-app-text rounded-lg disabled:opacity-45"
                   >
                     <option value="">{copy.noBadge}</option>
-                    {(profileUser.unlockedBadges || []).map((badge) => (
+                    {badgeOptions.map((badge) => (
                       <option key={badge} value={badge}>
                         {badge}
                       </option>
@@ -808,7 +812,7 @@ export const ProfileScreen: React.FC = () => {
                 </UnlockRow>
                 <UnlockRow
                   title={copy.profileAccent}
-                  copy={canUseAccent ? 'Restrained accent preset.' : 'Unlock with Backer or Newsroom Pro.'}
+                  copy={canUseAccent ? 'Restrained accent preset.' : 'Unlock with Reader Plus.'}
                   helper="Profile accents change the visible framing, badge treatment, and avatar outline on your public profile."
                   locked={!canUseAccent}
                 >
@@ -851,7 +855,7 @@ export const ProfileScreen: React.FC = () => {
                           aria-disabled={isLocked}
                           onClick={() => {
                             if (isLocked) {
-                            toast.info(isVi ? 'Màu nhấn hồ sơ mở khóa với Backer hoặc Newsroom Pro.' : 'Profile accents unlock with Backer or Newsroom Pro.');
+                            toast.info(isVi ? 'Màu nhấn hồ sơ mở khóa với Reader Plus.' : 'Profile accents unlock with Reader Plus.');
                               return;
                             }
                             setProfileDraft((current) => ({ ...current, profileAccent: option.value }));

@@ -13,7 +13,7 @@ import { addImageCaptions, isRichHtml, stripHtml } from '../lib/richContent';
 import { useAuth } from '../context/AuthContext';
 import { clearProgress } from '../lib/readingProgress';
 import { getProfilePath } from '../lib/profileLinks';
-import { getHighlightsForPost, saveHighlight, type SavedHighlight } from '../lib/highlights';
+import { getHighlights, getHighlightsForPost, saveHighlight, type SavedHighlight } from '../lib/highlights';
 import { addRecentPost } from '../lib/recentlyViewed';
 import { readAppPreferences, subscribeAppPreferences } from '../lib/appPreferences';
 import { isVietnamese, useAppLanguage } from '../lib/useAppLanguage';
@@ -36,6 +36,12 @@ type SelectionMenu = {
 };
 
 const SELECTION_MENU_WIDTH = 280;
+
+const getFallbackRelatedPosts = (currentPost: Post): Post[] => {
+  return MOCK_POSTS
+    .filter((candidate) => candidate.id !== currentPost.id)
+    .slice(0, 4);
+};
 
 const applyHighlightsToHtml = (htmlContent: string, highlights: SavedHighlight[]): string => {
   if (!highlights || highlights.length === 0) return htmlContent;
@@ -142,6 +148,7 @@ export const PostDetailScreen: React.FC = () => {
         savePostFailed: 'Không thể cập nhật bài viết đã lưu.',
         highlightSaved: 'Đã lưu highlight vào sổ tay riêng.',
         highlightFailed: 'Lưu highlight thất bại.',
+        highlightLimit: 'Gói miễn phí lưu tối đa 5 highlight. Nâng cấp Reader Plus để lưu không giới hạn.',
         noSummary: 'Không có tóm tắt trả về.',
         summaryGenerated: 'Đã tạo tóm tắt AI.',
         summaryFailed: 'Không thể tạo tóm tắt.',
@@ -193,6 +200,7 @@ export const PostDetailScreen: React.FC = () => {
         savePostFailed: 'Unable to update saved post.',
         highlightSaved: 'Highlight saved to private notebook.',
         highlightFailed: 'Highlight failed.',
+        highlightLimit: 'Free accounts can save up to 5 highlights. Upgrade to Reader Plus for unlimited highlights.',
         noSummary: 'No summary returned.',
         summaryGenerated: 'AI summary generated.',
         summaryFailed: 'Unable to generate summary.',
@@ -230,6 +238,11 @@ export const PostDetailScreen: React.FC = () => {
         translating: 'Translating article...',
         translationFailed: 'Unable to translate this article. Showing the original.',
       };
+  const isReaderPlus = preferences.subscriptionPlan === 'reader-plus';
+  const visibleSidebarAd = React.useMemo(() => {
+    if (isReaderPlus || sidebarAds.length === 0) return null;
+    return sidebarAds[Math.floor(Math.random() * sidebarAds.length)] ?? null;
+  }, [isReaderPlus, post?.id, sidebarAds]);
 
   useEffect(() => subscribeAppPreferences(setPreferences), []);
 
@@ -288,16 +301,58 @@ export const PostDetailScreen: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!post || post.id.startsWith('article-')) {
+    if (!post) {
       setRelatedPosts([]);
       return;
     }
     let active = true;
-    backendApi.getRelatedPosts(post.id).then((result) => {
-      if (active) setRelatedPosts(result.map(backendPostToPost));
-    }).catch(() => {
-      if (active) setRelatedPosts([]);
-    });
+    setRelatedPosts(getFallbackRelatedPosts(post));
+
+    const loadRelatedPosts = async () => {
+      if (!post.id.startsWith('article-')) {
+        try {
+          const related = await backendApi.getRelatedPosts(post.id, 4);
+          if (related.length > 0) {
+            if (active) setRelatedPosts(related.map(backendPostToPost));
+            return;
+          }
+        } catch {
+          // Keep the local fallback when backend recommendations are unavailable.
+        }
+      }
+
+      try {
+        const articles = await backendApi.getRecommendedArticles();
+        const articlePosts = articles
+          .map(backendArticleToPost)
+          .filter((item) => item.id !== post.id)
+          .slice(0, 4);
+        if (articlePosts.length > 0) {
+          if (active) setRelatedPosts(articlePosts);
+          return;
+        }
+      } catch {
+        // Try the next source before falling back to bundled posts.
+      }
+
+      try {
+        const hotPosts = await backendApi.getHotPosts(0, 6, 'new');
+        const hotRelatedPosts = (hotPosts.content || [])
+          .map(backendPostToPost)
+          .filter((item) => item.id !== post.id)
+          .slice(0, 4);
+        if (hotRelatedPosts.length > 0) {
+          if (active) setRelatedPosts(hotRelatedPosts);
+          return;
+        }
+      } catch {
+        // Keep the local fallback.
+      }
+
+      if (active) setRelatedPosts(getFallbackRelatedPosts(post));
+    };
+
+    loadRelatedPosts();
     return () => { active = false; };
   }, [post?.id]);
 
@@ -558,6 +613,13 @@ export const PostDetailScreen: React.FC = () => {
   const handleSaveHighlight = async () => {
     if (!selectionMenu) return;
     try {
+      if (!isReaderPlus) {
+        const allHighlights = await getHighlights();
+        if (allHighlights.length >= 5) {
+          toast.info(copy.highlightLimit);
+          return;
+        }
+      }
       const created = await saveHighlight(post, selectionMenu.text, {
         start: selectionMenu.start,
         end: selectionMenu.end,
@@ -865,17 +927,16 @@ export const PostDetailScreen: React.FC = () => {
           )}
 
           {/* Right Column: AI Copilot — Desktop always expanded */}
-          <aside className="hidden lg:block sticky top-24 h-[calc(100vh-120px)] w-[340px] shrink-0">
+          <aside className="hidden lg:block sticky top-24 h-[calc(100vh-120px)] w-[420px] shrink-0">
             <div className="bg-app-surface-alt border border-app-border rounded-2xl flex flex-col h-full shadow-sm overflow-hidden">
               <PostDetailSidebar
                 activeSummary={activeSummary}
                 isSummaryLoading={isSummaryLoading}
                 onGenerateSummary={handleGenerateSummary}
-                ad={sidebarAds[0] ?? null}
+                ad={visibleSidebarAd}
                 highlights={savedHighlights}
                 relatedPosts={relatedPosts}
                 strings={{
-                  aiCopilot: copy.aiCopilot,
                   aiSummary: copy.aiSummary,
                   generate: copy.generate,
                   summarizing: copy.summarizing,
@@ -892,16 +953,12 @@ export const PostDetailScreen: React.FC = () => {
 
           {/* Mobile: slide-in drawer */}
           <aside
-            className={`lg:hidden fixed inset-y-0 right-0 z-50 w-[85vw] max-w-[340px] transition-transform duration-300 ease-in-out ${
+            className={`lg:hidden fixed inset-y-0 right-0 z-50 w-[90vw] max-w-[400px] transition-transform duration-300 ease-in-out ${
               isAiCollapsed ? 'translate-x-full' : 'translate-x-0'
             }`}
           >
             <div className="bg-app-surface-alt border-l border-app-border flex flex-col h-full shadow-sm overflow-hidden">
-              <div className="p-4 border-b border-app-border flex justify-between items-center bg-app-surface/80 shrink-0">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="text-app-action h-[18px] w-[18px]" />
-                  <span className="font-sans text-sm font-bold text-app-heading uppercase tracking-widest">{copy.aiCopilot}</span>
-                </div>
+              <div className="p-3 border-b border-app-border flex justify-end items-center bg-app-surface/80 shrink-0">
                 <button
                   onClick={() => setIsAiCollapsed(true)}
                   className="p-1 hover:bg-app-surface-alt rounded-md transition-all text-app-muted hover:text-app-heading"
@@ -914,11 +971,10 @@ export const PostDetailScreen: React.FC = () => {
                 activeSummary={activeSummary}
                 isSummaryLoading={isSummaryLoading}
                 onGenerateSummary={handleGenerateSummary}
-                ad={sidebarAds[0] ?? null}
+                ad={visibleSidebarAd}
                 highlights={savedHighlights}
                 relatedPosts={relatedPosts}
                 strings={{
-                  aiCopilot: copy.aiCopilot,
                   aiSummary: copy.aiSummary,
                   generate: copy.generate,
                   summarizing: copy.summarizing,

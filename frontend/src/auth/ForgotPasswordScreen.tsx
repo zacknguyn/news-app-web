@@ -21,7 +21,6 @@ export const ForgotPasswordScreen: React.FC = () => {
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -39,7 +38,6 @@ export const ForgotPasswordScreen: React.FC = () => {
 
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError('');
     setIsSubmitting(true);
     try {
       await backendApi.forgotPassword(email);
@@ -53,7 +51,6 @@ export const ForgotPasswordScreen: React.FC = () => {
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError('');
     if (newPassword.length < 5) {
       toast.error('Password must be at least 5 characters.');
       return;

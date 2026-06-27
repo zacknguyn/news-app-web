@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Loader2, CheckCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import { Field, Input } from '../components/ui/Input';
@@ -156,9 +156,7 @@ export const LoginScreen: React.FC = () => {
               <header className="auth-reveal mb-10 border-b-2 border-[var(--color-app-heading)] pb-6">
                 <h2 className="mb-2 text-2xl font-semibold leading-[1.2] text-app-heading">Sign In</h2>
                 <p className="text-sm leading-6 text-[var(--color-app-muted)]">
-                  Use your account email and password. Seed admin:{' '}
-                  <code className="text-[var(--color-app-action)]">admin@gmail.com</code> /{' '}
-                  <code className="text-[var(--color-app-action)]">12345</code>.
+                  Use your account email and password.
                 </p>
               </header>
 
@@ -173,7 +171,7 @@ export const LoginScreen: React.FC = () => {
                     id="login-email"
                     type="email"
                     autoComplete="email"
-                    placeholder="admin@gmail.com"
+                    placeholder="you@example.com"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}

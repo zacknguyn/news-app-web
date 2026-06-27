@@ -10,7 +10,7 @@ export type AppPreferences = {
   motion: 'system' | 'reduced';
   trustAlerts: boolean;
   newsletter: 'daily' | 'weekly' | 'none';
-  subscriptionPlan: 'free' | 'reader-plus' | 'backer' | 'newsroom-pro';
+  subscriptionPlan: 'free' | 'reader-plus';
   billingCadence: 'monthly' | 'annual';
 };
 
@@ -31,10 +31,12 @@ const normalizeAppPreferences = (preferences: Partial<AppPreferences>): AppPrefe
   const next = { ...DEFAULT_APP_PREFERENCES, ...preferences } as AppPreferences;
   const legacyPlanMap: Record<string, AppPreferences['subscriptionPlan']> = {
     reader: 'reader-plus',
-    supporter: 'backer',
-    newsroom: 'newsroom-pro',
+    supporter: 'reader-plus',
+    newsroom: 'reader-plus',
+    backer: 'reader-plus',
+    'newsroom-pro': 'reader-plus',
   };
-  const validPlans: AppPreferences['subscriptionPlan'][] = ['free', 'reader-plus', 'backer', 'newsroom-pro'];
+  const validPlans: AppPreferences['subscriptionPlan'][] = ['free', 'reader-plus'];
   const plan = legacyPlanMap[String(next.subscriptionPlan)] || next.subscriptionPlan;
 
   return {

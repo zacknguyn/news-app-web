@@ -14,7 +14,6 @@ interface CommentProps {
   depth?: number;
   postAuthorId?: string;
   currentUserId?: string;
-  currentUserRole?: string;
   onReply: (parentId: string, content: string) => void;
   onLike?: (commentId: string) => Promise<number | null> | number | null;
   onUnlike?: (commentId: string) => Promise<number | null> | number | null;
@@ -43,7 +42,7 @@ function countReplies(comment: CommentType): number {
 
 const TREE_INDENT = 24;
 
-const CommentNode = React.memo<CommentProps>(({ comment, depth = 0, postAuthorId, currentUserId, currentUserRole, onReply, onLike, onUnlike, onDelete }) => {
+const CommentNode = React.memo<CommentProps>(({ comment, depth = 0, postAuthorId, currentUserId, onReply, onLike, onUnlike, onDelete }) => {
   const language = useAppLanguage();
   const isVi = isVietnamese(language);
   const [showReplies, setShowReplies] = useState(true);
@@ -59,7 +58,9 @@ const CommentNode = React.memo<CommentProps>(({ comment, depth = 0, postAuthorId
   const [translatedContent, setTranslatedContent] = useState<string | null>(null);
   const [translatedQuote, setTranslatedQuote] = useState<string | null>(null);
 
-  const canDelete = onDelete && (currentUserRole === 'ADMIN' || comment.author.id === currentUserId);
+  const canDelete = Boolean(onDelete && currentUserId && comment.author.id === currentUserId);
+  const displayName = comment.author.name || comment.author.username;
+  const avatarInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
 
   const handleDeleteComment = async () => {
     if (!onDelete || isDeletingComment) return;
@@ -103,9 +104,6 @@ const CommentNode = React.memo<CommentProps>(({ comment, depth = 0, postAuthorId
     ? {
         op: 'Tác giả',
         reply: 'Trả lời',
-        share: 'Chia sẻ',
-        save: 'Lưu',
-        report: 'Báo cáo',
         delete: 'Xóa',
         deleting: 'Đang xóa',
         confirm: 'Xác nhận',
@@ -125,9 +123,6 @@ const CommentNode = React.memo<CommentProps>(({ comment, depth = 0, postAuthorId
     : {
         op: 'OP',
         reply: 'Reply',
-        share: 'Share',
-        save: 'Save',
-        report: 'Report',
         delete: 'Delete',
         deleting: 'Deleting',
         confirm: 'Confirm',
@@ -192,32 +187,37 @@ const CommentNode = React.memo<CommentProps>(({ comment, depth = 0, postAuthorId
     >
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-xs leading-5 text-app-muted">
+          <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm leading-5">
             <Link
               to={getProfilePath(comment.author)}
-              className={cn('hover:text-app-action hover:underline', isOP ? 'text-app-action' : 'text-app-heading')}
+              className={cn(
+                'inline-flex items-center gap-2 font-sans font-semibold transition-colors hover:text-app-action',
+                isOP ? 'text-app-action' : 'text-app-heading',
+              )}
             >
-              @{comment.author.username}
+              {comment.author.avatarUrl ? (
+                <img
+                  src={comment.author.avatarUrl}
+                  alt=""
+                  className="size-8 rounded-full border border-app-border object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <span className="inline-flex size-8 items-center justify-center rounded-full border border-app-border bg-app-action-soft text-xs text-app-action">
+                  {avatarInitial}
+                </span>
+              )}
+              <span>{displayName}</span>
             </Link>
-            {isOP && <span className="text-app-action">{copy.op}</span>}
-            <span>{timeAgo(comment.createdAt)}</span>
-            <span className="tabular-nums">{displayLikes}</span>
-            <button type="button" onClick={() => setIsReplying(true)} className="hover:text-app-action">
+            {isOP && <span className="font-mono text-[11px] uppercase tracking-wider text-app-action">{copy.op}</span>}
+            <span className="font-mono text-xs text-app-muted">{timeAgo(comment.createdAt)}</span>
+            <button type="button" onClick={() => setIsReplying(true)} className="font-mono text-xs text-app-muted hover:text-app-action">
               {copy.reply}
-            </button>
-            <button type="button" className="hover:text-app-action">
-              {copy.share}
-            </button>
-            <button type="button" className="hover:text-app-action">
-              {copy.save}
-            </button>
-            <button type="button" className="hover:text-app-action">
-              {copy.report}
             </button>
             <button
               type="button"
               onClick={handleToggleTranslate}
-              className="hover:text-app-action text-app-action font-semibold"
+              className="font-mono text-xs font-semibold text-app-action hover:text-app-action"
               disabled={isTranslating}
             >
               {isTranslating ? copy.translating : (isTranslated ? copy.original : copy.translate)}
@@ -226,7 +226,7 @@ const CommentNode = React.memo<CommentProps>(({ comment, depth = 0, postAuthorId
               <button
                 type="button"
                 onClick={() => setConfirmDeleteComment(true)}
-                className="text-app-action hover:underline"
+                className="font-mono text-xs text-app-action hover:underline"
               >
                 {copy.delete}
               </button>
@@ -237,14 +237,14 @@ const CommentNode = React.memo<CommentProps>(({ comment, depth = 0, postAuthorId
                   type="button"
                   onClick={handleDeleteComment}
                   disabled={isDeletingComment}
-                  className="text-app-action hover:underline disabled:opacity-40"
+                  className="font-mono text-xs text-app-action hover:underline disabled:opacity-40"
                 >
                   {isDeletingComment ? copy.deleting : copy.confirm}
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmDeleteComment(false)}
-                  className="hover:text-app-action"
+                  className="font-mono text-xs text-app-muted hover:text-app-action"
                 >
                   {copy.cancel}
                 </button>
@@ -335,7 +335,6 @@ const CommentNode = React.memo<CommentProps>(({ comment, depth = 0, postAuthorId
                   depth={depth + 1}
                   postAuthorId={postAuthorId}
                   currentUserId={currentUserId}
-                  currentUserRole={currentUserRole}
                   onReply={onReply}
                   onLike={onLike}
                   onUnlike={onUnlike}
@@ -354,14 +353,13 @@ interface CommentTreeProps {
   comments: CommentType[];
   postAuthorId?: string;
   currentUserId?: string;
-  currentUserRole?: string;
   onReply: (parentId: string, content: string) => void;
   onLike?: (commentId: string) => Promise<number | null> | number | null;
   onUnlike?: (commentId: string) => Promise<number | null> | number | null;
   onDelete?: (commentId: string) => Promise<void>;
 }
 
-export const CommentTree: React.FC<CommentTreeProps> = ({ comments, postAuthorId, currentUserId, currentUserRole, onReply, onLike, onUnlike, onDelete }) => {
+export const CommentTree: React.FC<CommentTreeProps> = ({ comments, postAuthorId, currentUserId, onReply, onLike, onUnlike, onDelete }) => {
   return (
     <div className="space-y-6">
       {comments.map((comment) => (
@@ -370,7 +368,6 @@ export const CommentTree: React.FC<CommentTreeProps> = ({ comments, postAuthorId
           comment={comment}
           postAuthorId={postAuthorId}
           currentUserId={currentUserId}
-          currentUserRole={currentUserRole}
           onReply={onReply}
           onLike={onLike}
           onUnlike={onUnlike}

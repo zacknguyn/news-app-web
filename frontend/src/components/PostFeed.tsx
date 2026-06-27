@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Bookmark, Lock, Plus, RefreshCw, UserPlus, Users, X } from 'lucide-react';
@@ -16,6 +16,15 @@ import type { Channel, Post } from '../types';
 
 const HOME_FEED_PAGE_SIZE = 20;
 const LOAD_MORE_PAGE_SIZE = 12;
+
+const shuffleItems = <T,>(items: T[]) => {
+  const next = [...items];
+  for (let index = next.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
+  }
+  return next;
+};
 
 const sortTabs = ['Hot', 'New', 'Top', 'Controversial', 'Rising'];
 const sortTabLabels: Record<string, { en: string; vi: string }> = {
@@ -148,6 +157,21 @@ export const PostFeed: React.FC = () => {
 
   const activeChannel = slug ? channels.find((channel) => channel.slug === slug || channel.id === slug) || null : null;
   const visibleProgress = progress && progress.progress < 98 ? progress : null;
+  const showAds = preferences.subscriptionPlan !== 'reader-plus';
+  const adSlots = useMemo(() => {
+    const slots = new Map<number, BackendAdCampaignDTO>();
+    if (!showAds || posts.length === 0 || ads.length === 0) return slots;
+
+    const shuffledAds = shuffleItems(ads);
+    let adIndex = 0;
+
+    for (let slot = 2; slot < posts.length; slot += 3) {
+      slots.set(slot, shuffledAds[adIndex % shuffledAds.length]);
+      adIndex += 1;
+    }
+
+    return slots;
+  }, [activeSort, ads, posts.length, retryKey, showAds, slug]);
 
   useEffect(() => {
     setFocusedIndex(-1);
@@ -710,8 +734,8 @@ export const PostFeed: React.FC = () => {
                         <PostCard post={post} currentUserId={auth.user?.id} onVote={handleVote} onDelete={handleDeletePost} />
                       </div>
                     );
-                    if (ads.length > 0 && (index + 1) % 4 === 0) {
-                      const ad = ads[(Math.floor((index + 1) / 4) - 1) % ads.length];
+                    const ad = adSlots.get(index);
+                    if (ad) {
                       items.push(
                         <div key={`ad-${index}`} className="animate-fade-up">
                           <AdCard ad={ad} compact />
